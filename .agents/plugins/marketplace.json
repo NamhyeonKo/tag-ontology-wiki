@@ -1,0 +1,20 @@
+{
+  "name": "tag-ontology-wiki",
+  "interface": {
+    "displayName": "Tag Ontology for Wiki"
+  },
+  "plugins": [
+    {
+      "name": "tow",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

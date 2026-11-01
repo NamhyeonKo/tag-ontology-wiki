@@ -1,6 +1,6 @@
 # TOW — Tag Ontology for Wiki
 
-A Claude Code plugin for running a tag-first LLM wiki in Obsidian.
+Plugins for Claude Code, Codex, and Google Antigravity to run a tag-first LLM wiki in Obsidian.
 
 [한국어](README.ko.md)
 
@@ -23,7 +23,7 @@ Dictionary validation, queries, edits, and note parsing come from the [`tag-onto
 tag-ontology (npm CLI)    dictionary checks, queries, edits, note parsing
       ▲  npx tag-ontology … --json
 tow (this plugin)         vault convention checks, skills
-      ▲  /plugin install
+      ▲  Claude Code / Codex / Antigravity
 your Obsidian vault
 ```
 
@@ -31,18 +31,22 @@ your Obsidian vault
 
 | Skill | Purpose |
 | --- | --- |
-| `tow:tow-check` | Check notes against the vault conventions and the tag dictionary |
-| `tow:tow-tag-sync` | Reconcile the tags used in notes with the tag dictionary |
-| `tow:tow-tag-suggest` | Suggest concept tags for a note; attach only the ones you pick |
-| `tow:tow-query` | Find notes by category, concept tag, or both (read-only) |
+| `tow-check` | Check notes against the vault conventions and the tag dictionary |
+| `tow-tag-sync` | Reconcile the tags used in notes with the tag dictionary |
+| `tow-tag-suggest` | Suggest concept tags for a note; attach only the ones you pick |
+| `tow-query` | Find notes by category, concept tag, or both (read-only) |
+
+All three hosts share these skills, the conventions, and the CLI. In Claude Code, invoke `/tow:tow-query`; in Codex, select `tow-query` with `$` or `/skills`; in Antigravity, invoke `/tow-query`.
 
 ## Requirements
 
-- Claude Code
+- Claude Code, Codex, or Google Antigravity with plugin support
 - Node.js 22.18 or later, for the `tag-ontology` CLI
 - Python 3.10 or later (standard library only)
 
 ## Install
+
+### Claude Code
 
 ```text
 /plugin install tow --marketplace NamhyeonKo/tag-ontology-wiki
@@ -53,6 +57,23 @@ On Claude Code older than 2.1.275:
 ```text
 /plugin marketplace add NamhyeonKo/tag-ontology-wiki
 /plugin install tow@tag-ontology-wiki
+```
+
+### Codex
+
+Run in your shell:
+
+```bash
+codex plugin marketplace add NamhyeonKo/tag-ontology-wiki --ref main
+codex plugin add tow@tag-ontology-wiki
+```
+
+### Antigravity
+
+Run in your shell, then start a new Antigravity session:
+
+```bash
+agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 ```
 
 ## Development

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "tow",
+  "version": "0.1.0",
+  "description": "Tag Ontology for Wiki: skills for a tag-first LLM wiki in Obsidian (PARA, classification fields, concept tag ontology).",
+  "author": {
+    "name": "NamhyeonKo",
+    "url": "https://github.com/NamhyeonKo"
+  },
+  "homepage": "https://github.com/NamhyeonKo/tag-ontology-wiki",
+  "repository": "https://github.com/NamhyeonKo/tag-ontology-wiki",
+  "license": "MIT",
+  "keywords": ["obsidian", "llm-wiki", "tags", "ontology", "para", "knowledge-management"]
+}
