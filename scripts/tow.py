@@ -8,7 +8,7 @@
   tow.py [--root DIR] ontology CMD [ARG...]  run the tag-ontology CLI with the vault's settings
 
 Notes are read through `tag-ontology scan --json`; this script never parses Markdown itself.
-Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.1).
+Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.1.2).
 """
 
 from __future__ import annotations
@@ -52,8 +52,8 @@ CATEGORY_VALUE: Final = re.compile(r"^(?:- |### )`([^`]+)`")
 NOTE_COMMANDS: Final = frozenset({"scan", "usage", "show"})
 PATH_COMMANDS: Final = frozenset({"scan", "usage"})
 VALUE_OPTIONS: Final = frozenset({"--root", "--dictionary", "--exclude", "--names", "--base"})
-# tag-ontology 0.1.x speaks schemaVersion 1 of the CLI contract; move to a new minor version deliberately.
-DEFAULT_CLI: Final = "npx --yes tag-ontology@0.1"
+# Public plugin directories require an exact version for downloaded executables.
+DEFAULT_CLI: Final = "npx --yes tag-ontology@0.1.2"
 
 
 class Heading(TypedDict):

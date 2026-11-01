@@ -2,18 +2,44 @@ import json
 import os
 import re
 import shutil
+import struct
 import subprocess
 from pathlib import Path
+
+import tow
 
 ROOT = Path(__file__).parents[1]
 
 
 def test_hosts_share_the_same_package_identity() -> None:
     portable = json.loads((ROOT / "plugin.json").read_text())
-    claude = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
-    for key in ("name", "version", "author", "repository", "license"):
-        assert portable[key] == claude[key]
+    for name in (".claude-plugin", ".antigravity-plugin"):
+        manifest = json.loads((ROOT / name / "plugin.json").read_text())
+        for key in ("name", "version", "author", "repository", "license"):
+            assert portable[key] == manifest[key]
     assert len(list((ROOT / "skills").glob("*/SKILL.md"))) == 4
+
+
+def test_distribution_declares_local_execution_and_bundles_a_valid_icon() -> None:
+    portable = json.loads((ROOT / "plugin.json").read_text())
+    openai = portable["extensions"]["com.openai"]
+    assert openai["requires_local_executor"] is True
+    interface = openai["interface"]
+    assert 0 < len(interface["displayName"]) <= 30
+    assert 0 < len(interface["shortDescription"]) <= 30
+    assert interface["longDescription"] and interface["developerName"]
+    assert interface["logo"] == interface["composerIcon"]
+    image = (ROOT / interface["logo"]).read_bytes()
+    assert image[:8] == b"\x89PNG\r\n\x1a\n"
+    width, height = struct.unpack(">II", image[16:24])
+    assert width == height and 512 <= width <= 2048 and len(image) < 2 * 1024 * 1024
+    for name, key in ((".claude-plugin", "icon"), (".antigravity-plugin", "logo")):
+        manifest = json.loads((ROOT / name / "plugin.json").read_text())
+        assert (ROOT / manifest[key]).read_bytes() == image
+
+
+def test_distribution_pins_an_exact_published_cli_version() -> None:
+    assert re.fullmatch(r"npx --yes tag-ontology@\d+\.\d+\.\d+", tow.DEFAULT_CLI)
 
 
 def test_codex_marketplace_points_at_the_complete_package() -> None:
@@ -30,7 +56,7 @@ def test_relocated_package_keeps_references_and_executable_without_host_variable
     package = tmp_path / "installed plugin with spaces"
     package.mkdir()
     shutil.copy2(ROOT / "plugin.json", package / "plugin.json")
-    for name in ("skills", "docs", "scripts"):
+    for name in ("skills", "docs", "scripts", "assets"):
         shutil.copytree(ROOT / name, package / name, ignore=shutil.ignore_patterns("__pycache__"))
     for document in (package / "skills").rglob("*.md"):
         for href in re.findall(r"\[[^\]]+\]\(([^)]+)\)", document.read_text()):
