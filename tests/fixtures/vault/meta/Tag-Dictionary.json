@@ -1,0 +1,7 @@
+{
+  "bm25": {"description": "A lexical ranking function based on term frequency and document length.", "aliases": [], "broader": ["information-retrieval"]},
+  "chunking": {"description": "Splitting source material into units for retrieval.", "aliases": [], "broader": ["information-retrieval"]},
+  "inbox": {"description": "A temporary collection of material awaiting classification.", "aliases": [], "broader": []},
+  "information-retrieval": {"description": "Finding material relevant to an information need.", "aliases": ["Retrieval"], "broader": []},
+  "rag": {"description": "Generating an answer using retrieved supporting material.", "aliases": ["retrieval-augmented-generation"], "broader": ["information-retrieval"]}
+}

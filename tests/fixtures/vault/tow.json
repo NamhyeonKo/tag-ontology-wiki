@@ -1,0 +1,9 @@
+{
+  "projects": "Projects",
+  "areas": "Areas",
+  "resources": "Resources",
+  "archives": "Archives",
+  "projectArchive": "superseded",
+  "tagDictionary": "meta/Tag-Dictionary.json",
+  "categoryDictionary": "meta/Category-Dictionary.md"
+}
