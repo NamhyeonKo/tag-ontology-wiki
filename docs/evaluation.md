@@ -24,7 +24,7 @@ The fixture deliberately includes an alias tag, a superseded project, an inbox c
 
 ## Skill application scenarios
 
-For each scenario, use a separate copy of `tests/fixtures/vault`, the CLI override above, and the current skill with its referenced conventions. Invoke `tow` as `python3 <plugin>/scripts/tow.py --root <copy>`.
+For each scenario, use a separate copy of `tests/fixtures/vault`, the CLI override above, and the current skill with its referenced conventions. Invoke `tow` as `<plugin>/scripts/tow.py --root <copy>`.
 
 | Skill | Request and follow-up | Pass condition |
 | --- | --- | --- |

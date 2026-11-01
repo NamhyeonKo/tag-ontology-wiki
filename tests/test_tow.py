@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -340,6 +341,14 @@ def test_main_config_prints_the_merged_settings(tmp_path: Path, capsys: pytest.C
     (root / "tow.json").write_text('{"areas": "Areas"}')
     assert tow.main(["--root", str(root), "config"]) == 0
     assert json.loads(capsys.readouterr().out) == {**tow.DEFAULTS, "areas": "Areas"}
+
+
+def test_tow_py_runs_as_a_single_path(tmp_path: Path) -> None:
+    """`tow` is just the script's path, so it still works when an agent keeps it in a shell variable."""
+    script = Path(tow.__file__)
+    result = subprocess.run([str(script), "--root", str(vault(tmp_path)), "config"], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == tow.DEFAULTS
 
 
 def test_main_reports_a_broken_config_file(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
