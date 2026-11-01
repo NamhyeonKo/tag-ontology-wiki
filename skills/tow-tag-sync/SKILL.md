@@ -15,9 +15,26 @@ Checks the concept tags on notes against the tag dictionary (the source of truth
 
 Before starting, read the [TOW conventions](../../docs/methodology.md): they define the `tow` command used below, the dictionary model and writing rules (§6), and when a tag belongs on a note (§3).
 
+Changes files contain an ordered `changes` array. For example, registering a concept:
+
 ```json
-"hnsw": {"aliases": ["Hierarchical Navigable Small World"], "description": "An ANN index that searches a layered graph from the top layer down", "broader": ["ann-index"]},
+{
+  "schemaVersion": 1,
+  "changes": [{
+    "kind": "add",
+    "draft": {
+      "name": "hnsw",
+      "description": "An ANN index that searches a layered graph from the top layer down",
+      "aliases": ["Hierarchical Navigable Small World"],
+      "parents": ["ann-index"],
+      "children": [],
+      "related": []
+    }
+  }]
+}
 ```
+
+All six `draft` fields are required. An `edit` item also needs `tag` (the existing name); a `delete` item has only `kind` and `tag`. `parents` becomes `broader` in the dictionary. For edits, preserve the complete draft from `show` rather than starting from this add example.
 
 ## Workflow
 
@@ -29,8 +46,8 @@ Before starting, read the [TOW conventions](../../docs/methodology.md): they def
    - **Identifier**: a value that names one specific thing, such as a CVE ID, becomes a lowercase tag (`CVE-2026-41266` → `cve-2026-41266`) registered under its kind (`cve`). An official spelling that differs only in case can't be an alias (dictionary rule), so put it in the `description` together with the item's name.
    Alongside these, propose replacing alias tags with the canonical tag, fixing format violations, and dropping the broader tag of each broader + narrower pair.
 3. **Approve**: show the judgement table and get one approval for the batch. Apply requested changes and show it again.
-4. **Register**: write the approved items as a changes file (`add`, `edit`, `delete`; start an existing tag's `draft` from the `draft` in `tow ontology show <tag> --json`) in a temporary folder. Check the `diff` and `issues` of `tow ontology plan <changes.json> --json`, then write with `tow ontology apply <changes.json> --base <base from plan> --json`. On exit code 3 (conflict), start again from `plan`. Variants move into the `aliases` of the canonical tag's `draft`. Approved merges, replacements, fixes, and dropped tags change only the `tags:` value of the affected notes (and `updated`, conventions §4).
-5. **Done** when `tow ontology usage` shows no `unregistered` or `nonCanonical` entries, `tow ontology check` reports `ok`, and `tow lint` prints `OK`. If notes changed, confirm the body outside the frontmatter is unchanged. Report the number of registered entries, the merged notes, and the remaining warnings.
+4. **Register**: write the approved items as a changes file (`add`, `edit`, `delete`; start an existing tag's `draft` from the `draft` in `tow ontology show <tag> --json`) in a new hidden temporary folder **inside the vault root**, for example `.tow-tmp/<batch>/changes.json`. The CLI rejects changes files outside `--root`; hidden folders stay out of note scans. Check the `diff` and `issues` of `tow ontology plan <changes.json> --json`, then write with `tow ontology apply <changes.json> --base <base from plan> --json`. On exit code 3 (conflict), start again from `plan`. Once `apply` has written, or the batch is dropped, delete the batch folder (and `.tow-tmp/` when it is empty) so no scratch files stay in the vault. Variants move into the `aliases` of the canonical tag's `draft`. Approved merges, replacements, fixes, and dropped tags change only the `tags:` value of the affected notes (and `updated`, conventions §4).
+5. **Done** when `tow ontology usage` shows no `unregistered` or `nonCanonical` entries, `tow ontology check` reports `ok`, `tow lint` prints `OK`, and the batch folder is gone. If notes changed, confirm the body outside the frontmatter is unchanged. Report the number of registered entries, the merged notes, and the remaining warnings.
 
 ## Consolidation and ontology review
 
