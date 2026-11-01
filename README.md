@@ -65,7 +65,7 @@ uv run pyright
 uv run pytest
 ```
 
-The skills call [`scripts/tow.py`](scripts/tow.py), which reads notes through `npx --yes tag-ontology`. To use another build of the CLI, set `TOW_TAG_ONTOLOGY` to its command, for example `TOW_TAG_ONTOLOGY="node /path/to/cli.js"`.
+The skills call [`scripts/tow.py`](scripts/tow.py), which reads notes through `npx --yes tag-ontology@0.1`. To use another build of the CLI, set `TOW_TAG_ONTOLOGY` to its command, for example `TOW_TAG_ONTOLOGY="node /path/to/cli.js"`.
 
 The real CLI integration tests are optional. Select an existing CLI build to run them alongside the unit tests:
 

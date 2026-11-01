@@ -65,7 +65,7 @@ uv run pyright
 uv run pytest
 ```
 
-스킬은 [`scripts/tow.py`](scripts/tow.py)를 부르고, 이 스크립트는 `npx --yes tag-ontology`로 노트를 읽습니다. 다른 빌드의 CLI를 쓰려면 `TOW_TAG_ONTOLOGY`에 그 명령을 넣습니다. 예: `TOW_TAG_ONTOLOGY="node /path/to/cli.js"`.
+스킬은 [`scripts/tow.py`](scripts/tow.py)를 부르고, 이 스크립트는 `npx --yes tag-ontology@0.1`로 노트를 읽습니다. 다른 빌드의 CLI를 쓰려면 `TOW_TAG_ONTOLOGY`에 그 명령을 넣습니다. 예: `TOW_TAG_ONTOLOGY="node /path/to/cli.js"`.
 
 실제 CLI 연동 테스트는 선택 사항입니다. 기존 CLI 빌드를 지정하면 단위 테스트와 함께 실행됩니다.
 

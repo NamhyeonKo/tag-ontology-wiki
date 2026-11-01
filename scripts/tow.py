@@ -8,7 +8,7 @@
   tow.py [--root DIR] ontology CMD [ARG...]  run the tag-ontology CLI with the vault's settings
 
 Notes are read through `tag-ontology scan --json`; this script never parses Markdown itself.
-Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology).
+Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.1).
 """
 
 from __future__ import annotations
@@ -52,6 +52,8 @@ CATEGORY_VALUE: Final = re.compile(r"^(?:- |### )`([^`]+)`")
 NOTE_COMMANDS: Final = frozenset({"scan", "usage", "show"})
 PATH_COMMANDS: Final = frozenset({"scan", "usage"})
 VALUE_OPTIONS: Final = frozenset({"--root", "--dictionary", "--exclude", "--names", "--base"})
+# tag-ontology 0.1.x speaks schemaVersion 1 of the CLI contract; move to a new minor version deliberately.
+DEFAULT_CLI: Final = "npx --yes tag-ontology@0.1"
 
 
 class Heading(TypedDict):
@@ -251,7 +253,7 @@ def read_config(root: Path) -> dict[str, str]:
 
 
 def run_cli(args: list[str], capture: bool) -> subprocess.CompletedProcess[str]:
-    command = shlex.split(os.environ.get("TOW_TAG_ONTOLOGY", "npx --yes tag-ontology"))
+    command = shlex.split(os.environ.get("TOW_TAG_ONTOLOGY", DEFAULT_CLI))
     try:
         return subprocess.run([*command, *args], capture_output=capture, text=True, check=False)
     except FileNotFoundError as e:
