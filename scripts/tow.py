@@ -249,9 +249,14 @@ def run_cli(args: list[str], capture: bool) -> subprocess.CompletedProcess[str]:
 def scan(root: Path, cfg: dict[str, str], paths: list[str], extra: list[str]) -> dict[str, Any]:
     args = ontology_args("scan", [*paths, "--json", *extra], str(root), cfg, scope_excludes(root, cfg, paths))
     result = run_cli(args, capture=True)
+    failure = result.stderr.strip() or f"tag-ontology scan exited with code {result.returncode} without JSON output"
     if result.returncode not in (0, 1):
-        raise CliError(result.stderr.strip() or f"tag-ontology scan exited with code {result.returncode}")
-    return json.loads(result.stdout)
+        raise CliError(failure)
+    try:
+        return json.loads(result.stdout)
+    except ValueError:
+        # A launcher such as npx exits 1 with nothing on stdout when it can't fetch the CLI.
+        raise CliError(failure) from None
 
 
 def cmd_lint(root: Path, cfg: dict[str, str], paths: list[str]) -> int:

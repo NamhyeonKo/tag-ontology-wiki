@@ -291,6 +291,17 @@ def test_main_ontology_reads_paths_only_for_commands_that_take_paths(
     assert "--exclude 00_Inbox" not in " ".join(json.loads((fake / "args.json").read_text()))
 
 
+def test_main_reports_a_cli_that_prints_no_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = vault(tmp_path)
+    script = tmp_path / "broken_cli.py"
+    script.write_text("import sys\nsys.stderr.write('npm error 404\\n')\nsys.exit(1)\n")
+    monkeypatch.setenv("TOW_TAG_ONTOLOGY", f"{sys.executable} {script}")
+    assert tow.main(["--root", str(root), "lint"]) == 2
+    assert "npm error 404" in capsys.readouterr().err
+
+
 def test_main_config_prints_the_merged_settings(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     root = vault(tmp_path)
     (root / "tow.json").write_text('{"areas": "Areas"}')
