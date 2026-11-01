@@ -44,14 +44,16 @@ tow (이 플러그인)          vault 규약 검사, 스킬
 
 ## 설치
 
+현재 플러그인은 `dev` 브랜치에 있습니다. 첫 릴리스가 `main`에 반영되기 전에는 `dev`를 지정합니다.
+
 ```text
-/plugin install tow --marketplace NamhyeonKo/tag-ontology-wiki
+/plugin install tow --marketplace https://github.com/NamhyeonKo/tag-ontology-wiki.git#dev
 ```
 
 Claude Code 2.1.275 미만:
 
 ```text
-/plugin marketplace add NamhyeonKo/tag-ontology-wiki
+/plugin marketplace add https://github.com/NamhyeonKo/tag-ontology-wiki.git#dev
 /plugin install tow@tag-ontology-wiki
 ```
 

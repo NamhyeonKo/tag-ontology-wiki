@@ -50,8 +50,15 @@ The sync scenario's new entry description is: "Splitting documents at topic chan
 - Friction seen in that re-run: one agent stored the whole `tow` command in a shell variable, which zsh doesn't split, so its first commands exited 127 before it retyped them. Two agents saved a pre-edit copy of a note outside the vault to compare against; both copies were outside the notes and were removed.
 - A private copy of an existing vault contained **678 notes**. Against the original `vault_meta.py`, `find ai` returned the same 219 paths, and `find ai --all` the same 221 paths. Both lint commands exited 0. SHA-256 checks confirmed the 681 original input files were unchanged. Only these aggregate results are recorded here; the private notes are not fixtures in this repository.
 
+## Live installation check (2026-11-02)
+
+- Post-merge CI passed on `dev` commit `740fa2f`: Python 3.10 and 3.14 checks and the real CLI integration job.
+- The repository's default branch, `main`, does not yet contain the plugin manifests. Installing from `https://github.com/NamhyeonKo/tag-ontology-wiki.git#dev` succeeded in Claude Code 2.1.310 at user scope. `tow@tag-ontology-wiki` 0.1.0 was enabled, its marketplace checkout matched `740fa2f`, and all tracked installed files matched the reviewed head. The executable bit on `scripts/tow.py` was preserved.
+- `claude plugin details tow@tag-ontology-wiki` listed all four skills. Running the installed package's tests passed **46 tests** (42 unit, 4 integration) on Python 3.13.5 against published `tag-ontology` 0.1.2.
+- A fresh Claude Code session loaded the installed plugin and registered all four `tow:` commands without `--plugin-dir`. The requested `tow:tow-query` run stopped before inference with the account's `429 usage_limit_reached`; it did not verify a model-backed query. SHA-256 comparisons confirmed all 11 synthetic-vault files were unchanged.
+
 ## Limits
 
 These are individual application scenarios, not a statistical skill benchmark. They explicitly select the skills and therefore do not test automatic skill discovery. Format and tag edits were evaluated on synthetic copies; the private corpus comparison covered lint and category search only.
 
-The first skill scenarios used a frozen pre-release build, to avoid changing a sibling repository under active development; the re-run used the published package. Locally, the integration tests stay opt-in. Live Claude Code plugin installation and Obsidian rendering were not tested.
+The first skill scenarios used a frozen pre-release build, to avoid changing a sibling repository under active development; the re-run used the published package. Locally, the integration tests stay opt-in. The live installation check covers registration, loading, and installed CLI tests; a model-backed skill run remains unverified. Obsidian rendering was not tested.
