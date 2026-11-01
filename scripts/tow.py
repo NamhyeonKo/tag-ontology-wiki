@@ -127,7 +127,8 @@ def _field_issues(path: str, fm: dict[str, Any], tags: list[str], categories: se
     for c in _as_list(fm.get("category")):
         if c not in categories:
             yield Issue("unknown-category", "error", path, f"unregistered category '{c}'")
-    duplicates = sorted({t for t in tags if tags.count(t) > 1})
+    lowered = [t.lower() for t in tags]  # Obsidian treats tags that differ only in case as one tag
+    duplicates = sorted({t for t in tags if lowered.count(t.lower()) > 1})
     if duplicates:
         yield Issue("duplicate-tag", "error", path, f"duplicate tags: {', '.join(duplicates)}")
 

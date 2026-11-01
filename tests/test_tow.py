@@ -74,6 +74,13 @@ def test_lint_reports_duplicate_tags() -> None:
     assert codes(issues) == ["duplicate-tag"]
 
 
+def test_lint_treats_tags_that_differ_only_in_case_as_duplicates() -> None:
+    issues = tow.lint([note("r.md", {"type": "resource", "tags": ["Python", "python"]})], CATEGORIES)
+    assert codes(issues) == ["duplicate-tag"]
+    assert "Python" in issues[0].message
+    assert "python" in issues[0].message
+
+
 def test_lint_flags_legacy_notes_and_skips_their_other_checks() -> None:
     fm = {
         "tags": ["type/resource", "ai/unknown", "ai/unknown"],
