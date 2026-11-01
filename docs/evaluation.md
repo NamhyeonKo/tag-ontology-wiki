@@ -57,8 +57,29 @@ The sync scenario's new entry description is: "Splitting documents at topic chan
 - `claude plugin details tow@tag-ontology-wiki` listed all four skills. Running the installed package's tests passed **46 tests** (42 unit, 4 integration) on Python 3.13.5 against published `tag-ontology` 0.1.2.
 - A fresh Claude Code session loaded the installed plugin and registered all four `tow:` commands without `--plugin-dir`. The requested `tow:tow-query` run stopped before inference with the account's `429 usage_limit_reached`; it did not verify a model-backed query. SHA-256 comparisons confirmed all 11 synthetic-vault files were unchanged.
 
+## Multi-host package check (2026-11-02)
+
+The root `plugin.json` packages the shared skills, conventions, and helper for Codex and Antigravity; `.claude-plugin/` remains the Claude entry point. The Codex catalog lives in `.agents/plugins/marketplace.json`. The public README commands continue to target the released default branch. Local development checks used:
+
+```bash
+codex plugin marketplace add /absolute/path/to/tag-ontology-wiki
+codex plugin add tow@tag-ontology-wiki
+agy plugin validate /absolute/path/to/staged-package
+agy plugin install /absolute/path/to/staged-package
+```
+
+- Package source: commit `a49c010`, exported without development caches for Antigravity. Native clients were Claude Code 2.1.310, Codex CLI 0.159.2, and Antigravity CLI 1.1.9. Claude and Antigravity validation passed; Claude's existing icon warning remained.
+- Tests: **49 passed** (42 existing unit, 3 packaging, 4 integration) on Python 3.13.5 against `tag-ontology` 0.1.2. Ruff lint/format and Pyright strict passed. Packaging tests cover matching identity, the complete catalog source, bundled references, and a relocated executable path containing spaces with host-root variables absent.
+- Codex installed and enabled `tow@tag-ontology-wiki` 0.1.0 from the local marketplace. Antigravity installed `tow` with four skills and retained the complete package under its plugin directory. Both installed copies matched every tracked source file; all skill references resolved inside each installed package.
+- Both installed helpers passed `lint`, category and tag queries against separate synthetic vault copies using the default npm CLI and no `CLAUDE_PLUGIN_ROOT` or `PLUGIN_ROOT`. Each vault's 11 files retained their SHA-256 hashes.
+- A fresh Codex session selected `tow-query`, read the installed conventions, used the installed helper, opened both matching notes, and returned exactly `Projects/Category Project.md` and `Projects/Search.md` (count 2).
+- Antigravity's first session started in its scratch directory and could not identify the vault from the launch directory alone. A fresh session with `--add-dir <vault>` and the absolute vault root in the request used the installed helper with `--root`, read both notes, and returned the same two paths and count. Both attempts left the fixture unchanged.
+- These model-backed checks were read-only query scenarios. They do not repeat the three editing workflows on either new host. The earlier Claude account-limit result remains the limit of its model-backed installation check. The Codex session also emitted an unrelated existing Context7 OAuth startup warning; TOW itself has no MCP servers and completed the query.
+
+Package/marketplace formats follow the [OpenAI packaging guide](https://developers.openai.com/plugins/build/plugins) and [Antigravity authoring guide](https://antigravity.google/docs/build-plugins). The local command spellings were checked against each installed client rather than inferred from another host.
+
 ## Limits
 
 These are individual application scenarios, not a statistical skill benchmark. They explicitly select the skills and therefore do not test automatic skill discovery. Format and tag edits were evaluated on synthetic copies; the private corpus comparison covered lint and category search only.
 
-The first skill scenarios used a frozen pre-release build, to avoid changing a sibling repository under active development; the re-run used the published package. Locally, the integration tests stay opt-in. The live installation check covers registration, loading, and installed CLI tests; a model-backed skill run remains unverified. Obsidian rendering was not tested.
+The first skill scenarios used a frozen pre-release build, to avoid changing a sibling repository under active development; the re-run used the published package. Locally, the integration tests stay opt-in. Claude's model-backed installation run remains unverified; Codex and Antigravity have the read-only query checks above. Public-directory submission, installation from the future released `main`, and Obsidian rendering were not tested.

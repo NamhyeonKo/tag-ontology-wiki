@@ -30,10 +30,12 @@
 
 **Interfaces:** consumes the existing `skills/`, `docs/`, and executable `scripts/tow.py`; produces a single relocatable package with default `skills/` discovery.
 
-- [ ] Add tests for matching package identity, the root Codex catalog entry, all skill-relative references, and relocated direct-path execution with host variables absent.
-- [ ] Run `uv run pytest tests/test_packaging.py -q`; confirm missing manifests fail before adding them.
-- [ ] Add the portable manifest and Codex catalog, using current name `tow` and version `0.1.0`; replace the Claude-only root lookup in shared conventions.
-- [ ] Run the package tests and existing suite, Ruff lint/format, and Pyright; fix only failures introduced by this change.
+- [x] Add tests for matching package identity, the root Codex catalog entry, all skill-relative references, and relocated direct-path execution with host variables absent.
+- [x] Run `uv run pytest tests/test_packaging.py -q`; confirm missing manifests fail before adding them.
+- [x] Add the portable manifest and Codex catalog, using current name `tow` and version `0.1.0`; replace the Claude-only root lookup in shared conventions.
+- [x] Run the package tests and existing suite, Ruff lint/format, and Pyright; fix only failures introduced by this change.
+
+Task 1 result: commit `a49c010`; three missing-manifest failures became three passing package tests. Full suite: 49 passed against `tag-ontology` 0.1.2; Ruff and Pyright passed.
 
 ### Task 2: Native installation and documentation
 
@@ -41,9 +43,9 @@
 
 **Interfaces:** consumes Task 1's shared package; produces verified platform-specific installation examples and an honest support record.
 
-- [ ] Validate Claude and Antigravity with their native commands; install the complete staged package through Codex and Antigravity and inspect four skill paths and the helper executable.
-- [ ] Smoke-test installed helper commands on synthetic vaults. Attempt model-backed query execution where account access permits; retain failures as limits.
-- [ ] Add concise install/invocation sections for all three hosts without changing release instructions to `dev`.
-- [ ] Record versions, results, and limits; mark task results here.
+- [x] Validate Claude and Antigravity with their native commands; install the complete staged package through Codex and Antigravity and inspect four skill paths and the helper executable.
+- [x] Smoke-test installed helper commands on synthetic vaults. Attempt model-backed query execution where account access permits; retain failures as limits.
+- [x] Add concise install/invocation sections for all three hosts without changing release instructions to `dev`.
+- [x] Record versions, results, and limits; mark task results here.
 - [ ] Commit the implementation; obtain independent whole-diff review and resolve substantive findings.
 - [ ] Open a `dev` PR, verify CI and Codex review, merge only into `dev`, then verify post-merge CI and a clean local branch.

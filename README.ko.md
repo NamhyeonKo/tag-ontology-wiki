@@ -1,6 +1,6 @@
 # TOW — Tag Ontology for Wiki
 
-Obsidian에서 태그 중심 LLM 위키를 운영하기 위한 Claude Code 플러그인입니다.
+Obsidian에서 태그 중심 LLM 위키를 운영하기 위한 Claude Code·Codex·Google Antigravity 플러그인입니다.
 
 [English](README.md)
 
@@ -23,7 +23,7 @@ TOW는 Karpathy의 LLM Wiki를 변형해 노트를 태그 중심으로 정리하
 tag-ontology (npm CLI)    사전 검증·조회·변경, 노트 파싱
       ▲  npx tag-ontology … --json
 tow (이 플러그인)          vault 규약 검사, 스킬
-      ▲  /plugin install
+      ▲  Claude Code / Codex / Antigravity
 사용자의 Obsidian vault
 ```
 
@@ -31,18 +31,22 @@ tow (이 플러그인)          vault 규약 검사, 스킬
 
 | 스킬 | 용도 |
 | --- | --- |
-| `tow:tow-check` | 노트가 vault 규약과 태그 사전에 맞는지 검사 |
-| `tow:tow-tag-sync` | 노트에 쓰인 태그와 태그 사전을 맞춤 |
-| `tow:tow-tag-suggest` | 노트에 달 개념 태그를 추천하고, 사용자가 고른 것만 붙임 |
-| `tow:tow-query` | category나 개념 태그로 노트를 찾음 (읽기 전용) |
+| `tow-check` | 노트가 vault 규약과 태그 사전에 맞는지 검사 |
+| `tow-tag-sync` | 노트에 쓰인 태그와 태그 사전을 맞춤 |
+| `tow-tag-suggest` | 노트에 달 개념 태그를 추천하고, 사용자가 고른 것만 붙임 |
+| `tow-query` | category나 개념 태그로 노트를 찾음 (읽기 전용) |
+
+세 호스트가 같은 스킬·규약·CLI를 공유합니다. Claude Code에서는 `/tow:tow-query`, Codex에서는 `$` 또는 `/skills`로 `tow-query` 선택, Antigravity에서는 `/tow-query`로 호출합니다.
 
 ## 요구 사항
 
-- Claude Code
+- 플러그인을 지원하는 Claude Code, Codex 또는 Google Antigravity
 - Node.js 22.18 이상 (`tag-ontology` CLI 실행용)
 - Python 3.10 이상 (표준 라이브러리만 사용)
 
 ## 설치
+
+### Claude Code
 
 ```text
 /plugin install tow --marketplace NamhyeonKo/tag-ontology-wiki
@@ -53,6 +57,23 @@ Claude Code 2.1.275 미만:
 ```text
 /plugin marketplace add NamhyeonKo/tag-ontology-wiki
 /plugin install tow@tag-ontology-wiki
+```
+
+### Codex
+
+셸에서 실행합니다.
+
+```bash
+codex plugin marketplace add NamhyeonKo/tag-ontology-wiki --ref main
+codex plugin add tow@tag-ontology-wiki
+```
+
+### Antigravity
+
+셸에서 실행한 뒤 새 Antigravity 세션을 시작합니다.
+
+```bash
+agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 ```
 
 ## 개발
