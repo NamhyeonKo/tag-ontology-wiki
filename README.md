@@ -39,7 +39,7 @@ your Obsidian vault
 ## Requirements
 
 - Claude Code
-- Node.js, for the `tag-ontology` CLI
+- Node.js 22.18 or later, for the `tag-ontology` CLI
 - Python 3.10 or later (standard library only)
 
 ## Install
@@ -66,6 +66,14 @@ uv run pytest
 ```
 
 The skills call [`scripts/tow.py`](scripts/tow.py), which reads notes through `npx --yes tag-ontology`. To use another build of the CLI, set `TOW_TAG_ONTOLOGY` to its command, for example `TOW_TAG_ONTOLOGY="node /path/to/cli.js"`.
+
+The real CLI integration tests are optional. Select an existing CLI build to run them alongside the unit tests:
+
+```bash
+TOW_TAG_ONTOLOGY="node /absolute/path/to/tag-ontology/dist/cli/main.js" uv run pytest
+```
+
+Without this variable, the integration tests are skipped. They copy the [synthetic vault](tests/fixtures/vault) into temporary directories and never use your own vault. See [evaluation](docs/evaluation.md) for the skill scenarios and verification limits.
 
 ## License
 
