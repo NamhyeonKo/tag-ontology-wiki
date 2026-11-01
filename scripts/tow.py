@@ -48,6 +48,7 @@ NUMBERED_SECTION: Final = re.compile(r"\d+\.\d+\. ")
 CATEGORY_VALUE: Final = re.compile(r"^(?:- |### )`([^`]+)`")
 
 NOTE_COMMANDS: Final = frozenset({"scan", "usage", "show"})
+PATH_COMMANDS: Final = frozenset({"scan", "usage"})
 VALUE_OPTIONS: Final = frozenset({"--root", "--dictionary", "--exclude", "--names", "--base"})
 
 
@@ -195,7 +196,7 @@ def scope_excludes(root: Path, cfg: dict[str, str], args: list[str]) -> list[str
     """An --exclude for each root entry (folder or .md) outside the PARA folders, except entries the args name."""
     # ponytail: names are passed as globs, so a folder name containing * ? [ may match differently.
     # If a vault needs that, ask for an escaping rule in the CLI contract.
-    keep = {cfg[k] for k in PARA} | _named_roots(args)
+    keep = {cfg[k] for k in PARA} | _named_roots(root, args)
     return [
         arg
         for entry in sorted(root.iterdir())
@@ -204,8 +205,8 @@ def scope_excludes(root: Path, cfg: dict[str, str], args: list[str]) -> list[str
     ]
 
 
-def _named_roots(args: list[str]) -> set[str]:
-    """The first path segment of each path argument in CLI args."""
+def _named_roots(root: Path, args: list[str]) -> set[str]:
+    """The root entry that each path argument in CLI args lies under."""
     roots: set[str] = set()
     after_option = False
     for a in args:
@@ -214,7 +215,13 @@ def _named_roots(args: list[str]) -> set[str]:
         elif a in VALUE_OPTIONS:
             after_option = True
         elif not a.startswith("-"):
-            roots.add(a.split("/", 1)[0])
+            path = Path(os.path.normpath(a))
+            if path.is_absolute():
+                if not path.is_relative_to(root):
+                    continue
+                path = path.relative_to(root)
+            if path.parts and path.parts[0] not in (".", ".."):
+                roots.add(path.parts[0])
     return roots
 
 
@@ -295,7 +302,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_lint(root, cfg, args.paths)
         if args.command == "find":
             return cmd_find(root, cfg, args.prefix, args.all)
-        excludes = scope_excludes(root, cfg, args.cli_args)
+        path_args: list[str] = args.cli_args if args.cli_command in PATH_COMMANDS else []
+        excludes = scope_excludes(root, cfg, path_args)
         return run_cli(
             ontology_args(args.cli_command, args.cli_args, str(root), cfg, excludes), capture=False
         ).returncode

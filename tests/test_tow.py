@@ -169,6 +169,13 @@ def test_scope_excludes_keeps_folders_named_in_the_arguments(tmp_path: Path) -> 
     assert tow.scope_excludes(tmp_path, tow.DEFAULTS, args) == ["--exclude", "99_Etc"]
 
 
+def test_scope_excludes_normalizes_relative_and_absolute_paths(tmp_path: Path) -> None:
+    (tmp_path / "00_Inbox").mkdir()
+    (tmp_path / "99_Etc").mkdir()
+    args = ["./00_Inbox/a.md", str(tmp_path / "99_Etc" / "b.md")]
+    assert tow.scope_excludes(tmp_path, tow.DEFAULTS, args) == []
+
+
 def test_ontology_args_for_show_add_settings_and_skip_project_archives() -> None:
     args = tow.ontology_args("show", ["rag", "--notes"], "/v", tow.DEFAULTS, ["--exclude", "00_Inbox"])
     assert args == [
@@ -270,6 +277,18 @@ def test_main_find_skips_project_archives_unless_all(
     assert "**/archive" in json.loads((fake / "args.json").read_text())
     tow.main(["--root", str(root), "find", "ai", "--all"])
     assert "**/archive" not in json.loads((fake / "args.json").read_text())
+
+
+def test_main_ontology_reads_paths_only_for_commands_that_take_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = vault(tmp_path)
+    (root / "00_Inbox").mkdir()
+    fake = fake_cli(tmp_path, monkeypatch, scan_of())
+    tow.main(["--root", str(root), "ontology", "show", "00_Inbox", "--notes"])
+    assert "--exclude 00_Inbox" in " ".join(json.loads((fake / "args.json").read_text()))
+    tow.main(["--root", str(root), "ontology", "usage", "00_Inbox/a.md"])
+    assert "--exclude 00_Inbox" not in " ".join(json.loads((fake / "args.json").read_text()))
 
 
 def test_main_config_prints_the_merged_settings(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
