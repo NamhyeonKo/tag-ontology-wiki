@@ -4,7 +4,7 @@ A Claude Code plugin for running a tag-first LLM wiki in Obsidian.
 
 [한국어](README.ko.md)
 
-> **Status:** in development. The skills need the `tag-ontology` CLI, which is not published yet.
+> **Status:** in development, not released yet.
 
 ## Overview
 
@@ -67,10 +67,10 @@ uv run pytest
 
 The skills call [`scripts/tow.py`](scripts/tow.py), which reads notes through `npx --yes tag-ontology@0.1`. To use another build of the CLI, set `TOW_TAG_ONTOLOGY` to its command, for example `TOW_TAG_ONTOLOGY="node /path/to/cli.js"`.
 
-The real CLI integration tests are optional. Select an existing CLI build to run them alongside the unit tests:
+The real CLI integration tests are optional locally. Point `TOW_TAG_ONTOLOGY` at a CLI to run them alongside the unit tests:
 
 ```bash
-TOW_TAG_ONTOLOGY="node /absolute/path/to/tag-ontology/dist/cli/main.js" uv run pytest
+TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.1" uv run pytest
 ```
 
 Without this variable, the integration tests are skipped. They copy the [synthetic vault](tests/fixtures/vault) into temporary directories and never use your own vault. See [evaluation](docs/evaluation.md) for the skill scenarios and verification limits.

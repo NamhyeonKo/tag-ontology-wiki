@@ -1,14 +1,17 @@
-# Local integration and skill evaluation
+# CLI integration and skill evaluation
 
-The checks below exercise TOW with a real local `tag-ontology` CLI build. They do not establish release or installation readiness.
+The checks below exercise TOW with a real `tag-ontology` CLI. They do not establish release or installation readiness of the plugin.
 
 ## Automated integration tests
 
-The default `uv run pytest` runs the unit tests and skips the real CLI tests. To include them, select an existing build:
+The default `uv run pytest` runs the unit tests and skips the real CLI tests. To include them, point `TOW_TAG_ONTOLOGY` at a CLI, either the published release or a local build:
 
 ```bash
+TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.1" uv run pytest -q
 TOW_TAG_ONTOLOGY="node /absolute/path/to/tag-ontology/dist/cli/main.js" uv run pytest -q
 ```
+
+CI runs them in a separate job against the published 0.1 release on Node.js 22.
 
 [`test_cli_integration.py`](../tests/test_cli_integration.py) copies the [synthetic vault](../tests/fixtures/vault) into a new temporary directory for each test. It checks:
 
@@ -42,10 +45,11 @@ The sync scenario's new entry description is: "Splitting documents at topic chan
 - Tag suggestion passed: only the selected tag, removal and date changed; the unselected title tag was not added.
 - The initial tag-sync run failed: an external changes file was rejected, followed by two incorrect JSON envelopes. No dictionary write occurred. The skill now includes the exact `changes`/`kind`/`draft` shape and a vault-local hidden temporary directory. A fresh agent's `plan` and `apply` then succeeded on their first attempts; the main agent independently verified the exact dictionary and note changes. After this run, the skill gained a final step that deletes the batch folder once `apply` has written; that step has not been re-run in a scenario yet.
 - During that retest, one preliminary command omitted `TOW_TAG_ONTOLOGY` and hit npm E404. Retrying with the selected local build succeeded. There were no subsequent CLI failures. Check evaluation also required correcting two evaluator-only preservation checks; these did not change the skill or note scope.
+- Published CLI (2026-11-02): against `tag-ontology` 0.1.1 from npm, the 45 tests passed on Python 3.10 and 3.13. With no override, `tow` used its default `npx --yes tag-ontology@0.1` and ran `lint`, `find`, `ontology usage` and `ontology show` on a fixture copy with the expected results. The skill scenarios above were not re-run against the published package.
 - A private copy of an existing vault contained **678 notes**. Against the original `vault_meta.py`, `find ai` returned the same 219 paths, and `find ai --all` the same 221 paths. Both lint commands exited 0. SHA-256 checks confirmed the 681 original input files were unchanged. Only these aggregate results are recorded here; the private notes are not fixtures in this repository.
 
 ## Limits
 
 These are individual application scenarios, not a statistical skill benchmark. They explicitly select the skills and therefore do not test automatic skill discovery. Format and tag edits were evaluated on synthetic copies; the private corpus comparison covered lint and category search only.
 
-The CLI snapshot was frozen to avoid changing a sibling repository under active development; its packaging and published npm installation were not tested. Integration tests remain opt-in and do not run in the Python-only CI unless a CLI command is provided. Live Claude Code plugin installation and Obsidian rendering were not tested.
+The skill scenarios used a frozen pre-release build, to avoid changing a sibling repository under active development; only the automated integration tests were re-run against the published package. Locally, the integration tests stay opt-in. Live Claude Code plugin installation and Obsidian rendering were not tested.
