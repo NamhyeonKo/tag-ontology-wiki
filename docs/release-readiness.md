@@ -28,9 +28,18 @@ Keep archives outside the repository; a bundled ZIP would itself be an extra bin
 git archive --format=zip --prefix=tow/ HEAD > /absolute/output/tow-0.1.1.zip
 ```
 
-The portable/Claude archive includes root `plugin.json` and the host overlays. For the Antigravity archive, copy every ZIP entry except `tow/plugin.json`, preserving each entry's metadata. Its `.antigravity-plugin/plugin.json` then becomes the sole manifest without duplicating any skill source. Validate the extracted archive with `agy plugin validate --strict <extracted/tow>`.
+The portable/Claude archive includes root `plugin.json` and the host overlays. For the Antigravity archive, replace `tow/plugin.json` with the contents of `tow/.antigravity-plugin/plugin.json`, omit the nested overlay copy, and preserve every other ZIP entry and its metadata. The native manifest then sits at the canonical root location without duplicating any skill source. Validate the extracted archive with `agy plugin validate --strict <extracted/tow>`.
 
-Antigravity CLI 1.4.12 warns when a root manifest is shadowed by its native overlay; `--strict` rejects that warning. This is why its public artifact omits the unused portable manifest. Direct GitHub installation still selects the native overlay, but is not the strict public-artifact check. No warning is suppressed and no validator flag is bypassed.
+Antigravity CLI 1.4.12 warns when a root manifest is shadowed by its native overlay; `--strict` rejects that warning. This is why its public artifact contains one native root manifest. Direct GitHub installation still selects the native overlay, but is not the strict public-artifact check. No warning is suppressed and no validator flag is bypassed.
+
+## Candidate checks completed
+
+- Full suite: 51 passed against `tag-ontology` 0.1.2; Ruff lint/format and Pyright strict passed.
+- Claude Code 2.1.310 validated the portable archive in strict mode with no icon warning.
+- Antigravity CLI 1.4.12 validated the normalized native archive in strict JSON mode: four skills, no findings.
+- Codex CLI 0.159.2 installed and enabled candidate 0.1.1; Antigravity installed candidate 0.1.1 with the four expected skills.
+- ZIP integrity, complete skill/reference assets, file-count/size bounds, absence of development caches/symlinks, and executable mode on `scripts/tow.py` were checked. Archives stay outside the repository.
+- These are local candidate/artifact checks. Authenticated portal scans and post-promotion `main` installs are separate gates below.
 
 ## Main release gate
 
