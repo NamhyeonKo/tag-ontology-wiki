@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "tag-ontology-wiki",
+  "description": "TOW: Tag Ontology for Wiki.",
+  "owner": {
+    "name": "NamhyeonKo",
+    "url": "https://github.com/NamhyeonKo"
+  },
+  "plugins": [
+    {
+      "name": "tow",
+      "description": "Skills for a tag-first LLM wiki in Obsidian.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}

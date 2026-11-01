@@ -1,0 +1,14 @@
+{
+  "name": "tow",
+  "version": "0.1.1",
+  "icon": "./assets/icon.png",
+  "description": "Tag Ontology for Wiki: skills for a tag-first LLM wiki in Obsidian (PARA, classification fields, concept tag ontology).",
+  "author": {
+    "name": "NamhyeonKo",
+    "url": "https://github.com/NamhyeonKo"
+  },
+  "homepage": "https://github.com/NamhyeonKo/tag-ontology-wiki",
+  "repository": "https://github.com/NamhyeonKo/tag-ontology-wiki",
+  "license": "MIT",
+  "keywords": ["obsidian", "llm-wiki", "tags", "ontology", "para", "knowledge-management"]
+}
