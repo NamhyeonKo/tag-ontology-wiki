@@ -12,7 +12,7 @@ description: >-
 
 **Answers "what knowledge is where". Read-only.** Other skills also use it to check what already exists.
 
-Before starting, read the [TOW conventions](../../docs/methodology.md): they define the `tow` command used below. `tow config` gives the actual PARA folders, the project archive folder name, and the paths of the two dictionaries.
+Before starting, read the [TOW conventions](../../docs/methodology.md): they define the `tow` command used below. `tow config` gives the actual folder names and the paths of the two dictionaries.
 
 Three principles:
 
@@ -39,20 +39,17 @@ Project archive folders (superseded and rejected documents) are skipped by defau
 Finds notes that meet several conditions at once, such as "projects about rag", "ai projects in progress", or "notes covering bm25".
 
 1. **Pin down the canonical values**: classifications from the category dictionary (rag → `ai/rag`), concepts from the tag dictionary (self attention → `self-attention`). `type`, `status`, and `kind` are scalar fields; `status` and `kind` are optional properties of project documents; daily notes are `type: daily-note`.
-2. **Match exactly, then intersect.** Always search in this form (`<archive>` and `<PARA folders…>` come from `tow config`):
+2. **Search with `tow find`.** It matches the parsed frontmatter field by field and returns only the notes that meet every condition:
 
    ```bash
-   rg -l --no-ignore-vcs -g '!**/<archive>/**' '<pattern>' <PARA folders…>
+   tow find ai/rag --type project                # category ai/rag or below, and type: project
+   tow find --type project --status in-progress
+   tow find --tag bm25                           # notes tagged bm25 (ignoring case)
    ```
 
-   `--no-ignore-vcs` keeps notes listed in `.gitignore` in the search, and project archive folders stay excluded by default. Limiting the search to the PARA folders keeps non-note files such as templates out.
-   - Scalar field: `'^type: project$'`
-   - List value (category, tags): `'^\s*-\s*"?ai/rag"?\s*$'` (values may be quoted)
-   - Intersection: `comm -12 <(rg … '<pattern A>' … | sort) <(rg … '<pattern B>' … | sort)`
+   Body text, such as a YAML example in a code block, never matches, and project archive folders stay out unless you pass `--all`. `--tag` matches the tag alone; to include narrower concepts, intersect the `notePaths` of `tow ontology show <tag> --notes --json` with the `tow find` result.
    - A question that mixes classification and concept, such as "about rag", searches the category (`ai/rag`) and the concept tag (`rag`) separately and takes the union. The strings differ, so one search never finds the other.
 3. Skim the titles in the results and open only the notes you need for the answer.
-
-Match the frontmatter list format (`^\s*-\s*<value>\s*$`) for precision. A loose `rg rag` gives false positives from body text and similar words (`db/nosql` matches a search for `sql`).
 
 ## Output format
 

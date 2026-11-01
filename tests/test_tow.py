@@ -136,6 +136,17 @@ def test_find_matches_a_category_and_its_children() -> None:
     assert tow.find(notes, "ai") == ["a.md", "b.md"]
 
 
+def test_find_filters_by_frontmatter_fields_and_tags() -> None:
+    notes = [
+        note("p.md", {"type": "project", "status": "draft", "category": ["ai/rag"], "tags": ["RAG"]}),
+        note("q.md", {"type": "project", "category": ["web"], "tags": ["rag"]}),
+        note("r.md", {"type": "resource", "category": ["ai/rag"], "tags": ["rag"]}),
+    ]
+    assert tow.find(notes, None, {"type": "project"}) == ["p.md", "q.md"]
+    assert tow.find(notes, None, {"status": "draft"}) == ["p.md"]
+    assert tow.find(notes, "ai", {"type": "project", "tag": "rag"}) == ["p.md"]
+
+
 # config
 
 
@@ -284,6 +295,21 @@ def test_main_find_skips_project_archives_unless_all(
     assert "**/archive" in json.loads((fake / "args.json").read_text())
     tow.main(["--root", str(root), "find", "ai", "--all"])
     assert "**/archive" not in json.loads((fake / "args.json").read_text())
+
+
+def test_main_find_filters_without_a_prefix(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = vault(tmp_path)
+    notes = [note("03_Resources/a.md", {"type": "project"}), note("03_Resources/b.md", {"type": "resource"})]
+    fake_cli(tmp_path, monkeypatch, scan_of(*notes))
+    assert tow.main(["--root", str(root), "find", "--type", "project"]) == 0
+    assert capsys.readouterr().out.strip() == "03_Resources/a.md"
+
+
+def test_main_find_needs_a_prefix_or_a_filter(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit):
+        tow.main(["--root", str(vault(tmp_path)), "find"])
 
 
 def test_main_ontology_reads_paths_only_for_commands_that_take_paths(

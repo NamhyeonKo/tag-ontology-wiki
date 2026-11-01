@@ -3,7 +3,8 @@
 
   tow.py [--root DIR] config                 print the settings in effect (tow.json + defaults)
   tow.py [--root DIR] lint [PATH...]         check classification fields and tag counts (default: all PARA folders)
-  tow.py [--root DIR] find PREFIX [--all]    notes whose category is PREFIX or below it (--all: with project archives)
+  tow.py [--root DIR] find [PREFIX] [--type T] [--status S] [--kind K] [--tag TAG] [--all]
+                                             notes that meet every condition (--all: with project archives)
   tow.py [--root DIR] ontology CMD [ARG...]  run the tag-ontology CLI with the vault's settings
 
 Notes are read through `tag-ontology scan --json`; this script never parses Markdown itself.
@@ -19,7 +20,7 @@ import re
 import shlex
 import subprocess
 import sys
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final, Literal, TypedDict, cast
@@ -42,6 +43,7 @@ ALLOWED: Final[dict[str, frozenset[str]]] = {
     "kind": frozenset({"idea", "research", "proposal", "specification", "design", "plan", "retro", "log"}),
 }
 RETIRED: Final = ("confidence", "stage", "related")
+FIND_FILTERS: Final = ("type", "status", "kind", "tag")
 TAG_LIMIT: Final = 15
 OVERVIEW_TAG_LIMIT: Final = 20
 NUMBERED_SECTION: Final = re.compile(r"\d+\.\d+\. ")
@@ -152,14 +154,23 @@ def category_values(text: str) -> set[str]:
     return {m.group(1) for line in text.splitlines() if (m := CATEGORY_VALUE.match(line))}
 
 
-def find(notes: Iterable[Note], prefix: str) -> list[str]:
-    """Paths of the notes whose category is `prefix` or below it (`prefix/...`)."""
-    return [
-        n["path"]
-        for n in notes
-        if n["frontmatter"]
-        and any(c == prefix or c.startswith(prefix + "/") for c in _as_list(n["frontmatter"].get("category")))
-    ]
+def find(notes: Iterable[Note], prefix: str | None, filters: Mapping[str, str] | None = None) -> list[str]:
+    """Paths of the notes that meet every condition given.
+
+    `prefix` matches a category equal to it or below it (`prefix/...`). `filters` maps `type`, `status` or `kind`
+    to the field's value, and `tag` to a tag on the note (ignoring case, as Obsidian does).
+    """
+    return [n["path"] for n in notes if n["frontmatter"] and _matches(n, n["frontmatter"], prefix, filters or {})]
+
+
+def _matches(note: Note, fm: dict[str, Any], prefix: str | None, filters: Mapping[str, str]) -> bool:
+    categories = _as_list(fm.get("category"))
+    if prefix is not None and not any(c == prefix or c.startswith(prefix + "/") for c in categories):
+        return False
+    tag = filters.get("tag")
+    if tag is not None and tag.lower() not in {t.lower() for t in note["tags"]}:
+        return False
+    return all(fm.get(key) == value for key, value in filters.items() if key != "tag")
 
 
 def load_config(raw: object) -> dict[str, str]:
@@ -276,9 +287,11 @@ def cmd_lint(root: Path, cfg: dict[str, str], paths: list[str]) -> int:
     return 1 if errors else 0
 
 
-def cmd_find(root: Path, cfg: dict[str, str], prefix: str, include_archive: bool) -> int:
+def cmd_find(
+    root: Path, cfg: dict[str, str], prefix: str | None, filters: dict[str, str], include_archive: bool
+) -> int:
     extra = [] if include_archive else ["--exclude", f"**/{cfg['projectArchive']}"]
-    for path in find(scan(root, cfg, [], extra)["notes"], prefix):
+    for path in find(scan(root, cfg, [], extra)["notes"], prefix, filters):
         print(path)
     return 0
 
@@ -290,13 +303,20 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("config", help="print the settings in effect")
     p = sub.add_parser("lint", help="check classification fields and tag counts")
     p.add_argument("paths", nargs="*")
-    p = sub.add_parser("find", help="find notes by category prefix")
-    p.add_argument("prefix")
+    p = sub.add_parser("find", help="find notes by category prefix, frontmatter fields and tag")
+    p.add_argument("prefix", nargs="?", help="category prefix: matches the category and everything below it")
+    for key in FIND_FILTERS:
+        p.add_argument(f"--{key}", help=f"only notes with this {key}")
     p.add_argument("--all", action="store_true", help="include project archive folders")
     p = sub.add_parser("ontology", help="run the tag-ontology CLI with the vault's settings")
     p.add_argument("cli_command")
     p.add_argument("cli_args", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
+    filters: dict[str, str] = {}
+    if args.command == "find":
+        filters = {key: value for key in FIND_FILTERS if (value := getattr(args, key)) is not None}
+        if args.prefix is None and not filters:
+            parser.error("find needs a category prefix or at least one of --type, --status, --kind, --tag")
 
     root: Path = args.root.resolve()
     try:
@@ -307,7 +327,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "lint":
             return cmd_lint(root, cfg, args.paths)
         if args.command == "find":
-            return cmd_find(root, cfg, args.prefix, args.all)
+            return cmd_find(root, cfg, args.prefix, filters, args.all)
         path_args: list[str] = args.cli_args if args.cli_command in PATH_COMMANDS else []
         excludes = scope_excludes(root, cfg, path_args)
         return run_cli(

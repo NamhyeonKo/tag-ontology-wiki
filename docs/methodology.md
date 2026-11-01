@@ -10,7 +10,7 @@ The principles, frontmatter schema, and shared rules every TOW skill follows. Ea
 | --- | --- |
 | `tow config` | Print the settings in effect |
 | `tow lint [path…]` | Check classification fields, unused properties, and tag counts (§3, §4). Prints `OK` when clean |
-| `tow find <prefix> [--all]` | Notes whose `category` is `<prefix>` or below it |
+| `tow find [<prefix>] [--type …] [--status …] [--kind …] [--tag …] [--all]` | Notes that meet every condition given: a `category` equal to `<prefix>` or below it, the frontmatter field values, a tag (ignoring case) |
 | `tow ontology <command> [arg…]` | Run the [`tag-ontology` CLI](https://github.com/NamhyeonKo/obsidian-tag-ontology) with this vault's settings |
 
 `tow ontology` adds `--root`, the tag dictionary path, and `--names kebab`, and limits notes to the PARA folders. For `show` it also skips project archive folders; `--all` keeps them.
