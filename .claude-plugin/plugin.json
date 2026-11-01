@@ -1,6 +1,7 @@
 {
   "name": "tow",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "icon": "./assets/icon.png",
   "description": "Tag Ontology for Wiki: skills for a tag-first LLM wiki in Obsidian (PARA, classification fields, concept tag ontology).",
   "author": {
     "name": "NamhyeonKo",

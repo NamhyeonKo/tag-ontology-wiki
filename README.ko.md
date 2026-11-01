@@ -44,6 +44,8 @@ tow (이 플러그인)          vault 규약 검사, 스킬
 - Node.js 22.18 이상 (`tag-ontology` CLI 실행용)
 - Python 3.10 이상 (표준 라이브러리만 사용)
 
+스킬은 지정한 vault 파일을 읽고 승인한 변경만 적용합니다. 열린 노트 내용은 에이전트 호스트의 모델·개인정보 설정에 따라 처리됩니다. TOW 자체 서버는 없으며, npm으로 고정 버전 CLI를 내려받고 파일 접근은 호스트가 제어합니다.
+
 ## 설치
 
 ### Claude Code
@@ -86,12 +88,12 @@ uv run pyright
 uv run pytest
 ```
 
-스킬은 [`scripts/tow.py`](scripts/tow.py)를 부르고, 이 스크립트는 `npx --yes tag-ontology@0.1`로 노트를 읽습니다. 다른 빌드의 CLI를 쓰려면 `TOW_TAG_ONTOLOGY`에 그 명령을 넣습니다. 예: `TOW_TAG_ONTOLOGY="node /path/to/cli.js"`.
+스킬은 [`scripts/tow.py`](scripts/tow.py)를 부르고, 이 스크립트는 `npx --yes tag-ontology@0.1.2`로 노트를 읽습니다. 배포 시 내려받는 실행 파일을 재현할 수 있도록 정확한 버전을 고정합니다. 다른 빌드의 CLI를 쓰려면 `TOW_TAG_ONTOLOGY`에 그 명령을 넣습니다. 예: `TOW_TAG_ONTOLOGY="node /path/to/cli.js"`.
 
 실제 CLI 연동 테스트는 로컬에서는 선택 사항입니다. `TOW_TAG_ONTOLOGY`에 CLI를 지정하면 단위 테스트와 함께 실행됩니다.
 
 ```bash
-TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.1" uv run pytest
+TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.1.2" uv run pytest
 ```
 
 이 변수가 없으면 연동 테스트를 건너뜁니다. 테스트는 [합성 vault](tests/fixtures/vault)를 임시 디렉터리에 복사하며 사용자의 vault를 사용하지 않습니다. 스킬 평가 시나리오와 검증 한계는 [평가 문서](docs/evaluation.md)에 있습니다.

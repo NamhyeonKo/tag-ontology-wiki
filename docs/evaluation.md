@@ -7,11 +7,11 @@ The checks below exercise TOW with a real `tag-ontology` CLI. They do not establ
 The default `uv run pytest` runs the unit tests and skips the real CLI tests. To include them, point `TOW_TAG_ONTOLOGY` at a CLI, either the published release or a local build:
 
 ```bash
-TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.1" uv run pytest -q
+TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.1.2" uv run pytest -q
 TOW_TAG_ONTOLOGY="node /absolute/path/to/tag-ontology/dist/cli/main.js" uv run pytest -q
 ```
 
-CI runs them in a separate job against the published 0.1 release on Node.js 22.
+CI runs them in a separate job against published 0.1.2 on Node.js 22.
 
 [`test_cli_integration.py`](../tests/test_cli_integration.py) copies the [synthetic vault](../tests/fixtures/vault) into a new temporary directory for each test. It checks:
 
@@ -78,8 +78,27 @@ agy plugin install /absolute/path/to/staged-package
 
 Package/marketplace formats follow the [OpenAI packaging guide](https://developers.openai.com/plugins/build/plugins) and [Antigravity authoring guide](https://antigravity.google/docs/build-plugins). The local command spellings were checked against each installed client rather than inferred from another host.
 
+## Editing and release verification (2026-11-02)
+
+The two installed new hosts each ran the three editing scenarios above in fresh synthetic copies, first as a proposal and then as an explicitly approved batch in the same conversation. Each proposal's complete file hashes were checked before its approval was sent.
+
+| Host | `tow-check` | `tow-tag-suggest` | `tow-tag-sync` |
+| --- | --- | --- | --- |
+| Codex CLI 0.159.2 | PASS: only the approved headings, separator and date | PASS: only selected tags and date | PASS: exact new entry and Pipeline tag/date changes; first-attempt plan/apply; scratch removed |
+| Antigravity CLI 1.4.12 | PASS: exact approved substitutions and date | PASS: only selected tags and date | PASS after scoped host permission retries; exact dictionary/Pipeline changes; scratch removed |
+
+The main agent reran both independent verifiers and inspected their exact-delta assertions and native traces. For every scenario, the proposal changed no files (13 check-fixture files or 11 ordinary fixture files). Approved edits preserved all other bytes, every existing dictionary entry, the unselected title tag, and the note bodies. Sync's final scoped `usage`, `check`, and `lint` passed; the fixture's unused `inbox` entry remained.
+
+Antigravity recovered nine failed tool calls, including guessed default dictionary paths, one invalid `find` invocation, and sandbox failures during atomic dictionary write and batch cleanup. Its normal host flow authorized scoped retries for the approved fixture paths. No blanket bypass flag, persistent permission change, or evaluator-side cleanup was used. Its native initialization reported the account's existing `always-proceed` permission profile; these results establish the instruction-level approval boundary and content preservation, not interactive permission prompting under every profile.
+
+These editing runs used installed TOW 0.1.0 from runtime source `33f09ab` and resolved `tag-ontology` 0.1.2. Candidate 0.1.1 pins that same CLI version and adds distribution metadata; it does not change skill procedures. Codex's existing Context7 OAuth warning and one shell snapshot warning did not prevent its runs.
+
+Claude Code 2.1.310 was retried after a native reinstall made its installed conventions match current `dev`. All four commands loaded, but the model call again stopped before inference with `429 usage_limit_reached`, zero input/output tokens, and the CLI's reset notice of 04:20 Asia/Seoul. All 11 fixture files remained unchanged. This is still a blocked query check, not a passing scenario.
+
+The [release readiness record](release-readiness.md) separates local package checks from `main` promotion and public-directory portal checks. Native CLI validation is not a directory approval.
+
 ## Limits
 
 These are individual application scenarios, not a statistical skill benchmark. They explicitly select the skills and therefore do not test automatic skill discovery. Format and tag edits were evaluated on synthetic copies; the private corpus comparison covered lint and category search only.
 
-The first skill scenarios used a frozen pre-release build, to avoid changing a sibling repository under active development; the re-run used the published package. Locally, the integration tests stay opt-in. Claude's model-backed installation run remains unverified; Codex and Antigravity have the read-only query checks above. Public-directory submission, installation from the future released `main`, and Obsidian rendering were not tested.
+The first skill scenarios used a frozen pre-release build, to avoid changing a sibling repository under active development; the re-run used the published package. Locally, the integration tests stay opt-in. Claude's model-backed installation query remains blocked; Codex and Antigravity have the query and editing checks above. Public-directory portal checks/submission, installation from the future released `main`, and Obsidian rendering were not tested.

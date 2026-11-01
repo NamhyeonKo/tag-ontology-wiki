@@ -44,6 +44,8 @@ All three hosts share these skills, the conventions, and the CLI. In Claude Code
 - Node.js 22.18 or later, for the `tag-ontology` CLI
 - Python 3.10 or later (standard library only)
 
+The skills read the vault files you scope and apply only the changes you approve. Your agent host processes opened note content under its own model and privacy settings. TOW has no hosted backend; npm downloads the pinned CLI, and the host controls file access.
+
 ## Install
 
 ### Claude Code
@@ -86,12 +88,12 @@ uv run pyright
 uv run pytest
 ```
 
-The skills call [`scripts/tow.py`](scripts/tow.py), which reads notes through `npx --yes tag-ontology@0.1`. To use another build of the CLI, set `TOW_TAG_ONTOLOGY` to its command, for example `TOW_TAG_ONTOLOGY="node /path/to/cli.js"`.
+The skills call [`scripts/tow.py`](scripts/tow.py), which reads notes through `npx --yes tag-ontology@0.1.2`. The exact version makes the downloaded executable reproducible for plugin distribution. To use another build of the CLI, set `TOW_TAG_ONTOLOGY` to its command, for example `TOW_TAG_ONTOLOGY="node /path/to/cli.js"`.
 
 The real CLI integration tests are optional locally. Point `TOW_TAG_ONTOLOGY` at a CLI to run them alongside the unit tests:
 
 ```bash
-TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.1" uv run pytest
+TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.1.2" uv run pytest
 ```
 
 Without this variable, the integration tests are skipped. They copy the [synthetic vault](tests/fixtures/vault) into temporary directories and never use your own vault. See [evaluation](docs/evaluation.md) for the skill scenarios and verification limits.
