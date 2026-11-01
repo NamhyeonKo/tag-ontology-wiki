@@ -44,16 +44,14 @@ your Obsidian vault
 
 ## Install
 
-The plugin is currently on `dev`; select that branch until the first release reaches `main`.
-
 ```text
-/plugin install tow --marketplace https://github.com/NamhyeonKo/tag-ontology-wiki.git#dev
+/plugin install tow --marketplace NamhyeonKo/tag-ontology-wiki
 ```
 
 On Claude Code older than 2.1.275:
 
 ```text
-/plugin marketplace add https://github.com/NamhyeonKo/tag-ontology-wiki.git#dev
+/plugin marketplace add NamhyeonKo/tag-ontology-wiki
 /plugin install tow@tag-ontology-wiki
 ```
 
