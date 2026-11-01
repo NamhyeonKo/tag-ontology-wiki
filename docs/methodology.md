@@ -4,10 +4,12 @@ The principles, frontmatter schema, and shared rules every TOW skill follows. Ea
 
 ## The `tow` command
 
-`tow` stands for `"${CLAUDE_PLUGIN_ROOT}/scripts/tow.py"`, an executable Python 3 script. Run it from the vault root, or pass `--root <vault>`. To reuse it, keep the path in a variable and quote it when you run it, which works in zsh and bash alike:
+`tow` is the executable Python 3 script `scripts/tow.py` in the installed plugin. Resolve the plugin root from the absolute path of this document: it is the directory above `docs/` (also two directories above the loaded `skills/<name>/SKILL.md`). Use that installed location, independently of the agent host or the vault's working directory.
+
+Run it from the vault root, or pass `--root <vault>`. Replace `<plugin-root>` below with that absolute path, keep the path in a variable, and quote it when you run it, which works in zsh and bash alike:
 
 ```bash
-TOW="${CLAUDE_PLUGIN_ROOT}/scripts/tow.py"
+TOW="<plugin-root>/scripts/tow.py"
 "$TOW" lint
 ```
 
