@@ -1,6 +1,6 @@
 # Release readiness: TOW 0.1.1 candidate
 
-Checked on 2026-11-02. This is a candidate and a verification record, not a publication or directory-approval claim.
+Checked on 2026-11-02 before main promotion. This is a verification record, not a directory-approval claim. The GitHub release records the final publication and post-promotion installation checks.
 
 ## Functional checks
 
@@ -8,7 +8,7 @@ Checked on 2026-11-02. This is a candidate and a verification record, not a publ
 | --- | --- |
 | Codex query and all three editing workflows | Passed on installed 0.1.0 runtime `33f09ab`; exact deltas and approval-phase hashes independently checked |
 | Antigravity query and all three editing workflows | Passed; sync needed normal scoped host permission retries |
-| Claude installed query | Blocked before inference by account `429 usage_limit_reached`; CLI reset notice 04:20 Asia/Seoul |
+| Claude installed query | Passed on native-updated 0.1.1 after the account reset; installed helper used, both exact notes read, count 2, all 11 fixture files unchanged |
 | User vaults | Not used; each scenario had an independent synthetic copy |
 
 See [evaluation](evaluation.md) for scenarios, preserved boundaries, versions, and runtime failures. Model-backed tests are individual observations, not a statistical reliability benchmark.
@@ -38,14 +38,15 @@ Antigravity CLI 1.4.12 warns when a root manifest is shadowed by its native over
 - Claude Code 2.1.310 validated the portable archive in strict mode with no icon warning.
 - Antigravity CLI 1.4.12 validated the normalized native archive in strict JSON mode: four skills, no findings.
 - Codex CLI 0.159.2 installed and enabled candidate 0.1.1; Antigravity installed candidate 0.1.1 with the four expected skills.
+- Claude's ordinary native update advanced 0.1.0 to 0.1.1 after `dev` merge `5db6477`; the fresh installed query passed with no permission denials. Earlier quota-blocked and evaluator-denied attempts remain documented in the evaluation record.
 - ZIP integrity, complete skill/reference assets, file-count/size bounds, absence of development caches/symlinks, and executable mode on `scripts/tow.py` were checked. Archives stay outside the repository.
 - These are local candidate/artifact checks. Authenticated portal scans and post-promotion `main` installs are separate gates below.
 
 ## Main release gate
 
-`main` is still the initial repository commit `b9fe178`; tested implementation work is on `dev`. The README install commands intentionally keep the default/main source. Prepare and review a `dev` to `main` PR, clear the blocked Claude check, then promote and test those exact default-branch install commands. Do not repair release documentation directly on `main`.
+At this pre-promotion snapshot, `main` was the initial repository commit `b9fe178`; tested implementation work was on `dev`. The README install commands intentionally keep the default/main source. The Claude functional gate is now clear. Promote through a reviewed `dev` to `main` PR, then test those exact default-branch install commands. Do not repair release documentation directly on `main`.
 
-No release tag or published GitHub release is created by this verification. A release should identify the final reviewed commit and attach the checked archives; local archive checks do not prove installation from a branch that has not been promoted.
+A release should identify the final reviewed commit, attach the checked archives, and record post-merge CI and default-branch installation results. Local archive checks alone do not prove installation from a branch that has not been promoted.
 
 ## Public-directory gate
 

@@ -4,7 +4,7 @@ Plugins for Claude Code, Codex, and Google Antigravity to run a tag-first LLM wi
 
 [한국어](README.ko.md)
 
-> **Status:** in development, not released yet.
+> **Version:** 0.1.1.
 
 ## Overview
 
