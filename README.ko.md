@@ -4,7 +4,7 @@ Obsidian에서 태그 중심 LLM 위키를 운영하기 위한 Claude Code 플�
 
 [English](README.md)
 
-> **상태:** 개발 중입니다. 스킬이 쓰는 `tag-ontology` CLI가 아직 배포되지 않았습니다.
+> **상태:** 개발 중이며 아직 릴리스 전입니다.
 
 ## 개요
 
@@ -39,7 +39,7 @@ tow (이 플러그인)          vault 규약 검사, 스킬
 ## 요구 사항
 
 - Claude Code
-- Node.js (`tag-ontology` CLI 실행용)
+- Node.js 22.18 이상 (`tag-ontology` CLI 실행용)
 - Python 3.10 이상 (표준 라이브러리만 사용)
 
 ## 설치
@@ -65,7 +65,15 @@ uv run pyright
 uv run pytest
 ```
 
-스킬은 [`scripts/tow.py`](scripts/tow.py)를 부르고, 이 스크립트는 `npx --yes tag-ontology`로 노트를 읽습니다. 다른 빌드의 CLI를 쓰려면 `TOW_TAG_ONTOLOGY`에 그 명령을 넣습니다. 예: `TOW_TAG_ONTOLOGY="node /path/to/cli.js"`.
+스킬은 [`scripts/tow.py`](scripts/tow.py)를 부르고, 이 스크립트는 `npx --yes tag-ontology@0.1`로 노트를 읽습니다. 다른 빌드의 CLI를 쓰려면 `TOW_TAG_ONTOLOGY`에 그 명령을 넣습니다. 예: `TOW_TAG_ONTOLOGY="node /path/to/cli.js"`.
+
+실제 CLI 연동 테스트는 로컬에서는 선택 사항입니다. `TOW_TAG_ONTOLOGY`에 CLI를 지정하면 단위 테스트와 함께 실행됩니다.
+
+```bash
+TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.1" uv run pytest
+```
+
+이 변수가 없으면 연동 테스트를 건너뜁니다. 테스트는 [합성 vault](tests/fixtures/vault)를 임시 디렉터리에 복사하며 사용자의 vault를 사용하지 않습니다. 스킬 평가 시나리오와 검증 한계는 [평가 문서](docs/evaluation.md)에 있습니다.
 
 ## 라이선스
 

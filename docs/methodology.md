@@ -4,7 +4,12 @@ The principles, frontmatter schema, and shared rules every TOW skill follows. Ea
 
 ## The `tow` command
 
-`tow` stands for `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/tow.py"`. Run it from the vault root, or pass `--root <vault>`.
+`tow` stands for `"${CLAUDE_PLUGIN_ROOT}/scripts/tow.py"`, an executable Python 3 script. Run it from the vault root, or pass `--root <vault>`. To reuse it, keep the path in a variable and quote it when you run it, which works in zsh and bash alike:
+
+```bash
+TOW="${CLAUDE_PLUGIN_ROOT}/scripts/tow.py"
+"$TOW" lint
+```
 
 | Command | What it does |
 | --- | --- |
