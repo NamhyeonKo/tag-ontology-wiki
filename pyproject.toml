@@ -1,0 +1,27 @@
+[project]
+name = "tag-ontology-wiki"
+version = "0.1.0"
+description = "TOW: vault convention checks and skills for a tag-first LLM wiki."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = []
+
+[dependency-groups]
+dev = ["pyright", "pytest", "ruff"]
+
+[tool.ruff]
+line-length = 120
+src = ["scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.10"
+extraPaths = ["scripts"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["scripts"]
