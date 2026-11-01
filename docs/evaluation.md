@@ -1,6 +1,6 @@
 # CLI integration and skill evaluation
 
-The checks below exercise TOW with a real `tag-ontology` CLI. They do not establish release or installation readiness of the plugin.
+The checks below exercise TOW with a real `tag-ontology` CLI and installed agent hosts. Publication and directory checks are recorded separately in [release readiness](release-readiness.md).
 
 ## Automated integration tests
 
@@ -53,7 +53,7 @@ The sync scenario's new entry description is: "Splitting documents at topic chan
 ## Live installation check (2026-11-02)
 
 - Post-merge CI passed on `dev` commit `740fa2f`: Python 3.10 and 3.14 checks and the real CLI integration job.
-- The repository's default branch, `main`, does not yet contain the plugin manifests. Installing from `https://github.com/NamhyeonKo/tag-ontology-wiki.git#dev` succeeded in Claude Code 2.1.310 at user scope. `tow@tag-ontology-wiki` 0.1.0 was enabled, its marketplace checkout matched `740fa2f`, and all tracked installed files matched the reviewed head. The executable bit on `scripts/tow.py` was preserved.
+- At this initial check, the repository's default branch, `main`, did not contain the plugin manifests. Installing from `https://github.com/NamhyeonKo/tag-ontology-wiki.git#dev` succeeded in Claude Code 2.1.310 at user scope. `tow@tag-ontology-wiki` 0.1.0 was enabled, its marketplace checkout matched `740fa2f`, and all tracked installed files matched the reviewed head. The executable bit on `scripts/tow.py` was preserved.
 - `claude plugin details tow@tag-ontology-wiki` listed all four skills. Running the installed package's tests passed **46 tests** (42 unit, 4 integration) on Python 3.13.5 against published `tag-ontology` 0.1.2.
 - A fresh Claude Code session loaded the installed plugin and registered all four `tow:` commands without `--plugin-dir`. The requested `tow:tow-query` run stopped before inference with the account's `429 usage_limit_reached`; it did not verify a model-backed query. SHA-256 comparisons confirmed all 11 synthetic-vault files were unchanged.
 
@@ -74,7 +74,7 @@ agy plugin install /absolute/path/to/staged-package
 - Both installed helpers passed `lint`, category and tag queries against separate synthetic vault copies using the default npm CLI and no `CLAUDE_PLUGIN_ROOT` or `PLUGIN_ROOT`. Each vault's 11 files retained their SHA-256 hashes.
 - A fresh Codex session selected `tow-query`, read the installed conventions, used the installed helper, opened both matching notes, and returned exactly `Projects/Category Project.md` and `Projects/Search.md` (count 2).
 - Antigravity's first session started in its scratch directory and could not identify the vault from the launch directory alone. A fresh session with `--add-dir <vault>` and the absolute vault root in the request used the installed helper with `--root`, read both notes, and returned the same two paths and count. Both attempts left the fixture unchanged.
-- These model-backed checks were read-only query scenarios. They do not repeat the three editing workflows on either new host. The earlier Claude account-limit result remains the limit of its model-backed installation check. The Codex session also emitted an unrelated existing Context7 OAuth startup warning; TOW itself has no MCP servers and completed the query.
+- These initial model-backed checks were read-only query scenarios. The editing workflows and later Claude query are recorded below. The Codex session also emitted an unrelated existing Context7 OAuth startup warning; TOW itself has no MCP servers and completed the query.
 
 Package/marketplace formats follow the [OpenAI packaging guide](https://developers.openai.com/plugins/build/plugins) and [Antigravity authoring guide](https://antigravity.google/docs/build-plugins). The local command spellings were checked against each installed client rather than inferred from another host.
 
@@ -93,7 +93,11 @@ Antigravity recovered nine failed tool calls, including guessed default dictiona
 
 These editing runs used installed TOW 0.1.0 from runtime source `33f09ab` and resolved `tag-ontology` 0.1.2. Candidate 0.1.1 pins that same CLI version and adds distribution metadata; it does not change skill procedures. Codex's existing Context7 OAuth warning and one shell snapshot warning did not prevent its runs.
 
-Claude Code 2.1.310 was retried after a native reinstall made its installed conventions match current `dev`. All four commands loaded, but the model call again stopped before inference with `429 usage_limit_reached`, zero input/output tokens, and the CLI's reset notice of 04:20 Asia/Seoul. All 11 fixture files remained unchanged. This is still a blocked query check, not a passing scenario.
+Claude Code 2.1.310 was initially retried after a native reinstall made its installed conventions match `dev`. All four commands loaded, but the model call again stopped before inference with `429 usage_limit_reached`, zero input/output tokens, and the CLI's reset notice of 04:20 Asia/Seoul. All 11 fixture files remained unchanged; this attempt was blocked, not a passing scenario.
+
+After the reset, the ordinary native marketplace/plugin update advanced Claude's installed copy from 0.1.0 to 0.1.1 at merged `dev` commit `5db6477`. A fresh `/tow:tow-query` session read the installed conventions and category dictionary, ran the installed helper's `config`, category query, ontology query, and project listing, and opened both matching notes before answering. It returned exactly `Projects/Category Project.md` and `Projects/Search.md`, count 2, with no permission denials or failed tool calls. All 11 fixture file hashes remained unchanged.
+
+The first post-reset attempt returned the correct answer through read-only fallback because the evaluator allowed direct helper execution but not the model's `python3 <installed-helper>` form. It is not counted as the helper-backed pass. The passing retry allowed that exact installed script path with Python and used separate direct commands; no blanket permission bypass or global permission change was used. These checks do not cover every permission profile or unprompted skill discovery.
 
 The [release readiness record](release-readiness.md) separates local package checks from `main` promotion and public-directory portal checks. Native CLI validation is not a directory approval.
 
@@ -101,4 +105,4 @@ The [release readiness record](release-readiness.md) separates local package che
 
 These are individual application scenarios, not a statistical skill benchmark. They explicitly select the skills and therefore do not test automatic skill discovery. Format and tag edits were evaluated on synthetic copies; the private corpus comparison covered lint and category search only.
 
-The first skill scenarios used a frozen pre-release build, to avoid changing a sibling repository under active development; the re-run used the published package. Locally, the integration tests stay opt-in. Claude's model-backed installation query remains blocked; Codex and Antigravity have the query and editing checks above. Public-directory portal checks/submission, installation from the future released `main`, and Obsidian rendering were not tested.
+The first skill scenarios used a frozen pre-release build, to avoid changing a sibling repository under active development; the re-run used the published package. Locally, the integration tests stay opt-in. All three hosts have installed query checks; Codex and Antigravity also have the editing checks above. Public-directory portal checks/submission and Obsidian rendering were not tested. At this pre-promotion cutoff, default-branch installation was still a release gate; post-promotion results belong to the GitHub release verification record.

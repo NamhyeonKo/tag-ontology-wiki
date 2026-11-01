@@ -4,7 +4,7 @@ Obsidian에서 태그 중심 LLM 위키를 운영하기 위한 Claude Code·Code
 
 [English](README.md)
 
-> **상태:** 개발 중이며 아직 릴리스 전입니다.
+> **버전:** 0.1.1.
 
 ## 개요
 
