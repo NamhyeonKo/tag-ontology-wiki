@@ -168,6 +168,30 @@ def test_load_config_allows_dictionary_paths_with_folders() -> None:
     assert tow.load_config({"tagDictionary": "meta/tags.json"})["tagDictionary"] == "meta/tags.json"
 
 
+def test_load_config_accepts_portable_workflow_locations() -> None:
+    locations = {
+        "inbox": "Capture",
+        "attachments": "Support/media",
+        "dailyNotes": "Life/journal",
+        "misc": "Support",
+    }
+    assert tow.load_config(locations) == {**tow.DEFAULTS, **locations}
+
+
+@pytest.mark.parametrize("key", ["attachments", "dailyNotes"])
+@pytest.mark.parametrize("value", ["/outside", "../outside", "inside/../outside", "."])
+def test_workflow_storage_paths_stay_relative_to_the_vault(key: str, value: str) -> None:
+    with pytest.raises(tow.ConfigError, match=f"{key}:.*vault-relative"):
+        tow.load_config({key: value})
+
+
+@pytest.mark.parametrize("key", ["inbox", "misc"])
+@pytest.mark.parametrize("value", ["nested/folder", ".", ".."])
+def test_workflow_root_folders_reject_nested_paths(key: str, value: str) -> None:
+    with pytest.raises(tow.ConfigError, match="single folder"):
+        tow.load_config({key: value})
+
+
 # tag-ontology arguments
 
 

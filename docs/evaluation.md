@@ -101,6 +101,28 @@ The first post-reset attempt returned the correct answer through read-only fallb
 
 The [release readiness record](release-readiness.md) separates local package checks from `main` promotion and public-directory portal checks. Native CLI validation is not a directory approval.
 
+## Complete portable workflows 0.2.0 (2026-11-02)
+
+The six additional workflows were ported from their original functional/approval contracts and checked one at a time with fresh agents on disposable, renamed-layout vaults. The package has ten skills; existing names, including `tow-tag-sync`, are unchanged. No user vault was edited.
+
+All **67 tests** passed against published `tag-ontology` 0.1.2 (63 unit/package, four integration), with Ruff lint/format and strict Pyright. Claude and Antigravity package validation passed. Native installs matched all 55 portable files (Claude/Codex) or 54 normalized Antigravity files, including the executable helper. Independent whole-branch review through `4af3ad0` found no substantive blocker; CI passed Python 3.10, Python 3.14 and published-CLI integration.
+
+| Native host | classify | link | edit | merge | review | ingest |
+| --- | --- | --- | --- | --- | --- | --- |
+| Claude Code 2.1.310 | PASS | PASS | PASS | PASS | PASS | PASS |
+| Codex 0.159.2 | PASS | PASS | PASS | PASS | PASS | PASS |
+| Antigravity 1.4.12 | PASS | PASS | PASS | PASS | PASS | PASS |
+
+Each proposal's complete file hashes were checked before its exact synthetic approval resumed the same native conversation. State oracles and command/read traces verified selected metadata/body deltas, declined retroactive classification, first-mention links, direct authorization of a clear body edit, hub-only approval, sequential merge choices, fact destinations before deletion, paper full-title H1/alias, byte-preserving unique-media moves and unchanged shared/private inputs. Private-canary absence was supplemental: actual content searches and CLI parsing had to exclude private inputs before reading them. The parent independently reran state assertions and post-deletion scoped installed-helper checks.
+
+**Source provenance:** initial cases used `15fd94f`. Explicit scan-scope guidance at `f613a76` was reread for Codex's approved turns; affected Claude classification/review/intake and Antigravity edit/review were rerun in fresh copies. Claude's remaining merge scope failure led to `4af3ad0`'s mandatory scope gate. Fresh merge pairs then passed on all three hosts, including configuration/ignore/eligible-path setup before body searches and a separate destination verification while the source still existed. Unchanged, already scoped link/edit and other unaffected cases retain their original source labels. These are controlled mixed-candidate results, not eighteen new executions of one identical revision. The helper is identical across these candidates; `4af3ad0` changes only the merge skill relative to `f613a76`.
+
+Claude edit/review helper gaps were closed by read-only validation continuations in their original sessions, with unchanged hashes. Claude intake recovered in normal task-scoped `acceptEdits` mode using plain copy and byte comparison after `dontAsk` denied flagged copy commands. Antigravity used its existing `always-proceed` profile and scoped per-command sandbox retries. No blanket bypass flag, persistent permission change, account/model switch or quota workaround was used. Interactive permission prompting is not established by these runs.
+
+Retained failures include client-session metadata denials, zero-token missing-session resumes, the earlier Codex usage limit, incorrect/denied tool commands, timeouts, and real overly broad scans in earlier candidates. The old quota notice's reset had already passed when work resumed; normal same-thread retries succeeded. No failed attempt was relabeled as a pass. Three overstrict oracle assumptions were separately adjudicated: a roots-only index need not duplicate a child value; approved byte-identical hidden backups are valid; and display-preserving links to an existing absorbed section are valid. All other fact, field, file and byte assertions remained. Invalid early fixture PNGs were replaced with validated images before native runs.
+
+These are individual explicitly selected synthetic scenarios, with no statistical or automatic-discovery claim. H1/link targets and preservation were checked independently; `tow lint` alone does not verify them. External paper retrieval, user-vault migration, GUI rendering and interactive approval UX were not tested. Post-promotion CI and public-main installation are separate release checks, recorded in the GitHub release; official-directory registration remains deferred.
+
 ## Limits
 
 These are individual application scenarios, not a statistical skill benchmark. They explicitly select the skills and therefore do not test automatic skill discovery. Format and tag edits were evaluated on synthetic copies; the private corpus comparison covered lint and category search only.
