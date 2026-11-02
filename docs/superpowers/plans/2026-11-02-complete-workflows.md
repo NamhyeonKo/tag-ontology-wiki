@@ -66,13 +66,13 @@ For each of the six tasks:
 **Interfaces:** native installed 0.2.0 skills/helper, pinned default CLI, custom-layout scenario oracles.
 
 - [x] Install the candidate and verify ten skills and source hashes on all three hosts.
-- [ ] Exercise classify/link/edit/merge/review/ingest on each, preserving each skill's distinct approval rules.
-- [ ] Verify pre-approval hashes, exact allowed deltas, unchanged facts/other files, and scratch/attachment outcomes.
-- [ ] Inspect every failed native tool call and record recovery/limits; rerun failed product cases after fixes.
+- [x] Exercise classify/link/edit/merge/review/ingest on each, preserving each skill's distinct approval rules.
+- [x] Verify pre-approval hashes, exact allowed deltas, unchanged facts/other files, and scratch/attachment outcomes.
+- [x] Inspect every failed native tool call and record recovery/limits; rerun failed product cases after fixes.
 
 ### 10. Review, CI and promotion
 
-- [ ] Obtain fresh independent whole-branch review and resolve concrete findings.
+- [x] Obtain fresh independent whole-branch review and resolve concrete findings.
 - [ ] Push feature→dev PR; wait for all CI jobs and review completion before merging.
 - [ ] Promote dev→main through a reviewed PR and check post-merge CI.
 - [ ] Verify new-version installation from public main and publish a source-linked release record/artifacts if the final candidate is ready.
