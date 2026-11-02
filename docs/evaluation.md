@@ -101,6 +101,26 @@ The first post-reset attempt returned the correct answer through read-only fallb
 
 The [release readiness record](release-readiness.md) separates local package checks from `main` promotion and public-directory portal checks. Native CLI validation is not a directory approval.
 
+## Complete workflows 0.2.0 candidate (2026-11-02, in progress)
+
+The six additional workflows were ported from their original functional/approval contracts and checked one at a time with fresh agents on disposable, renamed-layout vaults. Classification conversion, first-mention linking, direct authorization of scoped body edits, sequential merge choices, hub-only review approval, and intake preservation passed these bounded applications. No user vault was edited. These checks are separate from native-host completion.
+
+Candidate runtime `15fd94f` contains ten shared skills. All 67 tests passed against published `tag-ontology` 0.1.2 (63 unit/package, four integration); Ruff lint/format and strict Pyright passed. Claude and Antigravity native package validation passed. Native installations matched all 55 portable files (Claude/Codex) or 54 normalized Antigravity files, including the executable helper.
+
+| Native host | Observed result at this cutoff | Remaining gate |
+| --- | --- | --- |
+| Codex 0.159.2 | All six proposal turns completed with unchanged hashes and scoped/private-excluded reads | All six same-thread approved turns stopped before execution at the account usage limit; the CLI reported a 17:49 Asia/Seoul retry time |
+| Claude Code 2.1.310 | Six zero-write proposals; approved classification/link/edit/merge/review state checks passed after oracle adjudication; intake stopped without writes when its exact backup/copy commands lacked permission | Some searches scanned beyond the selected/private-safe scope; new explicit scan-scope guidance requires a fresh run, and intake needs scoped tool authorization |
+| Antigravity 1.4.12 | Six zero-write proposals and six approved final-state checks passed after oracle adjudication | Review's broad `find` also parsed an unselected private subtree; the scan-scope guidance requires a fresh run |
+
+State success alone is insufficient: CLI scans parse files even when their JSON omits body text, and absence of a private canary in output does not prove the input was unread. Native traces exposed broad `find`, pathless lint and directory content searches. The conventions now explain that Git ignore is not automatic, require filtered paths/exclusions before parsing, and distinguish whole-PARA `find` from explicitly scoped scans. This follow-up is not yet counted as a passing native result.
+
+Retained evaluator/host failures include initial client-session metadata denials, Claude's zero-token missing-session resumes before normal client persistence was enabled, scoped shell denials, Antigravity timeouts and sandbox retries, and an unavailable `python` executable recovered with Python 3. No blanket bypass flag, persistent permission change, account switch or quota workaround was used. Antigravity reported the account's existing `always-proceed` profile; interactive permission prompting is not established by these tests.
+
+Three overly strict state-oracle assumptions were adjudicated separately while retaining their original failures: a roots-only dictionary index need not duplicate a new child value; approved byte-identical hidden backups are valid; and display-preserving links to an existing absorbed section are valid. Unrelated files, facts, metadata, attachment bytes and deferred merge cases still had to satisfy the original assertions. Invalid early fixture PNGs were replaced with validated, rendered images before native runs.
+
+Final independent review, CI, default-branch promotion and public-main installation of 0.2.0 remain pending. The public 0.1.1 release is unchanged. The release gate stays closed until the affected scenarios and Codex's approved turns pass.
+
 ## Limits
 
 These are individual application scenarios, not a statistical skill benchmark. They explicitly select the skills and therefore do not test automatic skill discovery. Format and tag edits were evaluated on synthetic copies; the private corpus comparison covered lint and category search only.

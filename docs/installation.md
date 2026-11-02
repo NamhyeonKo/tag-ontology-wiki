@@ -130,6 +130,8 @@ VAULT="/absolute/path/to/vault"
 
 These commands do not edit the vault. npm may write its package cache. Convention/tag findings concern the vault contents and do not by themselves mean plugin installation failed. Notes without frontmatter are skipped by the helper's convention lint; `tow-check` inspects them directly. Formatting, links, and the meaning of a tag hierarchy still need the skill's review.
 
+The pathless checks above scan configured PARA notes. The CLI does not apply `.gitignore` automatically: if that scope contains private or unselected notes, use exact approved paths for `lint`/`ontology usage` and explicit exclusions for scans. `find` has no path/exclusion option; use a scoped `ontology scan` instead when the whole PARA scope is not authorized. See [scope rules](methodology.md#scope-before-reading-note-contents).
+
 You can ask the host to run the same checks:
 
 ```text
@@ -157,7 +159,7 @@ Explicitly select the skill, then supply the vault root and the files/folders to
 
 A clear `tow-edit` request authorizes its stated body edits immediately. Other modifying workflows propose first. Intake/review batch approval still preserves merge-by-merge selection, separate discard confirmation, and the separate retroactive-classification decision. Ignored/private captures need explicit selection, and the plan must disclose any move into tracked/public scope. Shared attachments stay in place unless separately approved.
 
-For example, in Claude Code select `/tow:tow-tag-suggest`, then name the note. After its proposal, select exact changes: “Add only `semantic-chunking` and remove `information-retrieval`; keep the other tags and body.” The sync skill uses a dictionary plan before applying approved changes. Approval is part of the skill instructions; actual tool access and permission prompts remain the host's responsibility.
+For example, in Claude Code select `/tow:tow-tag-suggest`, then name the note. After its proposal, select exact changes: “Add only `semantic-chunking` and remove `information-retrieval`; keep the other tags and body.” `tow-tag-sync` uses a dictionary plan before applying approved changes. Approval is part of the skill instructions; actual tool access and permission prompts remain the host's responsibility.
 
 For manual searches:
 

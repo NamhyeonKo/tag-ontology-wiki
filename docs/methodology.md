@@ -22,6 +22,15 @@ TOW="<plugin-root>/scripts/tow.py"
 
 `tow ontology` adds `--root`, the tag dictionary path, and `--names kebab`, and limits notes to the PARA folders. For `show` it also skips project archive folders; `--all` keeps them.
 
+### Scope before reading note contents
+
+The helper/CLI does **not** automatically apply Git ignore or private-input rules. Before content searches or note scans, inspect those rules and determine the eligible paths. Names-only listings may discover candidates; content reads, `Grep`/`rg` and CLI parsing must use the filtered paths, or explicit exclusions. Filtering the results after a broad scan still reads the excluded files.
+
+- For selected notes, pass those exact paths to `tow lint`, `tow ontology scan … --json`, and `tow ontology usage … --json`, including final verification. Keep dictionary-only `tow ontology check --json` separate.
+- For an authorized folder search, pass its approved paths and private-subtree exclusions to the underlying scan/search, such as `tow ontology scan <folder> --exclude <private-subtree> --json`. Enumerate eligible files first when exclusions cannot express the selection.
+- `tow find` scans the entire configured PARA scope; it has no path/exclusion argument. Use it only when that whole scan is authorized and contains no unselected private inputs. Otherwise parse an explicitly scoped `tow ontology scan` result and filter its fields. The same caution applies to pathless `lint`, `usage`, and `show --notes`.
+- A body-edit request or a declined retroactive-classification proposal does not authorize a vault-wide verification search. Check only changed/selected paths; report other unresolved work without scanning it.
+
 ## Vault settings (`tow.json`)
 
 Values that differ between vaults live in `tow.json` at the vault root, not in this document. A missing file or key falls back to the defaults below. The four PARA folders, `inbox`, and `misc` name direct children of the vault root. `projectArchive` names a history folder inside a project; matching folders at any depth in the search scope count. Dictionaries, `attachments`, and `dailyNotes` are paths relative to the vault root. Set each path explicitly when the layout differs; changing `areas` or `misc` does not rewrite another setting.

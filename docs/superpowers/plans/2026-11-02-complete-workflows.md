@@ -1,6 +1,6 @@
 # Complete Portable TOW Workflows Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Port all six remaining workflows, preserving their functionality/approval boundaries, and ship a verified ten-skill GitHub package.
 
@@ -33,9 +33,9 @@
 **Files:** `scripts/tow.py`, `tests/test_tow.py`, fixture `tow.json`, shared conventions.
 **Interfaces:** `read_config`/`load_config` retain `dict[str, str]`; add the four string settings from the spec without expanding default note scope.
 
-- [ ] Record original skill hashes and meaningful unadapted portability failures.
-- [ ] Add failing tests for custom input/attachment/daily/misc settings and unsafe new paths; run and inspect failures.
-- [ ] Add minimal configuration support; update exact fixture/config expectations; run the suite.
+- [x] Record original skill hashes and meaningful unadapted portability failures.
+- [x] Add failing tests for custom input/attachment/daily/misc settings and unsafe new paths; run and inspect failures.
+- [x] Add minimal configuration support; update exact fixture/config expectations; run the suite.
 
 ### 2–7. Port one skill at a time
 
@@ -45,27 +45,27 @@
 
 For each of the six tasks:
 
-- [ ] Read its full original and referenced policies; account for every function and approval boundary.
-- [ ] Use the recorded baseline and a per-skill synthetic scenario before writing the port.
-- [ ] Write the portable English workflow and necessary references, keeping original Korean discovery triggers.
-- [ ] Run a fresh-agent application/contract check and resolve gaps before the next skill.
-- [ ] Record the exact functional/approval mapping and outcome in the progress ledger.
+- [x] Read its full original and referenced policies; account for every function and approval boundary.
+- [x] Use the recorded baseline and a per-skill synthetic scenario before writing the port.
+- [x] Write the portable English workflow and necessary references, keeping original Korean discovery triggers.
+- [x] Run a fresh-agent application/contract check and resolve gaps before the next skill.
+- [x] Record the exact functional/approval mapping and outcome in the progress ledger.
 
 ### 8. Package, documentation and regression gates
 
 **Files:** all three manifests, `pyproject.toml`, `uv.lock`, `tests/test_packaging.py`, English/Korean READMEs and installation guides.
 **Interfaces:** exactly ten skill names; all bundled references stay inside the plugin; package version 0.2.0.
 
-- [ ] Add failing complete-package checks for all ten skills and private-path/reference portability.
-- [ ] Bump package/project versions and update all ten-skill/setup/configuration documentation.
-- [ ] Run full unit/packaging/integration tests, Ruff lint/format, strict Pyright and native package validation.
+- [x] Add failing complete-package checks for all ten skills and private-path/reference portability.
+- [x] Bump package/project versions and update all ten-skill/setup/configuration documentation.
+- [x] Run full unit/packaging/integration tests, Ruff lint/format, strict Pyright and native package validation.
 
 ### 9. Native installed-host validation
 
 **Files:** synthetic scenario fixtures/evaluation record; native artifacts outside repository.
 **Interfaces:** native installed 0.2.0 skills/helper, pinned default CLI, custom-layout scenario oracles.
 
-- [ ] Install the candidate and verify ten skills and source hashes on all three hosts.
+- [x] Install the candidate and verify ten skills and source hashes on all three hosts.
 - [ ] Exercise classify/link/edit/merge/review/ingest on each, preserving each skill's distinct approval rules.
 - [ ] Verify pre-approval hashes, exact allowed deltas, unchanged facts/other files, and scratch/attachment outcomes.
 - [ ] Inspect every failed native tool call and record recovery/limits; rerun failed product cases after fixes.
