@@ -1,10 +1,10 @@
 ---
 name: tow-edit
 description: >-
-  Use when the user explicitly requests body-content changes to named,
-  already-organized vault notes, including filling empty sections, restructuring,
-  notation, list conversion, or prose style. Triggers: "본문 수정해줘",
-  "이 섹션 채워줘", "빈 데 채워줘", "구조 바꿔줘", "리스트로 바꿔줘", "음슴체로 바꿔줘".
+  Use when the user explicitly requests body-content changes to named, already-organized
+  vault notes, including filling empty sections, restructuring, notation, list conversion,
+  or prose style. Triggers: "edit this note", "fill in this section", "fill the empty
+  sections", "restructure this note", "turn this into a list".
 ---
 
 # tow-edit
@@ -17,7 +17,7 @@ This is the scoped body-edit exception to the [conventions](../../docs/methodolo
 | Change structure | Heading hierarchy and placement using the [structure template](assets/note-structure-template.md) | Sentence content |
 | Fix table/math/code notation | [Markdown notation](../tow-check/references/markdown-format.md), including natural sentence flow | Facts, cell values, expressions and code |
 | Convert to concise style or lists | Sentence form in the named section | Facts/content and the note's language |
-| “정리해줘” or “fix it” without a clear target/change | Ask what to change first | The complete note until clarified |
+| “Clean this up” or “fix it” without a clear target/change | Ask what to change first | The complete note until clarified |
 
 ## Workflow
 
