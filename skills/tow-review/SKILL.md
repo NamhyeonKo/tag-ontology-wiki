@@ -1,12 +1,10 @@
 ---
 name: tow-review
 description: >-
-  Use when checking an organized vault domain, category, or project for concept
-  ownership, duplicate explanations, over-splitting, mixed topics, missing hubs,
-  isolation, or project direction. Triggers: "review this domain", "any duplicate content?",
-  "is there a hub note?", "this note is too big", "clean up the project docs",
-  "이 도메인 점검해줘", "재검토해줘", "중복 내용 있어?", "메인 문서 있어?", "문서가 너무 방대해",
-  "프로젝트 문서 정리해줘".
+  Use when checking an organized vault domain, category, or project for concept ownership,
+  duplicate explanations, over-splitting, mixed topics, missing hubs, isolation, or project
+  direction. Triggers: "review this domain", "any duplicate content?", "is there a hub
+  note?", "this note is too big", "clean up the project docs".
 ---
 
 # tow-review

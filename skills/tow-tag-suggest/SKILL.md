@@ -3,8 +3,7 @@ name: tow-tag-suggest
 description: >-
   Use when the user asks for concept-tag (`tags:`) candidates for specific notes in a TOW
   vault. Recommends only, then attaches the tags the user picks. Triggers: "suggest tags for
-  this note", "what tags should this note have?", "extract concept tags", "태그 후보 추천해줘",
-  "이 노트 태그 뭐 달까", "개념 태그 추출".
+  this note", "what tags should this note have?", "extract concept tags".
 ---
 
 # tow-tag-suggest

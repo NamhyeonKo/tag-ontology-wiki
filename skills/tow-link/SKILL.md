@@ -1,10 +1,9 @@
 ---
 name: tow-link
 description: >-
-  Use when connecting vault notes with Obsidian wikilinks at existing mentions
-  of note titles or aliases, including inbound links to newly filed notes.
-  Triggers: "link my notes", "connect these notes", "add wikilinks", "링크 연결",
-  "노트 연결해줘", "[[..]]로 이어줘", "wikilink 걸어줘".
+  Use when connecting vault notes with Obsidian wikilinks at existing mentions of note
+  titles or aliases, including inbound links to newly filed notes. Triggers: "link my
+  notes", "connect these notes", "add wikilinks".
 ---
 
 # tow-link

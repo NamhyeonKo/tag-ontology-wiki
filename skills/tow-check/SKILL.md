@@ -1,12 +1,11 @@
 ---
 name: tow-check
 description: >-
-  Use when checking notes in a TOW vault for schema and format problems — frontmatter against
-  the dictionaries, H1/section structure, table·math·code notation, content-shape issues,
-  broken wikilinks or image paths — and when normalizing their format without changing content.
-  Triggers: "check my notes", "lint this note", "is the frontmatter right?", "fix the table/math
-  formatting", "any broken links?", "노트 검사해줘", "형식 확인", "frontmatter 맞는지 봐줘",
-  "표·수식 봐줘", "깨진 링크 있어?".
+  Use when checking notes in a TOW vault for schema and format problems — frontmatter
+  against the dictionaries, H1/section structure, table·math·code notation, content-shape
+  issues, broken wikilinks or image paths — and when normalizing their format without
+  changing content. Triggers: "check my notes", "lint this note", "is the frontmatter
+  right?", "fix the table/math formatting", "any broken links?".
 ---
 
 # tow-check

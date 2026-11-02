@@ -5,8 +5,7 @@ description: >-
   with the tag dictionary — registering new concepts with aliases, description, and broader
   placement, merging or renaming variant tags across notes, and reviewing the ontology.
   Triggers: "I added tags", "add these to the tag dictionary", "sync the tag dictionary",
-  "find/merge duplicate tags", "where does this tag fit in the ontology?", "태그 달았어",
-  "태그 사전에 추가해줘", "Tag-Dictionary 동기화", "중복 태그 확인/병합", "온톨로지 위치 봐줘".
+  "find/merge duplicate tags", "where does this tag fit in the ontology?".
 ---
 
 # tow-tag-sync

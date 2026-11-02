@@ -1,11 +1,10 @@
 ---
 name: tow-classify
 description: >-
-  Use when registering category values or reviewing notes' category, type, status,
-  and kind fields, including backfilling, misclassification, category consolidation,
-  and legacy classification tags. Triggers: "add/register a category",
-  "reclassify these notes", "backfill the new category", "merge duplicate categories",
-  "카테고리 추가/등록", "재분류", "분류 보강", "소급 반영", "중복 카테고리 통합".
+  Use when registering category values or reviewing notes' category, type, status, and kind
+  fields, including backfilling, misclassification, category consolidation, and legacy
+  classification tags. Triggers: "add/register a category", "reclassify these notes",
+  "backfill the new category", "merge duplicate categories".
 ---
 
 # tow-classify
