@@ -102,3 +102,10 @@ def test_skill_descriptions_list_english_triggers_only() -> None:
         frontmatter = (ROOT / "skills" / skill / "SKILL.md").read_text().split("---")[1]
         assert re.findall(r'"[^"]+"', frontmatter.split("Triggers:")[1]), skill
         assert not re.search(r"[\uac00-\ud7af]", frontmatter), skill
+
+
+def test_korean_text_stays_in_korean_documents() -> None:
+    allowed = {ROOT / "skills/tow-edit/references/korean-style.md"}
+    for document in [ROOT / "docs/methodology.md", *(ROOT / "skills").rglob("*.md")]:
+        if document not in allowed:
+            assert not re.search(r"[\uac00-\ud7af]", document.read_text()), document

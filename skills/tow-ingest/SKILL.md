@@ -47,9 +47,9 @@ Merge into partial frontmatter: preserve existing values, fill missing ones and 
 | --- | --- |
 | `description` | Body-grounded identity/contribution, one sentence (~100 characters); omit and report `NOPOINT` if unsupported |
 | `aliases` | Title synonyms/abbreviations/translations; `ABC (Full Name)` contributes both ABC and Full Name |
-| `created` | Preserve existing value; otherwise original body date first (`작성일: 2022-02-24(목)` → `2022-02-24`), processing date only if absent |
+| `created` | Preserve existing value; otherwise original body date first (`Date: 2022-02-24 (Thu)` → `2022-02-24`, likewise for the same label in the note's language), processing date only if absent |
 | `source` | Actual original URL or Area source wikilink; mark an inferred source as a question in the plan for confirmation |
-| `tags` | Preserve existing selections; transfer `Tag:`/`태그:` or a top `#a, #b` line, removing `#`. Propose typo/case/hyphen corrections for selection. With no selected tags, use `tags: []` |
+| `tags` | Preserve existing selections; transfer a `Tag:`/`Tags:` line (or the same label in the note's language) or a top `#a, #b` line, removing `#`. Propose typo/case/hyphen corrections for selection. With no selected tags, use `tags: []` |
 
 Classification confidence: **clear** when the dictionary value fits; **ambiguous** with alternatives when several fit; **unknown** when the domain itself needs user direction/new registration. Do not hide uncertainty behind a default.
 

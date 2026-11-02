@@ -36,6 +36,6 @@ For Resource restructuring through `tow-edit` and new Resource notes through `to
 | Confusable neighboring concepts | Comparison and relations |
 | Examples needed for understanding/reuse | Examples and applications |
 
-Use `-` lists and concise clauses or nominal endings. For Korean notes, use 음슴체/명사형 (`~함`, `~됨`, `~없음`, or a noun ending) rather than full narrative sentences. Split long sentences into bullets/subitems, one clause per bullet, preserving every fact. Rewrite tables/code only when restructuring them is in the approved scope.
+Use `-` lists and concise clauses or nominal endings in the note's language rather than full narrative sentences. For Korean notes, read [korean-style.md](../references/korean-style.md). Split long sentences into bullets/subitems, one clause per bullet, preserving every fact. Rewrite tables/code only when restructuring them is in the approved scope.
 
 Links follow `tow-link` (actual targets, first eligible mention, code excluded). Register new categories through `tow-classify`; concept tags are selected by the user, with `tow-tag-suggest` only when requested.
