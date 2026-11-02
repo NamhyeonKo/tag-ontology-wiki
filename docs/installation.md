@@ -78,7 +78,7 @@ Only override values that differ in your vault. For example, a vault with `Proje
 }
 ```
 
-Folder names identify direct children of the vault root. Dictionary paths are relative to that root. The tag dictionary is a JSON object of concept entries; the category dictionary is a Markdown index of registered classifications. Their formats are in the [conventions](methodology.md).
+The four PARA folder names identify direct children of the vault root. `projectArchive` names history folders inside projects, such as `Projects/Search/superseded/`; matching folders at any depth in the search scope count. Dictionary paths are relative to the vault root. The tag dictionary is a JSON object of concept entries; the category dictionary is a Markdown index of registered classifications. Their formats are in the [conventions](methodology.md).
 
 Installation does not create dictionaries, folders, or frontmatter. For a vault that has not adopted these conventions, ask the agent to inspect the current layout and propose the required setup first. Approve any file creation or migration separately.
 

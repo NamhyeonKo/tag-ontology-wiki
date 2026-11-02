@@ -78,7 +78,7 @@ TOW는 `<vault>/tow.json`을 읽습니다. 파일이 없으면 다음 기본값�
 }
 ```
 
-폴더명은 vault 바로 아래의 폴더 하나를 뜻하며, 사전 경로는 vault 루트 기준입니다. 태그 사전은 개념 항목을 담은 JSON 객체, category 사전은 등록된 분류 값의 Markdown 인덱스입니다. 형식은 [공통 규약](methodology.md)에 있습니다.
+네 PARA 폴더명은 vault 바로 아래의 폴더를 뜻합니다. `projectArchive`는 `Projects/Search/superseded/`처럼 프로젝트 안에 두는 이력 폴더 이름이며, 검색 범위 안에서는 어느 깊이에 있든 같은 이름의 폴더를 인식합니다. 사전 경로는 vault 루트 기준입니다. 태그 사전은 개념 항목을 담은 JSON 객체, category 사전은 등록된 분류 값의 Markdown 인덱스입니다. 형식은 [공통 규약](methodology.md)에 있습니다.
 
 설치 과정에서 사전·폴더·frontmatter를 생성하지 않습니다. 아직 규약을 적용하지 않은 vault라면 먼저 현재 구조를 검사하고 필요한 설정을 제안하도록 요청하세요. 파일 생성이나 이관은 별도로 승인합니다.
 
