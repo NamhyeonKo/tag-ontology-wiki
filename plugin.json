@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "tow",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Tag Ontology for Wiki: skills for a tag-first LLM wiki in Obsidian (PARA, classification fields, concept tag ontology).",
   "author": {
     "name": "NamhyeonKo",
@@ -17,10 +17,10 @@
       "interface": {
         "displayName": "TOW",
         "shortDescription": "Tag-first wiki for your notes",
-        "longDescription": "Search and check local Obsidian notes by categories and concept tags. Suggest tags and reconcile the tag dictionary after you approve the selected changes. Requires a local vault, Python 3.10+ and Node.js 22.18+; runs the tag-ontology CLI from npm. Your agent host processes the note content you open and controls file permissions. TOW has no hosted backend.",
+        "longDescription": "Search, classify, file, edit, link and reconcile local Obsidian notes. Review ownership and merge notes with per-case choices; changes follow the selected workflow’s approval rules. Requires a local vault, Python 3.10+ and Node.js 22.18+; runs the tag-ontology CLI from npm. Your agent host processes the note content you open and controls file permissions. TOW has no hosted backend.",
         "developerName": "NamhyeonKo",
         "category": "Productivity",
-        "capabilities": ["Search notes", "Check notes", "Suggest tags", "Reconcile tags"],
+        "capabilities": ["Search notes", "Check notes", "Classify notes", "File captures", "Edit notes", "Link notes", "Merge notes", "Review domains", "Suggest tags", "Reconcile tags"],
         "websiteURL": "https://github.com/NamhyeonKo/tag-ontology-wiki",
         "supportURL": "https://github.com/NamhyeonKo/tag-ontology-wiki/issues",
         "defaultPrompt": ["Find my project notes about RAG.", "Check these notes against the TOW conventions.", "Suggest concept tags for this note."],

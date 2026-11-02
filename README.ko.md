@@ -4,7 +4,7 @@ Obsidian 노트를 태그 중심으로 검색하고 관리하는 Claude Code·Co
 
 [English](README.md)
 
-> **버전:** 0.1.1.
+> **버전:** 0.2.0.
 
 ## 개요
 
@@ -16,7 +16,7 @@ TOW는 Karpathy의 LLM Wiki를 변형해 노트를 태그 중심으로 정리하
 
 전체 규약은 [docs/methodology.md](docs/methodology.md)(영어)에 있습니다.
 
-TOW는 로컬 코딩 에이전트에 네 가지 작업 절차를 설치합니다. vault와 대상 노트를 지정하면 에이전트가 파일을 읽고, 분류·개념 태그로 검색하고, 승인할 변경안을 제안합니다. 노트는 기존 Obsidian vault의 파일로 유지됩니다.
+TOW는 로컬 코딩 에이전트에 열 가지 작업 절차를 설치합니다. vault와 대상 노트를 지정하면 에이전트가 파일을 읽고, 분류·개념 태그로 검색하고, 승인할 변경안을 제안합니다. 노트는 기존 Obsidian vault의 파일로 유지됩니다.
 
 패키지는 스킬·공통 규약·Python helper인 [`scripts/tow.py`](scripts/tow.py)로 구성됩니다. helper는 분류 규칙을 검사하고, [`tag-ontology`](https://github.com/NamhyeonKo/obsidian-tag-ontology) npm CLI를 호출해 노트 파싱·태그 조회·사전 검증과 변경을 처리합니다. 모델과 파일 도구는 에이전트 호스트가 제공합니다.
 
@@ -36,6 +36,12 @@ tow (이 플러그인)          vault 규약 검사, 스킬
 | `tow-check` | frontmatter·제목·표·수식·참조 검사 | 먼저 보고하고, 승인한 서식만 고칩니다. |
 | `tow-tag-suggest` | 지정한 노트의 개념 태그 추천 | 사용자가 고른 추가·제거만 적용합니다. |
 | `tow-tag-sync` | 새 태그 등록, 별칭 정리, 사전과 노트 태그 맞추기 | 먼저 제안하고, 승인한 사전·태그 변경만 적용합니다. |
+| `tow-classify` | 카테고리 등록·재분류·구 분류 태그 이관 | 등록·이관을 승인받고, 기존 노트 소급 적용은 별도로 결정합니다. |
+| `tow-link` | 제목·별칭이 언급된 곳에 위키링크 연결 | 승인한 첫 언급만 연결하고 표시 문구를 보존합니다. |
+| `tow-edit` | 빈 절 채우기·본문 구조나 문체 변경 | 범위가 명확한 수정 요청은 바로 적용하고, 모호할 때 묻습니다. |
+| `tow-merge` | 겹치는 노트 흡수·분리·정본 정리 | 병합 건마다 전략을 선택하고, 버릴 사실은 따로 확인합니다. |
+| `tow-review` | 도메인·프로젝트의 소유권·중복·허브 점검 | 먼저 보고하고, 고른 작업을 해당 스킬로 실행합니다. |
+| `tow-ingest` | 캡처 분류·이동, 출처에서 개념 노트 파생 | 배치 승인 뒤 백업·메타데이터·이동·첨부·링크를 처리합니다. |
 
 세 호스트가 같은 스킬·규약·CLI를 공유합니다. Claude Code에서는 `/tow:tow-query`, Codex에서는 `$` 또는 `/skills`로 `tow-query` 선택, Antigravity에서는 `/tow-query`로 호출합니다.
 
@@ -98,7 +104,7 @@ vault를 호스트의 작업 폴더로 열거나 해당 폴더에 접근 권한�
 
 helper가 사용하는 명령은 `npx --yes tag-ontology@0.1.2`입니다. 필요할 때 npm으로 해당 버전을 내려받습니다. 직접 실행할 때는 설치된 `scripts/tow.py` 경로를 사용합니다. 규약 문서의 `tow`는 이 경로를 줄여 쓴 이름입니다.
 
-TOW 0.1.1과 `tag-ontology` 0.1.2 모두 `doctor` 명령은 없습니다. 먼저 다음을 확인합니다.
+TOW 0.2.0과 `tag-ontology` 0.1.2 모두 `doctor` 명령은 없습니다. 먼저 다음을 확인합니다.
 
 ```bash
 python3 --version
