@@ -4,7 +4,7 @@ Obsidian 노트를 태그 중심으로 검색하고 관리하는 Claude Code·Co
 
 [English](README.md)
 
-> **버전:** 0.2.0.
+> **버전:** 0.2.1.
 
 ## 개요
 
@@ -104,7 +104,7 @@ vault를 호스트의 작업 폴더로 열거나 해당 폴더에 접근 권한�
 
 helper가 사용하는 명령은 `npx --yes tag-ontology@0.1.2`입니다. 필요할 때 npm으로 해당 버전을 내려받습니다. 직접 실행할 때는 설치된 `scripts/tow.py` 경로를 사용합니다. 규약 문서의 `tow`는 이 경로를 줄여 쓴 이름입니다.
 
-TOW 0.2.0과 `tag-ontology` 0.1.2 모두 `doctor` 명령은 없습니다. 먼저 다음을 확인합니다.
+TOW 0.2.1과 `tag-ontology` 0.1.2 모두 `doctor` 명령은 없습니다. 먼저 다음을 확인합니다.
 
 ```bash
 python3 --version

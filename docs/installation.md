@@ -46,7 +46,7 @@ Run the relevant command in your terminal:
 | Codex | `codex plugin list --json` | Use `$` or `/skills` and select `tow-query` |
 | Antigravity | `agy plugin list --json` | `/tow-query` |
 
-Confirm `tow`, version `0.2.0`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, and `tow-ingest` (ten total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
+Confirm `tow`, version `0.2.1`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, and `tow-ingest` (ten total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
 
 ## Configure the vault
 
@@ -94,7 +94,7 @@ Installation does not create dictionaries, folders, or frontmatter. For a vault 
 
 ## Check the setup
 
-TOW 0.2.0 and `tag-ontology` 0.1.2 have no `doctor` command. Use these read-only vault checks in order.
+TOW 0.2.1 and `tag-ontology` 0.1.2 have no `doctor` command. Use these read-only vault checks in order.
 
 **1. Runtime versions — terminal:**
 

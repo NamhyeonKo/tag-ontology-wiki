@@ -2,10 +2,9 @@
 name: tow-query
 description: >-
   Use when the user asks what knowledge exists in a TOW vault and where — by domain, topic,
-  category, or concept tag, including multi-condition searches. Read-only.
-  Triggers: "what do I have on X?", "find my notes about X", "what's in the security domain?",
-  "where is X?", "projects tagged rag", "뭐 있어?", "X 관련 정리한 거 찾아줘",
-  "security 도메인에 뭐 있어?", "내 vault에 ~ 뭐 정리했지?", "어디 있어?", "rag이면서 project인 거".
+  category, or concept tag, including multi-condition searches. Read-only. Triggers: "what
+  do I have on X?", "find my notes about X", "what's in the security domain?", "where is
+  X?", "projects tagged rag".
 ---
 
 # tow-query
