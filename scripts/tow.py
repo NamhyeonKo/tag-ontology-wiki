@@ -33,9 +33,14 @@ DEFAULTS: Final[dict[str, str]] = {
     "projectArchive": "archive",
     "tagDictionary": "Tag-Dictionary.json",
     "categoryDictionary": "Category-Dictionary.md",
+    "inbox": "00_Inbox",
+    "attachments": "99_Etc/attachments",
+    "dailyNotes": "02_Areas/daily-notes",
+    "misc": "99_Etc",
 }
 PARA: Final = ("projects", "areas", "resources", "archives")
-FOLDER_KEYS: Final = (*PARA, "projectArchive")
+FOLDER_KEYS: Final = (*PARA, "projectArchive", "inbox", "misc")
+WORKFLOW_PATHS: Final = ("attachments", "dailyNotes")
 
 ALLOWED: Final[dict[str, frozenset[str]]] = {
     "type": frozenset({"resource", "project", "area", "daily-note"}),
@@ -186,8 +191,12 @@ def load_config(raw: object) -> dict[str, str]:
     for key, value in values.items():
         if not isinstance(value, str) or not value:
             raise ConfigError(f"{key}: must be a non-empty string")
-        if key in FOLDER_KEYS and "/" in value:
+        if key in FOLDER_KEYS and ("/" in value or value in (".", "..")):
             raise ConfigError(f"{key}: must be a single folder name, without '/'")
+        if key in WORKFLOW_PATHS:
+            path = Path(value)
+            if path.is_absolute() or ".." in path.parts or not path.parts:
+                raise ConfigError(f"{key}: must be a vault-relative path without '..'")
     return {**DEFAULTS, **cast(dict[str, str], values)}
 
 

@@ -4,7 +4,7 @@ A plugin for Claude Code, Codex, and Google Antigravity to search and maintain a
 
 [한국어](README.ko.md)
 
-> **Version:** 0.1.1.
+> **Version:** 0.2.0.
 
 ## Overview
 
@@ -16,7 +16,7 @@ TOW is a variant of Karpathy's LLM Wiki that organizes notes by tags first. A va
 
 The full conventions are in [docs/methodology.md](docs/methodology.md).
 
-TOW installs four workflows into your local coding agent. You name the vault and notes; the agent reads the relevant files, searches classifications and concept tags, and proposes scoped changes for your approval. The files stay in your Obsidian vault.
+TOW installs ten workflows into your local coding agent. You name the vault and notes; the agent reads the relevant files, searches classifications and concept tags, and proposes scoped changes for your approval. The files stay in your Obsidian vault.
 
 The package contains skills, shared conventions, and the Python helper [`scripts/tow.py`](scripts/tow.py). That helper checks classification rules and calls the [`tag-ontology`](https://github.com/NamhyeonKo/obsidian-tag-ontology) npm CLI for note parsing, tag queries, and dictionary validation/changes. Your agent host supplies the model and file tools.
 
@@ -36,6 +36,12 @@ your Obsidian vault
 | `tow-check` | Check frontmatter, headings, tables, math, and references | Reports first; fixes only approved formatting |
 | `tow-tag-suggest` | Recommend concept tags for selected notes | Applies only the additions/removals you select |
 | `tow-tag-sync` | Register new tags, resolve aliases, or reconcile the dictionary | Proposes first; applies approved dictionary/tag changes |
+| `tow-classify` | Register categories, reclassify notes, convert legacy fields | Approve entries and conversions; retroactive changes are a separate choice |
+| `tow-link` | Link existing title/alias mentions | Approved first mentions only; preserves displayed words |
+| `tow-edit` | Fill empty sections, restructure, or change body style | A clear, scoped request authorizes the edit; asks when ambiguous |
+| `tow-merge` | Absorb, split, or reconcile overlapping notes | Select a strategy for each case; confirm discarded facts separately |
+| `tow-review` | Review a domain or project's ownership, duplicates, hubs | Reports first; executes selected fixes through the relevant skills |
+| `tow-ingest` | File captures and derive reusable notes from sources | Approve the batch before backups, metadata, moves, attachments and links |
 
 All three hosts share these skills, the conventions, and the CLI. In Claude Code, invoke `/tow:tow-query`; in Codex, select `tow-query` with `$` or `/skills`; in Antigravity, invoke `/tow-query`.
 
@@ -98,7 +104,7 @@ For an existing vault, check its folder/dictionary paths first. TOW reads `tow.j
 
 The helper uses `npx --yes tag-ontology@0.1.2`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path.
 
-Neither TOW 0.1.1 nor `tag-ontology` 0.1.2 has a `doctor` command. Start with:
+Neither TOW 0.2.0 nor `tag-ontology` 0.1.2 has a `doctor` command. Start with:
 
 ```bash
 python3 --version

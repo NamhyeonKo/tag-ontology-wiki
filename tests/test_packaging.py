@@ -9,6 +9,18 @@ from pathlib import Path
 import tow
 
 ROOT = Path(__file__).parents[1]
+SKILLS = {
+    "tow-query",
+    "tow-check",
+    "tow-tag-suggest",
+    "tow-tag-sync",
+    "tow-classify",
+    "tow-link",
+    "tow-edit",
+    "tow-merge",
+    "tow-review",
+    "tow-ingest",
+}
 
 
 def test_hosts_share_the_same_package_identity() -> None:
@@ -17,7 +29,15 @@ def test_hosts_share_the_same_package_identity() -> None:
         manifest = json.loads((ROOT / name / "plugin.json").read_text())
         for key in ("name", "version", "author", "repository", "license"):
             assert portable[key] == manifest[key]
-    assert len(list((ROOT / "skills").glob("*/SKILL.md"))) == 4
+    assert {path.parent.name for path in (ROOT / "skills").glob("*/SKILL.md")} == SKILLS
+
+
+def test_workflows_have_no_private_vault_dependencies() -> None:
+    documents = [ROOT / "docs/methodology.md", *(ROOT / "skills").rglob("*.md")]
+    for document in documents:
+        text = document.read_text()
+        for private in ("/Users/", "oh-my-obsidian", "vault_meta.py", "../../../AGENTS.md"):
+            assert private not in text, (document, private)
 
 
 def test_distribution_declares_local_execution_and_bundles_a_valid_icon() -> None:

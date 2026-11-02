@@ -24,7 +24,7 @@ TOW="<plugin-root>/scripts/tow.py"
 
 ## Vault settings (`tow.json`)
 
-Values that differ between vaults live in `tow.json` at the vault root, not in this document. A missing file or key falls back to the defaults below. The four PARA folder values name direct children of the vault root. `projectArchive` names a history folder inside a project; matching folders at any depth in the search scope count. Dictionary values are paths relative to the vault root.
+Values that differ between vaults live in `tow.json` at the vault root, not in this document. A missing file or key falls back to the defaults below. The four PARA folders, `inbox`, and `misc` name direct children of the vault root. `projectArchive` names a history folder inside a project; matching folders at any depth in the search scope count. Dictionaries, `attachments`, and `dailyNotes` are paths relative to the vault root. Set each path explicitly when the layout differs; changing `areas` or `misc` does not rewrite another setting.
 
 ```json
 {
@@ -34,9 +34,17 @@ Values that differ between vaults live in `tow.json` at the vault root, not in t
   "archives": "04_Archives",
   "projectArchive": "archive",
   "tagDictionary": "Tag-Dictionary.json",
-  "categoryDictionary": "Category-Dictionary.md"
+  "categoryDictionary": "Category-Dictionary.md",
+  "inbox": "00_Inbox",
+  "attachments": "99_Etc/attachments",
+  "dailyNotes": "02_Areas/daily-notes",
+  "misc": "99_Etc"
 }
 ```
+
+Resolve every operational path from `tow config` and the supplied vault root, including inbox intake, paper source notes, attachments, and link exclusions. `inbox` is the capture queue, `attachments` stores note-specific media, `dailyNotes` is the daily-note subtree, and `misc` holds support files. Default searches still use only PARA; pass an explicit intake file or folder when checking it.
+
+Before a move, inspect the vault's ignore/private rules. Ignored capture inputs require explicit path selection; include any change in tracked/public visibility in the plan before approval. Apply this rule to intake candidates and existing-note searches. Link targets and edits exclude the configured inbox, daily notes, project history, miscellaneous support subtree, and attachments. If an attachment store overlaps a note root, exclude only the configured attachment subtree rather than the entire root.
 
 > **Before you start**: read the category dictionary (`categoryDictionary`) first and use it as the classification and navigation index (the LLM Wiki's index-first principle). The tag dictionary (`tagDictionary`) is large: query it with `grep` (one line = one tag) instead of reading it whole.
 
@@ -54,7 +62,7 @@ Values that differ between vaults live in `tow.json` at the vault root, not in t
 | archives | `archives` | `04_Archives` | **Finished projects** |
 | project archive | `projectArchive` | `archive` | Superseded or rejected documents of an active project (§2). Any folder with this name, at any depth, counts |
 
-Captures waiting to be classified stay in an inbox, as written. The inbox, templates, and attachments sit outside the PARA folders, so checks and searches leave them out.
+Captures waiting to be classified stay in an inbox, as written. In the default layout, inbox, templates and attachments sit outside PARA, so default helper scans leave them out. Custom paths do not change the helper's PARA scope; the workflows apply their own configured intake and link exclusions.
 
 ## 2. Folders and depth
 
@@ -151,6 +159,7 @@ Project notes add `status` and `kind` after `type` when needed.
 ## 5. Note body
 
 - **Title**: exactly **one** `# <title>` (H1) at the top of the body, matching the **file name** (no `title` frontmatter field).
+- **Paper-review exception**: an area note whose primary category is `paper/<alias>` keeps the full paper title as its H1 and as an alias. Its filename uses the main title before the subtitle to avoid forbidden filename characters such as `:`. Do not shorten that H1 to the filename; this exception does not apply to other notes.
 - **Sections** start at `##` (H2), then `###`, `####`. (Obsidian shows the file name as the title, so the body's standard starts at H2.)
 - **A `#` inside a code block** (a comment, for example) is not a heading; leave it as is.
 - **Tables**: the separator row uses `| --- |` only (no alignment colons such as `---:`). Every row has the same number of columns.
@@ -203,6 +212,7 @@ A thesaurus that lightly follows the core of W3C **SKOS** (Simple Knowledge Orga
 These apply to every TOW skill; skills don't repeat them.
 
 - **Plan → approve → run**: for work that changes files, show a plan table first and run it after the user approves. Ask for approval once for the whole batch. Exceptions: merging notes is approved merge by merge; a body edit whose scope the user stated runs directly when the scope is clear.
+- **Delegation keeps the choices**: an intake/review batch approval covers its listed category registrations and link positions, but merges still need sequential case-by-case strategies, discarded facts need explicit confirmation, and retroactive classification needs its separate decision. A choice already stated explicitly settles that choice.
 - **The approval gate stays**: "I'm in a hurry, just do it" or "I trust you" still gets one proposal and one confirmation.
 - **Git commits and merges** happen only when the user asks for them in this task.
 - **Deleting is separate from writing**: write the new file → verify it in a separate call → only then delete the original. When steps must share one command, chain them with `&&` so a failure stops the rest. Back up uncommitted inbox originals to a scratch directory before changing or deleting them. Before a merge or a delete, check that every fact has a new home.

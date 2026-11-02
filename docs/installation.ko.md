@@ -2,7 +2,7 @@
 
 [English](installation.md) · [개요](../README.ko.md)
 
-TOW는 로컬 에이전트 호스트에 네 스킬을 추가합니다. 에이전트는 함께 설치된 Python helper와 npm의 `tag-ontology` CLI로 Obsidian vault를 다룹니다. 공개 GitHub 저장소에서 설치하며, 공식 디렉터리 신청은 필요하지 않습니다.
+TOW는 로컬 에이전트 호스트에 열 스킬을 추가합니다. 에이전트는 함께 설치된 Python helper와 npm의 `tag-ontology` CLI로 Obsidian vault를 다룹니다. 공개 GitHub 저장소에서 설치하며, 공식 디렉터리 신청은 필요하지 않습니다.
 
 ## 호스트에 설치
 
@@ -46,7 +46,7 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 | Codex | `codex plugin list --json` | `$` 또는 `/skills`에서 `tow-query` 선택 |
 | Antigravity | `agy plugin list --json` | `/tow-query` |
 
-`tow`, 버전 `0.1.1`, 표시되는 경우 활성화 상태를 확인합니다. 새 세션의 스킬 선택 목록에서 `tow-query`·`tow-check`·`tow-tag-suggest`·`tow-tag-sync`도 확인합니다. Claude의 `plugin details`는 구성 요소를 보여주며, `claude plugin list --json`에는 설치 경로와 활성화 상태도 나옵니다. Codex 설치 결과에는 `installedPath`가 나오지만 plugin list 자체는 스킬 목록이 아닙니다. Antigravity 목록에는 `path`와 발견한 스킬이 나옵니다.
+`tow`, 버전 `0.2.0`, 표시되는 경우 활성화 상태를 확인합니다. 새 세션의 스킬 선택 목록에서 `tow-query`·`tow-check`·`tow-tag-suggest`·`tow-tag-sync`와 새 워크플로 `tow-classify`·`tow-link`·`tow-edit`·`tow-merge`·`tow-review`·`tow-ingest`까지 열 개를 확인합니다. Claude의 `plugin details`는 구성 요소를 보여주며, `claude plugin list --json`에는 설치 경로와 활성화 상태도 나옵니다. Codex 설치 결과에는 `installedPath`가 나오지만 plugin list 자체는 스킬 목록이 아닙니다. Antigravity 목록에는 `path`와 발견한 스킬이 나옵니다.
 
 ## vault 설정
 
@@ -60,7 +60,11 @@ TOW는 `<vault>/tow.json`을 읽습니다. 파일이 없으면 다음 기본값�
   "archives": "04_Archives",
   "projectArchive": "archive",
   "tagDictionary": "Tag-Dictionary.json",
-  "categoryDictionary": "Category-Dictionary.md"
+  "categoryDictionary": "Category-Dictionary.md",
+  "inbox": "00_Inbox",
+  "attachments": "99_Etc/attachments",
+  "dailyNotes": "02_Areas/daily-notes",
+  "misc": "99_Etc"
 }
 ```
 
@@ -74,17 +78,23 @@ TOW는 `<vault>/tow.json`을 읽습니다. 파일이 없으면 다음 기본값�
   "archives": "Archives",
   "projectArchive": "superseded",
   "tagDictionary": "meta/Tag-Dictionary.json",
-  "categoryDictionary": "meta/Category-Dictionary.md"
+  "categoryDictionary": "meta/Category-Dictionary.md",
+  "inbox": "Capture",
+  "attachments": "Support/media",
+  "dailyNotes": "Areas/journal",
+  "misc": "Support"
 }
 ```
 
 네 PARA 폴더명은 vault 바로 아래의 폴더를 뜻합니다. `projectArchive`는 `Projects/Search/superseded/`처럼 프로젝트 안에 두는 이력 폴더 이름이며, 검색 범위 안에서는 어느 깊이에 있든 같은 이름의 폴더를 인식합니다. 사전 경로는 vault 루트 기준입니다. 태그 사전은 개념 항목을 담은 JSON 객체, category 사전은 등록된 분류 값의 Markdown 인덱스입니다. 형식은 [공통 규약](methodology.md)에 있습니다.
 
+`inbox`·`misc`도 vault 바로 아래 폴더명입니다. `attachments`·`dailyNotes`는 vault 안의 상대 경로이며 절대 경로·`..`·vault 루트는 허용하지 않습니다. 다른 설정을 바꿔도 이 경로들이 자동으로 따라 바뀌지는 않습니다. 이 경로는 캡처 범위·첨부 이동·링크 제외에 사용되며 기본 PARA 검색 범위를 넓히지 않습니다.
+
 설치 과정에서 사전·폴더·frontmatter를 생성하지 않습니다. 아직 규약을 적용하지 않은 vault라면 먼저 현재 구조를 검사하고 필요한 설정을 제안하도록 요청하세요. 파일 생성이나 이관은 별도로 승인합니다.
 
 ## 설치 점검
 
-TOW 0.1.1과 `tag-ontology` 0.1.2에는 `doctor` 명령이 없습니다. 다음 순서로 vault를 수정하지 않고 점검할 수 있습니다.
+TOW 0.2.0과 `tag-ontology` 0.1.2에는 `doctor` 명령이 없습니다. 다음 순서로 vault를 수정하지 않고 점검할 수 있습니다.
 
 **1. 런타임 버전 — 터미널:**
 
@@ -128,7 +138,7 @@ VAULT="/vault의/절대/경로"
 설정된 폴더와 사전 파일이 실제로 있는지도 보고, 파일 수정 없이 결과만 알려줘.
 ```
 
-## 네 스킬 활용
+## 열 스킬 활용
 
 스킬을 명시적으로 선택하고 vault 루트와 작업할 파일·폴더를 적습니다. Claude는 스킬 앞에 `/tow:`, Antigravity는 `/`를 붙이며, Codex에서는 `$` 또는 `/skills`로 선택합니다.
 
@@ -138,6 +148,14 @@ VAULT="/vault의/절대/경로"
 | `tow-check` | “이 두 노트의 frontmatter·제목·표·수식·깨진 참조를 검사해줘. 먼저 보고만 하고 수정하지 마.” |
 | `tow-tag-suggest` | “이 노트의 개념 태그를 추천해줘. 추가·제거 후보와 이유를 나누고 내 선택을 기다려줘.” |
 | `tow-tag-sync` | “이 폴더의 태그를 사전과 대조해줘. 새 항목·별칭·중복 상위 태그 정리안을 제안하고 승인을 기다려줘.” |
+| `tow-classify` | “이 노트들의 카테고리를 제안해줘. 먼저 등록하고, 기존 노트 소급 적용은 따로 물어봐.” |
+| `tow-link` | “이 폴더의 기존 언급에 링크를 걸어줘. 대상·제외·모호·대상 없음 항목을 먼저 보여줘.” |
+| `tow-edit` | “지정한 노트의 빈 예시 절만 채워줘. 이미 쓴 문장·코드·메타데이터는 유지해줘.” |
+| `tow-merge` | “두 노트의 병합 전략과 보존할 사실·손실을 보여주고, 건별 선택을 기다려줘.” |
+| `tow-review` | “이 도메인의 소유권·중복·허브 누락·고립을 점검하고 수정안을 먼저 보여줘.” |
+| `tow-ingest` | “설정한 inbox 최상위 캡처의 메타데이터·목적지·첨부·링크를 포함한 intake 계획을 보여줘.” |
+
+명확한 `tow-edit` 요청은 그 범위의 본문 수정을 바로 허용합니다. 다른 변경 작업은 먼저 제안합니다. intake/review의 배치 승인을 받아도 병합 건별 선택·사실 폐기 확인·카테고리 소급 결정은 별도로 유지합니다. 무시되거나 비공개인 캡처는 경로를 명시해야 하며, 추적·공개 범위로 이동하는 변화는 계획에 표시합니다. 공유 첨부는 별도 승인 없이 옮기지 않습니다.
 
 예를 들어 Claude Code에서 `/tow:tow-tag-suggest`를 선택하고 노트를 지정합니다. 제안을 받은 뒤 “`semantic-chunking`만 추가하고 `information-retrieval`을 제거해줘. 나머지 태그와 본문은 유지해줘”처럼 변경을 고릅니다. sync 스킬은 사전 변경안을 plan으로 확인한 뒤 승인한 변경을 적용합니다. 승인 대기는 스킬 지침이며, 실제 도구 접근과 권한 창은 호스트가 제어합니다.
 

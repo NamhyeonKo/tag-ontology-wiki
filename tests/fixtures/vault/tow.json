@@ -5,5 +5,9 @@
   "archives": "Archives",
   "projectArchive": "superseded",
   "tagDictionary": "meta/Tag-Dictionary.json",
-  "categoryDictionary": "meta/Category-Dictionary.md"
+  "categoryDictionary": "meta/Category-Dictionary.md",
+  "inbox": "Inbox",
+  "attachments": "Support/media",
+  "dailyNotes": "Areas/journal",
+  "misc": "Support"
 }
