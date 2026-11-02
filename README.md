@@ -1,6 +1,6 @@
 # TOW — Tag Ontology for Wiki
 
-Plugins for Claude Code, Codex, and Google Antigravity to run a tag-first LLM wiki in Obsidian.
+A plugin for Claude Code, Codex, and Google Antigravity to search and maintain a tag-first Obsidian wiki.
 
 [한국어](README.ko.md)
 
@@ -16,11 +16,12 @@ TOW is a variant of Karpathy's LLM Wiki that organizes notes by tags first. A va
 
 The full conventions are in [docs/methodology.md](docs/methodology.md).
 
-The plugin gives the agent skills that follow these conventions, plus a Python checker for the vault conventions.
-Dictionary validation, queries, edits, and note parsing come from the [`tag-ontology`](https://github.com/NamhyeonKo/obsidian-tag-ontology) CLI. TOW calls the CLI and does not parse notes itself.
+TOW installs four workflows into your local coding agent. You name the vault and notes; the agent reads the relevant files, searches classifications and concept tags, and proposes scoped changes for your approval. The files stay in your Obsidian vault.
+
+The package contains skills, shared conventions, and the Python helper [`scripts/tow.py`](scripts/tow.py). That helper checks classification rules and calls the [`tag-ontology`](https://github.com/NamhyeonKo/obsidian-tag-ontology) npm CLI for note parsing, tag queries, and dictionary validation/changes. Your agent host supplies the model and file tools.
 
 ```text
-tag-ontology (npm CLI)    dictionary checks, queries, edits, note parsing
+tag-ontology@0.1.2        dictionary checks, queries, edits, note parsing
       ▲  npx tag-ontology … --json
 tow (this plugin)         vault convention checks, skills
       ▲  Claude Code / Codex / Antigravity
@@ -29,24 +30,27 @@ your Obsidian vault
 
 ## Skills
 
-| Skill | Purpose |
-| --- | --- |
-| `tow-check` | Check notes against the vault conventions and the tag dictionary |
-| `tow-tag-sync` | Reconcile the tags used in notes with the tag dictionary |
-| `tow-tag-suggest` | Suggest concept tags for a note; attach only the ones you pick |
-| `tow-query` | Find notes by category, concept tag, or both (read-only) |
+| Skill | When to use it | Changes |
+| --- | --- | --- |
+| `tow-query` | Find project notes about RAG, or notes matching a category/concept | Read-only; opens notes before summarizing them |
+| `tow-check` | Check frontmatter, headings, tables, math, and references | Reports first; fixes only approved formatting |
+| `tow-tag-suggest` | Recommend concept tags for selected notes | Applies only the additions/removals you select |
+| `tow-tag-sync` | Register new tags, resolve aliases, or reconcile the dictionary | Proposes first; applies approved dictionary/tag changes |
 
 All three hosts share these skills, the conventions, and the CLI. In Claude Code, invoke `/tow:tow-query`; in Codex, select `tow-query` with `$` or `/skills`; in Antigravity, invoke `/tow-query`.
 
 ## Requirements
 
 - Claude Code, Codex, or Google Antigravity with plugin support
-- Node.js 22.18 or later, for the `tag-ontology` CLI
+- Git, for installation from GitHub
+- Node.js 22.18 or later, with npm/npx on `PATH`, for the `tag-ontology` CLI
 - Python 3.10 or later (standard library only)
 
 The skills read the vault files you scope and apply only the changes you approve. Your agent host processes opened note content under its own model and privacy settings. TOW has no hosted backend; npm downloads the pinned CLI, and the host controls file access.
 
-## Install
+## Install from GitHub
+
+Install directly from this public repository. Official-directory registration is optional. The commands below use `main`; after installation, start a new host session. See the [installation and troubleshooting guide](docs/installation.md) for verification, vault settings, and updates.
 
 ### Claude Code
 
@@ -77,6 +81,32 @@ Run in your shell, then start a new Antigravity session:
 ```bash
 agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 ```
+
+## First use
+
+Open the vault as your host's workspace, or grant it access to that directory. In a new session, select `tow-query` using the host-specific invocation above, then send:
+
+```text
+My vault is /absolute/path/to/vault. Find project notes about RAG by category
+or concept, excluding superseded documents. Read matching notes before
+summarizing them and return their paths and count. Do not modify files.
+```
+
+For an existing vault, check its folder/dictionary paths first. TOW reads `tow.json` at the vault root; omitted settings use the defaults in the [setup guide](docs/installation.md#configure-the-vault). Installation does not create or migrate a vault.
+
+## CLI and setup checks
+
+The helper uses `npx --yes tag-ontology@0.1.2`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path.
+
+Neither TOW 0.1.1 nor `tag-ontology` 0.1.2 has a `doctor` command. Start with:
+
+```bash
+python3 --version
+node --version
+npx --yes tag-ontology@0.1.2 --version
+```
+
+Then follow the [setup checks](docs/installation.md#check-the-setup) to verify the installed plugin, configuration, dictionaries, and note tags. `lint` covers classification fields and tag counts; the check skill adds the note-by-note formatting/reference review. A clean lint result alone does not cover every skill check.
 
 ## Development
 

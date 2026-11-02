@@ -24,7 +24,7 @@ TOW="<plugin-root>/scripts/tow.py"
 
 ## Vault settings (`tow.json`)
 
-Values that differ between vaults live in `tow.json` at the vault root, not in this document. A missing file or key falls back to the defaults below. Folder values are a single folder name directly under the vault root; dictionary values are paths relative to the vault root.
+Values that differ between vaults live in `tow.json` at the vault root, not in this document. A missing file or key falls back to the defaults below. The four PARA folder values name direct children of the vault root. `projectArchive` names a history folder inside a project; matching folders at any depth in the search scope count. Dictionary values are paths relative to the vault root.
 
 ```json
 {
