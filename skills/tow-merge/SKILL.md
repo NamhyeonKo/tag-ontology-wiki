@@ -2,8 +2,10 @@
 name: tow-merge
 description: >-
   Use when overlapping vault notes need a canonical owner, absorption, replacement,
-  coexistence, or splitting. Triggers: "기존 문서랑 합쳐줘", "중복인데 정리해줘",
-  "이미 있는 노트에 합쳐", "정본 어디로 할지 정해줘", "이 노트 둘로 나눠줘".
+  coexistence, or splitting. Triggers: "merge this with the existing note",
+  "these notes are duplicates", "which note should be canonical?", "split this note in two",
+  "기존 문서랑 합쳐줘", "중복인데 정리해줘", "이미 있는 노트에 합쳐", "정본 어디로 할지 정해줘",
+  "이 노트 둘로 나눠줘".
 ---
 
 # tow-merge

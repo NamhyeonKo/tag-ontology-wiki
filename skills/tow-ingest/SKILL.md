@@ -4,7 +4,8 @@ description: >-
   Use when filing raw or partially organized captures from a vault inbox into
   PARA, including temporary Date/Tag lines, attachments, or reusable concepts
   derived from a book, report, paper, certification or lecture source.
-  Triggers: "inbox 정리", "intake", "개념 파생", "리소스 노트로 뽑아줘".
+  Triggers: "process my inbox", "file these captures", "intake",
+  "derive concept notes from this source", "inbox 정리", "개념 파생", "리소스 노트로 뽑아줘".
 ---
 
 # tow-ingest

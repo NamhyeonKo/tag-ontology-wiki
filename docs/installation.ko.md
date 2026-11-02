@@ -46,7 +46,7 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 | Codex | `codex plugin list --json` | `$` 또는 `/skills`에서 `tow-query` 선택 |
 | Antigravity | `agy plugin list --json` | `/tow-query` |
 
-`tow`, 버전 `0.2.0`, 표시되는 경우 활성화 상태를 확인합니다. 새 세션의 스킬 선택 목록에서 `tow-query`·`tow-check`·`tow-tag-suggest`·`tow-tag-sync`와 새 워크플로 `tow-classify`·`tow-link`·`tow-edit`·`tow-merge`·`tow-review`·`tow-ingest`까지 열 개를 확인합니다. Claude의 `plugin details`는 구성 요소를 보여주며, `claude plugin list --json`에는 설치 경로와 활성화 상태도 나옵니다. Codex 설치 결과에는 `installedPath`가 나오지만 plugin list 자체는 스킬 목록이 아닙니다. Antigravity 목록에는 `path`와 발견한 스킬이 나옵니다.
+`tow`, 버전 `0.2.1`, 표시되는 경우 활성화 상태를 확인합니다. 새 세션의 스킬 선택 목록에서 `tow-query`·`tow-check`·`tow-tag-suggest`·`tow-tag-sync`와 새 워크플로 `tow-classify`·`tow-link`·`tow-edit`·`tow-merge`·`tow-review`·`tow-ingest`까지 열 개를 확인합니다. Claude의 `plugin details`는 구성 요소를 보여주며, `claude plugin list --json`에는 설치 경로와 활성화 상태도 나옵니다. Codex 설치 결과에는 `installedPath`가 나오지만 plugin list 자체는 스킬 목록이 아닙니다. Antigravity 목록에는 `path`와 발견한 스킬이 나옵니다.
 
 ## vault 설정
 
@@ -94,7 +94,7 @@ TOW는 `<vault>/tow.json`을 읽습니다. 파일이 없으면 다음 기본값�
 
 ## 설치 점검
 
-TOW 0.2.0과 `tag-ontology` 0.1.2에는 `doctor` 명령이 없습니다. 다음 순서로 vault를 수정하지 않고 점검할 수 있습니다.
+TOW 0.2.1과 `tag-ontology` 0.1.2에는 `doctor` 명령이 없습니다. 다음 순서로 vault를 수정하지 않고 점검할 수 있습니다.
 
 **1. 런타임 버전 — 터미널:**
 

@@ -3,8 +3,10 @@ name: tow-edit
 description: >-
   Use when the user explicitly requests body-content changes to named,
   already-organized vault notes, including filling empty sections, restructuring,
-  notation, list conversion, or prose style. Triggers: "본문 수정해줘",
-  "이 섹션 채워줘", "빈 데 채워줘", "구조 바꿔줘", "리스트로 바꿔줘", "음슴체로 바꿔줘".
+  notation, list conversion, or prose style. Triggers: "edit this note",
+  "fill in this section", "fill the empty sections", "restructure this note",
+  "turn this into a list", "본문 수정해줘", "이 섹션 채워줘", "빈 데 채워줘",
+  "구조 바꿔줘", "리스트로 바꿔줘", "음슴체로 바꿔줘".
 ---
 
 # tow-edit

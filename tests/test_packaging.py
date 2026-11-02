@@ -95,3 +95,10 @@ def test_relocated_package_keeps_references_and_executable_without_host_variable
         check=True,
     )
     assert json.loads(result.stdout) == json.loads((vault / "tow.json").read_text())
+
+
+def test_skill_triggers_cover_english_and_korean_requests() -> None:
+    for skill in SKILLS:
+        frontmatter = (ROOT / "skills" / skill / "SKILL.md").read_text().split("---")[1]
+        triggers = re.findall(r'"([^"]+)"', frontmatter.split("Triggers:")[1])
+        assert any(t.isascii() for t in triggers) and not all(t.isascii() for t in triggers), skill

@@ -4,7 +4,7 @@ A plugin for Claude Code, Codex, and Google Antigravity to search and maintain a
 
 [한국어](README.ko.md)
 
-> **Version:** 0.2.0.
+> **Version:** 0.2.1.
 
 ## Overview
 
@@ -104,7 +104,7 @@ For an existing vault, check its folder/dictionary paths first. TOW reads `tow.j
 
 The helper uses `npx --yes tag-ontology@0.1.2`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path.
 
-Neither TOW 0.2.0 nor `tag-ontology` 0.1.2 has a `doctor` command. Start with:
+Neither TOW 0.2.1 nor `tag-ontology` 0.1.2 has a `doctor` command. Start with:
 
 ```bash
 python3 --version
