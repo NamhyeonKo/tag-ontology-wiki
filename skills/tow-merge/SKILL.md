@@ -1,57 +1,34 @@
 ---
 name: tow-merge
 description: >-
-  Use when overlapping vault notes need a canonical owner, absorption, replacement,
-  coexistence, or splitting. Triggers: "merge this with the existing note", "these notes are
-  duplicates", "which note should be canonical?", "split this note in two".
+  Use when the user explicitly requests post-curation of overlapping notes under their
+  chosen canonical destination and preservation rules. Triggers: "merge this with the
+  existing note", "these notes are duplicates", "which note should be canonical?",
+  "split this note in two".
 ---
 
 # tow-merge
 
-Reconcile notes covering the same concept using [concept ownership](../tow-review/references/concept-ownership.md). Read the [conventions](../../docs/methodology.md) and `tow config`. Merely related notes can share tags/categories and optional `tow-link` links instead of merging. Each merge case needs the user's strategy selection, including when called from an approved intake/review batch.
-
-Ownership is based on content, not required PARA folders/frontmatter. Keep the selected destination's schema or lack of metadata. The merge table below is the TOW recipe, not permission to invent fields or reinterpret custom ones; reconcile conflicting custom properties in the strategy plan, preserving unrelated values and following the adopted date policy.
+Optional case-by-case aftercare, not a lint fix. Read the [conventions](../../docs/methodology.md), [post-curation contract](../../docs/post-curation.md), [preservation contract](../../docs/preservation.md), `tow config` and [concept ownership](../tow-review/references/concept-ownership.md). An overlap finding from intake/review is a proposal, not merge permission.
 
 ## Workflow
 
-1. **Establish scope before reading/searching.** Read the conventions' [scope rules](../../docs/methodology.md#scope-before-reading-note-contents), `tow config`, and this vault's ignore/private rules. Use names-only listings to establish an eligible-file list and explicit exclusions; this step is complete only when those boundaries are known. If a required read is blocked, resolve that scoped permission or stop. Then read each selected pair/group's identity, source, level and audience (exam summary, canonical concept, lecture notes).
-2. **Classify overlap** with the table below and choose the canonical owner using the ownership rules. Ask when ambiguous.
-3. **Select one case at a time.** Present 2–4 strategies for the current case, each with a resulting heading/file preview and exact losses. Ask about the next case only after this case is selected. Accept the user's alternative; repeat a recommendation at most once.
-4. **Inventory preservation before editing.** For every disappearing H2/H3 section, table, code block and footnote-like fact, record `transfer → destination section`, `summary → canonical detail + link`, or `discard → explicit user choice`. Any discard needs an additional confirmation of the listed facts before execution. Stop and revisit the strategy if anything has no destination.
-5. **Execute the selected strategy.** Back up uncommitted originals under the conventions. Edit body content with [Markdown notation](../tow-check/references/markdown-format.md), preserving transferred tables/math/code; merge frontmatter below; leave a summary/link when selected. Verify the actual fact destinations in a separate call **before deleting** an absorbed/replaced original.
-6. **Repair inbound links within step 1's eligible files.** Use the shared CLI-first policy with that file list or its exclusions; a whole-root Grep followed by filtering already reads private inputs. Rewrite deleted/renamed targets as `[[Canonical|original display]]`, or `[[Canonical#Section|original display]]` for section absorption. Preserve surrounding sentences and follow the adopted date policy. Report inaccessible/private scope rather than claiming it was checked. Retain selected categories/tags where used; register missing values only for adopted dictionary-backed features.
-7. **Verify and report.** Run applicable `tow-check` checks on changed/repair notes and verify zero broken links in that scope. If ontology-backed tags were combined and the dictionary is available, run scoped `tow ontology usage` and propose removing redundant broader tags rather than silently deleting them. Report skipped checks, each selected strategy, transferred facts, deleted files, inbound repair count and pending case/decision.
+1. **Establish scope before reading.** Resolve user rules, ignore/private policy and eligible filenames/exclusions. If a required read is blocked, resolve that scoped access or stop. Pass the eligible list/exclusions to every search; filtering a whole-root content search afterward already reads private files. Read the selected notes fully only after scope is known.
+2. **Identify the desired result.** Find overlap, source/audience differences and canonical candidates. Require a chosen destination/template or concrete heading/content placement rule; an existing canonical structure selected by the user can supply it. No dictionary, TOW schema or PARA folder is required. Ask about missing/conflicting rules rather than inventing a generic structure.
+3. **Select one case at a time.** Show strategies below with actual destination headings, literal transfers, any requested generated summary and exact losses. Wait for the user's strategy before the next case. Accept alternatives; repeat a recommendation at most once. A supplied template is not permission to rewrite filled sections.
+4. **Inventory preservation.** Map every source section, sentence/fact, table, code block and formula to `verbatim transfer → destination`, `explicit summary → canonical detail + link`, or `discard → listed user choice`. Preserve complete math/code/table payloads. Summarizing or rewriting existing material needs explicit scope; any listed discard needs its separate confirmation before execution. Unmapped facts block editing/deletion.
+5. **Execute the selected strategy.** Back up originals as independent byte copies and prepare candidates. Copy content verbatim into the approved destinations by default. Use the user's template only for the selected structure/new text; no automatic prose restyling. Reconcile metadata under the destination's schema, listing conflicting values for selection and preserving unrelated/absent fields. No inferred dates, categories, aliases or tags. Verify fact destinations in a separate call while all source files still exist, then perform only selected deletions.
+6. **Repair selected inbound links.** Search only eligible files with the shared CLI-first policy. Preserve display words in `[[Canonical|original display]]` or `[[Canonical#Section|original display]]`; leave surrounding prose untouched. Follow the adopted date policy. Disclose inaccessible/private scope and newly found ambiguity rather than broadening edits.
+7. **Verify/report.** Re-read changed/repair files and compare protected regions, facts and metadata to originals. Run applicable scoped `tow-check`/ontology checks; tags remain the user's selection. Report rule source, chosen strategies, verbatim versus explicitly transformed content, surviving fact locations, deleted files, link repairs and unresolved checks. Keep originals when verification fails.
 
-## Overlap and strategies
+## Strategies to propose
 
-| Type | Situation | Candidate strategies |
+| Strategy | Result | User choice needed |
 | --- | --- | --- |
-| `FULL` | Both cover the whole concept | Absorb / replace |
-| `SECTION` | A's section is B's full subject | Transfer canonical ownership + summary/link |
-| `LEVEL` | Same concept at different depths | Transfer + summary/link / coexist + links |
-| `HUB` | One map, one content note | Absorb into hub section / coexist + links |
-| `PARTIAL` | Overlap plus independent material | Transfer only the overlap + summary/link |
+| Absorb/transfer | Move selected content verbatim into an existing owner | Exact destination sections and whether to delete a source |
+| Coexist | Keep notes with selected navigation links | Link positions; no compulsory prose/tag additions |
+| Summary + canonical detail | Retain full detail at an owner and a selected summary elsewhere | Explicit summary scope/template; it is content writing |
+| Replace | Replace a selected destination with chosen source content | List unique facts at risk and reconfirm any discard |
+| Split | Move selected blocks verbatim into chosen destinations | Destination/template and complete fact mapping; no automatic fragmentation |
 
-| Strategy | Result | Loss to disclose |
-| --- | --- | --- |
-| Absorb | Move content into canonical sections; delete other note after verification (normally keep the existing note for new-vs-existing) | None when every fact transfers |
-| Transfer + summary/link | Canonical detail in one owner, concise linked summary in the other | Detail removed from the summary side; retained at the owner |
-| Coexist + links | Keep both, mutual links and shared selected tags/categories | None; duplication remains |
-| Replace | Overwrite one with the other | Unique context/facts; explicitly list and reconfirm |
-| Split | Give mixed content separate owners | None; file count increases |
-
-Prefer absorption or transfer with preserved facts. A preview must identify actual destination headings and show the resulting summary/link, not just name a strategy.
-
-## Frontmatter merge
-
-| Field | Handling |
-| --- | --- |
-| `description` | Rewrite one sentence for the combined identity, rather than concatenate descriptions |
-| `category` | Union; one primary matching the final identity, other values secondary |
-| `tags` | Union; deduplicate canonical values and resolve aliases |
-| `source` | Union list |
-| `aliases` | Union of true synonyms of the final title; absorbed titles qualify only when synonymous, not automatically |
-| `created` | Earliest existing date |
-| `updated` | Processing date |
-
-Retain the adopted schema/order and unrelated fields. Missing metadata stays absent unless its addition is selected in the merge plan. Link repair, rather than invented aliases, preserves navigation from removed titles.
+Merely related notes usually need no merge. A request asking which note is canonical is read-only until a concrete strategy is selected. Dictionary registration and retroactive classification keep their own approval boundaries.

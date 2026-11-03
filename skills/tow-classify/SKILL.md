@@ -13,6 +13,8 @@ Manages classification fields and, when adopted, their category dictionary. Read
 
 Use the adopted vault rules, category dictionary and this workflow as classification rules. A category needs no invented minimum number of notes. The conventions' fixed `type`, `status` and `kind` values apply only to TOW-schema notes. For a custom schema, preserve its field names/values, show evidence for changes and use the plan/apply/preservation steps below without TOW-specific dictionary or legacy conversion requirements. No PARA move is implied. If the user selects TOW classification and its dictionary is missing, propose that prerequisite's path/content for approval before registering values; a dictionary does not imply adopting PARA or a tag ontology.
 
+For every selected note-metadata edit, follow the [preservation contract](../../docs/preservation.md): keep independent before/candidate copies, verify only selected metadata values, and require `tow verify-body <before> <candidate>` to pass before replacing the note. This operation does not authorize fixing body format, rewriting prose or invoking post-curation. Dictionary files are verified separately by their own rules.
+
 ## A. Register a category
 
 1. **Reuse first.** Read the category index and search semantic equivalents, synonyms, abbreviations, and other-language spellings. If the same meaning exists, report reuse of that value and stop registration.

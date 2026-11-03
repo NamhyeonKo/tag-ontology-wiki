@@ -5,11 +5,13 @@
   tow.py [--root DIR] init [--dictionaries] [--apply]
                                              list/create PARA setup, or optional dictionaries in a free-form vault
   tow.py [--root DIR] lint [PATH...]         check classification fields and tag counts (default: the search scope)
+  tow.py [--root DIR] verify-body BEFORE AFTER
+                                             compare body bytes of two vault-local snapshots after metadata edits
   tow.py [--root DIR] find [PREFIX] [--type T] [--status S] [--kind K] [--tag TAG] [--all]
                                              notes that meet every condition (--all: with project archives)
   tow.py [--root DIR] ontology CMD [ARG...]  run the tag-ontology CLI with the vault's settings
 
-Notes are read through `tag-ontology scan --json`; this script never parses Markdown itself.
+Note metadata is parsed through `tag-ontology scan --json`. `verify-body` only separates a leading frontmatter block.
 Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.1.2).
 """
 
@@ -282,6 +284,30 @@ def _named_roots(root: Path, args: list[str]) -> set[str]:
 # ---- I/O: settings file, CLI calls, output
 
 
+def body_bytes(content: bytes) -> bytes:
+    """Body after a leading, delimiter-only frontmatter block; no YAML or Markdown interpretation."""
+    lines = content.splitlines(keepends=True)
+    if not lines or lines[0].removeprefix(b"\xef\xbb\xbf").rstrip(b"\r\n") != b"---":
+        return content
+    for index, line in enumerate(lines[1:], 1):
+        if line.rstrip(b"\r\n") == b"---":
+            return b"".join(lines[index + 1 :])
+    raise ConfigError("can't verify body: leading frontmatter has no closing '---' line")
+
+
+def cmd_verify_body(root: Path, before: Path, after: Path) -> int:
+    paths = [(root / path).resolve() for path in (before, after)]
+    if any(not path.is_relative_to(root) for path in paths):
+        raise ConfigError("verify-body requires two paths inside the vault")
+    if paths[0].samefile(paths[1]):
+        raise ConfigError("verify-body requires distinct files, not a self-comparison or hard-linked copy")
+    if body_bytes(paths[0].read_bytes()) != body_bytes(paths[1].read_bytes()):
+        print("body changed; metadata-only preservation check failed", file=sys.stderr)
+        return 1
+    print("body unchanged; metadata and formatting semantics were not validated")
+    return 0
+
+
 def read_config(root: Path) -> dict[str, str]:
     path = root / "tow.json"
     if not path.exists():
@@ -408,6 +434,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--dictionaries", action="store_true", help="include starter dictionaries in a free-form vault")
     p = sub.add_parser("lint", help="check classification fields and tag counts")
     p.add_argument("paths", nargs="*")
+    p = sub.add_parser("verify-body", help="compare exact body bytes after a metadata-only edit (read-only)")
+    p.add_argument("before", type=Path, help="independent snapshot inside the vault")
+    p.add_argument("after", type=Path, help="candidate note inside the vault")
     p = sub.add_parser("find", help="find notes by category prefix, frontmatter fields and tag")
     p.add_argument("prefix", nargs="?", help="category prefix: matches the category and everything below it")
     for key in FIND_FILTERS:
@@ -425,6 +454,8 @@ def main(argv: list[str] | None = None) -> int:
 
     root: Path = args.root.resolve()
     try:
+        if args.command == "verify-body":
+            return cmd_verify_body(root, args.before, args.after)
         cfg = read_config(root)
         if args.command == "config":
             print(json.dumps(cfg, ensure_ascii=False, indent=2))

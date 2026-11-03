@@ -37,6 +37,8 @@ Changes files contain an ordered `changes` array. For example, registering a con
 
 All six `draft` fields are required. An `edit` item also needs `tag` (the existing name); a `delete` item has only `kind` and `tag`. `parents` becomes `broader` in the dictionary. For edits, preserve the complete draft from `show` rather than starting from this add example.
 
+For every selected note-metadata edit, follow the [preservation contract](../../docs/preservation.md): keep independent before/candidate copies, verify only selected metadata values, and require `tow verify-body <before> <candidate>` to pass before replacing the note. This operation does not authorize fixing body format, rewriting prose or invoking post-curation. Dictionary files are verified separately by their own rules.
+
 ## Workflow
 
 1. **Compare**: `tow ontology usage [path] --json` (read-only). It returns unregistered tags with the notes using them and similar tags (`unregistered`), tags written as an alias or in different case (`nonCanonical`), unused dictionary entries (`unused`), a broader and a narrower tag on one note (`redundant`), and warnings (`issues`) such as `name-format` and `unplaced` (no `broader`). Tag counts come from `tow lint [path]`.

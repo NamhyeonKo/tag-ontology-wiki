@@ -1,5 +1,7 @@
 # Vault compatibility review — 2026-11-03
 
+This is the 0.3.0 snapshot committed in `d0cdc5d`. For the subsequent preservation/post-curation boundaries, see the [0.4.0 evaluation](preservation-evaluation.md).
+
 ## Scope and outcome
 
 Reviewed all eleven skill entry points, shared conventions and their Markdown, ownership, paper and structure references. The previous candidate inherited dictionary-first navigation, required TOW metadata and automatic date changes even in custom vaults. Those assumptions are now conditional on the user's adopted conventions. PARA, metadata and ontology are independent choices.

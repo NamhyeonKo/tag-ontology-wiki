@@ -1,14 +1,14 @@
 # TOW — Tag Ontology for Wiki
 
-A plugin for Claude Code, Codex, and Google Antigravity to search and maintain a tag-first Obsidian wiki.
+A plugin for Claude Code, Codex, and Google Antigravity to search notes, manage frontmatter, and fix formatting while preserving content.
 
 [한국어](README.ko.md)
 
-> **Version:** 0.3.0.
+> **Version:** 0.4.0.
 
 ## Overview
 
-TOW works with existing vault layouts, including notes without frontmatter. Its optional tag-first LLM Wiki recipe has three independently selectable layers:
+Ordinary maintenance preserves prose, math/code contents and table values; only selected frontmatter and formatting change. Optional post-curation follows your own templates and explicit operation choices. TOW works with existing vault layouts, including notes without frontmatter. Its optional tag-first LLM Wiki recipe has three independently selectable layers:
 
 - **PARA folders**: Projects, Areas, Resources, Archives.
 - **Classification fields** in frontmatter: `category`, `type`, `status`, `kind`.
@@ -34,17 +34,23 @@ your Obsidian vault
 | --- | --- | --- |
 | `tow-setup` | Choose PARA or an existing layout; optionally enable dictionaries | Lists top-level folders only; creates folders/dictionaries/`tow.json` after approval, never moves notes |
 | `tow-query` | Find documents using natural-language conditions, custom properties, tags or text | Read-only; CLI first, scoped file fallback, verified matches and separate inferred candidates |
-| `tow-check` | Check frontmatter, headings, tables, math, and references | Reports first; fixes only approved formatting |
+| `tow-check` | Check frontmatter, Markdown, math, code, tables and references | Reports first; selected syntax fixes preserve prose, payloads and values |
 | `tow-tag-suggest` | Recommend concept tags for selected notes | Applies only the additions/removals you select |
 | `tow-tag-sync` | Register new tags, resolve aliases, or reconcile the dictionary | Proposes first; applies approved dictionary/tag changes |
 | `tow-classify` | Register categories, reclassify notes, convert legacy fields | Approve entries and conversions; retroactive changes are a separate choice |
 | `tow-link` | Link existing title/alias mentions | Approved first mentions only; preserves displayed words |
-| `tow-edit` | Fill empty sections, restructure, or change body style | A clear, scoped request authorizes the edit; asks when ambiguous |
-| `tow-merge` | Absorb, split, or reconcile overlapping notes | Select a strategy for each case; confirm discarded facts separately |
-| `tow-review` | Review a domain or project's ownership, duplicates, hubs | Reports first; executes selected fixes through the relevant skills |
-| `tow-ingest` | File captures and derive reusable notes from sources | Approve the batch before backups, metadata, moves, attachments and links |
+| `tow-edit` | Explicit body aftercare under your template/rules | Selected new/empty content or transformations only; missing rules prompt a question |
+| `tow-merge` | Explicit consolidation under chosen destinations/rules | Verbatim transfer by default; per-case choices and separate discard confirmation |
+| `tow-review` | Review notes against your rules and propose aftercare | Read-only until a concrete follow-up operation is selected |
+| `tow-ingest` | Explicit filing/source aftercare under your chosen rules | Verbatim filing by default; no implied metadata, derivation or rewriting |
 
 All three hosts share these skills, the conventions, and the CLI. In Claude Code, invoke `/tow:tow-query`; in Codex, select `tow-query` with `$` or `/skills`; in Antigravity, invoke `/tow-query`.
+
+## Preservation and optional aftercare
+
+Metadata-only changes use independent snapshots and `tow verify-body` to check exact body bytes. Formatting includes Markdown syntax, math delimiters, code fences/language-aware formatting and tables, but never changes their contents. Ambiguous or unverifiable fixes remain reports. These are skill instructions plus a narrow byte comparison, not a universal semantic verifier or host-enforced security hook.
+
+`tow-edit`, `tow-merge`, `tow-ingest` and `tow-review` keep their names and are optional post-curation workflows. They reuse your supplied/established templates and rules; a general cleanup request or a template alone does not authorize rewriting filled prose, generating a hub or splitting notes. See [preservation](docs/preservation.md) and [post-curation](docs/post-curation.md).
 
 ## Requirements
 
@@ -106,7 +112,7 @@ You can search immediately without setup. For optional organization, select `tow
 
 The helper uses `npx --yes tag-ontology@0.1.2`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path.
 
-Neither TOW 0.3.0 nor `tag-ontology` 0.1.2 has a `doctor` command. Start with:
+Neither TOW 0.4.0 nor `tag-ontology` 0.1.2 has a `doctor` command. Start with:
 
 ```bash
 python3 --version

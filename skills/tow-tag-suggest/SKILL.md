@@ -12,6 +12,8 @@ description: >-
 
 Before starting, read the [TOW conventions](../../docs/methodology.md): they define the `tow` command used below and the selection rules in §3 "Concept tags" (what to tag, how many, in what priority).
 
+For every selected note-metadata edit, follow the [preservation contract](../../docs/preservation.md): keep independent before/candidate copies, verify only selected metadata values, and require `tow verify-body <before> <candidate>` to pass before replacing the note. This operation does not authorize fixing body format, rewriting prose or invoking post-curation. Dictionary files are verified separately by their own rules.
+
 ## Workflow
 
 1. **Scope**: only the notes the user names. Recommend for a whole folder only when the user states that scope.

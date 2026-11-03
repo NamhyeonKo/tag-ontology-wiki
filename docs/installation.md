@@ -46,7 +46,7 @@ Run the relevant command in your terminal:
 | Codex | `codex plugin list --json` | Use `$` or `/skills` and select `tow-query` |
 | Antigravity | `agy plugin list --json` | `/tow-query` |
 
-Confirm `tow`, version `0.3.0`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (eleven total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
+Confirm `tow`, version `0.4.0`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (eleven total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
 
 ## Configure the vault
 
@@ -116,7 +116,7 @@ Run `--apply` only after approving every previewed item. To create a smaller sub
 
 ## Check the setup
 
-TOW 0.3.0 and `tag-ontology` 0.1.2 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
+TOW 0.4.0 and `tag-ontology` 0.1.2 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
 
 **1. Runtime versions — terminal (Node/npm only for ontology/parsing):**
 
@@ -146,7 +146,7 @@ VAULT="/absolute/path/to/vault"
 
 | Check | Meaning |
 | --- | --- |
-| `--help` | The Python helper starts and lists `config`, `init`, `lint`, `find`, and `ontology` |
+| `--help` | The Python helper starts and lists `config`, `init`, `lint`, `verify-body`, `find`, and `ontology` |
 | `config` | Prints merged settings; compare them with actual folders/dictionaries. This command does not validate that those files exist. |
 | `lint` | Parses notes through the CLI and checks classification values, field scope, duplicate tags, and tag counts; prints `OK` when clean |
 | `ontology check --json` | Checks the tag dictionary; a clean result has `ok: true` and empty `issues` |
@@ -164,6 +164,20 @@ the runtime versions, effective configuration, dictionary integrity, and note
 tag usage. Verify the configured paths exist. Report findings without editing files.
 ```
 
+## Preservation and post-curation
+
+The default maintenance path changes selected frontmatter and formatting only. Markdown, math, code and table **contents** remain unchanged; ambiguous repairs are reported. `tow-check` does not rewrite sentences, simplify formulas, fix algorithms or fill missing cells. User rules/templates govern presentation, including existing table alignment.
+
+For a metadata-only edit, first choose a scratch location preserving the source privacy/ignore boundary. In Git-managed vaults, prospective snapshot paths must pass `git check-ignore` before copying; hidden names alone are insufficient. If protection is missing, propose it before copying or changing ignore rules. After approval, set `BATCH` to that protected vault-relative path, prepare independent snapshots and run:
+
+```bash
+"$TOW" --root "$VAULT" verify-body "$BATCH/before.md" "$BATCH/candidate.md"
+```
+
+Exit 0 means equal body bytes, 1 means changed body, and 2 means an invalid/unavailable comparison. Both files must be inside the vault and independent (no self/hard-link comparison). This command works without Node, dictionaries or `tow.json`; it does not validate YAML changes or semantic equivalence of format repairs. See the [exact preservation contract](preservation.md) for operation-specific checks.
+
+`tow-edit`, `tow-merge`, `tow-ingest` and `tow-review` retain their names as optional [user-guided post-curation](post-curation.md). Name the operation, targets and your actual template/rules. Verbatim filing needs only the chosen destination; it does not require a writing template. Body generation, filled-section rewriting, merge/split and hub creation are separate explicit choices, never side effects of cleanup/lint/review.
+
 ## Use the skills
 
 Explicitly select the skill, then supply the vault root and the files/folders to work on. Claude prefixes every skill with `/tow:`, Antigravity uses `/`, and Codex offers them in `$` or `/skills`.
@@ -177,12 +191,12 @@ Explicitly select the skill, then supply the vault root and the files/folders to
 | `tow-tag-sync` | “Check this folder's tags against the dictionary. Propose new entries and alias/broader-tag cleanup, then wait for approval.” |
 | `tow-classify` | “Propose a category for these notes. Register it first; ask separately before retroactive changes.” |
 | `tow-link` | “Link existing mentions in this folder. Show targets, skipped matches, ambiguity and missing targets before editing.” |
-| `tow-edit` | “Fill only the empty Examples section in this named note; preserve its filled text, code and metadata.” |
+| `tow-edit` | “Use Templates/Concept.md to fill only the empty Examples section from this selected source; preserve all filled content and metadata.” |
 | `tow-merge` | “Compare these two notes. Show strategies, retained facts and losses; wait for my case-by-case choice.” |
 | `tow-review` | “Review this domain for ownership, duplicates, missing hubs and isolation. Propose fixes before changing files.” |
 | `tow-ingest` | “Plan intake of the configured inbox's top-level captures, including metadata, destinations, attachments and links.” |
 
-A clear `tow-edit` request authorizes its stated body edits immediately. Other modifying workflows propose first. Intake/review batch approval still preserves merge-by-merge selection, separate discard confirmation, and the separate retroactive-classification decision. Ignored/private captures need explicit selection, and the plan must disclose any move into tracked/public scope. Shared attachments stay in place unless separately approved.
+A clear `tow-edit` request authorizes its selected body edit only when the user's rules/template/source and preservation boundary are already established. Missing rules produce a question, never a bundled-template fallback. A review remains read-only until a concrete follow-up operation is selected. Other modifying workflows propose first. Intake/review batch approval still preserves merge-by-merge selection, separate discard confirmation, and the separate retroactive-classification decision. Ignored/private captures need explicit selection, and the plan must disclose any move into tracked/public scope. Shared attachments stay in place unless separately approved.
 
 For example, in Claude Code select `/tow:tow-tag-suggest`, then name the note. After its proposal, select exact changes: “Add only `semantic-chunking` and remove `information-retrieval`; keep the other tags and body.” `tow-tag-sync` uses a dictionary plan before applying approved changes. Approval is part of the skill instructions; actual tool access and permission prompts remain the host's responsibility.
 
