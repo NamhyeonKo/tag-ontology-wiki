@@ -20,6 +20,8 @@ TOW는 로컬 코딩 에이전트에 열한 가지 작업 절차를 설치합니
 
 패키지는 스킬·공통 규약·Python helper인 [`scripts/tow.py`](scripts/tow.py)로 구성됩니다. helper는 분류 규칙을 검사하고, [`tag-ontology`](https://github.com/NamhyeonKo/obsidian-tag-ontology) npm CLI를 호출해 노트 파싱·태그 조회·사전 검증과 변경을 처리합니다. 모델과 파일 도구는 에이전트 호스트가 제공합니다.
 
+TOW는 Tag Ontology의 CLI를 활용해 태그를 조회하고 사전을 검증·관리합니다. [Obsidian용 Tag Ontology 플러그인](https://github.com/NamhyeonKo/obsidian-tag-ontology)([커뮤니티 플러그인 페이지](https://community.obsidian.md/plugins/tag-ontology))을 함께 설치하면, 관리한 태그의 계층과 관계를 그래프로 시각적으로 확인할 수 있습니다.
+
 ```text
 tag-ontology@0.1.2        사전 검증·조회·변경, 노트 파싱
       ▲  npx tag-ontology … --json
