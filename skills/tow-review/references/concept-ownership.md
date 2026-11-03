@@ -4,6 +4,8 @@ Shared by `tow-ingest`, `tow-review` and `tow-merge`. Resolve folder roles from 
 
 Area source, Resource concept and hub below are semantic roles, not required PARA locations or metadata. In a custom vault, use its source/concept/map equivalents and existing navigation/schema. Preserve provenance in the user's established form; category registration, frontmatter `source` and TOW hub fields apply only where adopted. A stable identity and approved destination can satisfy promotion without a category dictionary.
 
+These are analysis criteria for proposals. An ownership finding does not authorize creating, rewriting, summarizing, splitting or deleting a note. Any selected follow-up uses the [post-curation contract](../../../docs/post-curation.md) and the user's rules/template.
+
 ## 1. Three owners
 
 | Layer | Owns | Does not own |
@@ -24,7 +26,7 @@ Promote only when most answers are yes:
 4. Is there no existing owner?
 5. Can it have a stable identity and destination (domain category/folder when adopted)?
 
-Keep thin term memorization, one-question numbers/formulas/choices, unrelated term lists, page-based groupings and natural subsections of an existing Resource in their source/owner. New Resources use only needed sections of the [structure template](../../tow-edit/assets/note-structure-template.md), rather than copying the source's outline.
+Keep thin term memorization, one-question numbers/formulas/choices, unrelated term lists, page-based groupings and natural subsections of an existing Resource in their source/owner. For explicitly selected new concept notes, use the user's chosen template; the [bundled example](../../tow-edit/assets/note-structure-template.md) requires its own explicit selection. Existing source content remains verbatim unless a separate transformation was selected.
 
 ## 3. Search before creating
 
@@ -55,7 +57,7 @@ Merge notes answering the same question/learning flow, thin sequential concept-a
 
 ## 5. Hubs
 
-Check for a hub when a domain has at least three independent notes **or the user wants a map**. Name it after the domain's concept. Body: overview/definition, conceptual subgroups, `[[Note]]: one-line summary`, and recommended learning order. Do not mechanically copy a folder listing or child bodies. Learning order belongs on the domain hub; a subordinate hub explaining its own concept needs only child links. Use the chosen location and adopted schema; TOW type/category/`tags: []` apply only to TOW-schema hubs.
+Check for a hub when a domain has at least three independent notes **or the user wants a map**. Name it after the domain's concept. A proposed structure may include overview, conceptual subgroups, linked summaries and learning order when consistent with the user's rules. Creation and summary writing need explicit selected scope/template. Do not mechanically copy a folder listing or child bodies. Learning order belongs on the domain hub; a subordinate hub explaining its own concept needs only child links. Use the chosen location and adopted schema; TOW type/category/`tags: []` apply only to TOW-schema hubs.
 
 ## 6. Duplicate judgment
 

@@ -1,8 +1,8 @@
 # Paper review notes
 
-Apply these rules to paper-review intake; the remaining `tow-ingest` process and approval gates still apply.
+Apply this bundled paper-review example only when the user explicitly selects it. Otherwise use the user's supplied/established template; the `tow-ingest` post-curation and preservation contracts still apply.
 
-These are the optional TOW paper-review defaults. Existing vault/source templates take precedence unless the user selects this recipe. Preserve custom fields and source representation; use the chosen paper folder, without requiring an Area folder or category dictionary.
+These are optional examples, not fallback writing instructions. Existing vault/source templates take precedence unless the user selects this recipe. Preserve custom fields and source representation; use the chosen paper folder, without requiring an Area folder or category dictionary.
 
 - **Filename:** main title before its subtitle, avoiding forbidden filename characters such as `:` (for example `Self-RAG.md`).
 - **H1:** exact full paper title, including its colon/subtitle. This is the conventions' narrow paper-review exception to filename-matching H1.

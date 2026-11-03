@@ -1,5 +1,7 @@
 # Vault compatibility review — 2026-11-03
 
+This is the 0.3.0 instruction snapshot committed in `d0cdc5d`. For the subsequent preservation/post-curation boundaries, see the [0.4.0 evaluation](preservation-evaluation.md). Coverage correction for the published 0.1.2 CLI: usage/show include frontmatter and body tags and scan the configured scope minus exclusions even with selected usage paths or without show note output. The current [scope rules](methodology.md#scope-before-reading-note-contents) supersede the earlier frontmatter-only/scoped-read assumptions below.
+
 ## Scope and outcome
 
 Reviewed all eleven skill entry points, shared conventions and their Markdown, ownership, paper and structure references. The previous candidate inherited dictionary-first navigation, required TOW metadata and automatic date changes even in custom vaults. Those assumptions are now conditional on the user's adopted conventions. PARA, metadata and ontology are independent choices.

@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "tow",
-  "version": "0.3.0",
-  "description": "Tag Ontology for Wiki: skills for a tag-first LLM wiki in Obsidian (PARA, classification fields, concept tag ontology).",
+  "version": "0.4.0",
+  "description": "Manage documents inside an Obsidian vault with content-preserving formatting, frontmatter and optional user-guided post-curation.",
   "author": {
     "name": "NamhyeonKo",
     "url": "https://github.com/NamhyeonKo"
@@ -16,14 +16,14 @@
       "requires_local_executor": true,
       "interface": {
         "displayName": "TOW",
-        "shortDescription": "Tag-first wiki for your notes",
-        "longDescription": "Set up a vault, then search, classify, file, edit, link and reconcile local Obsidian notes. Review ownership and merge notes with per-case choices; changes follow the selected workflow’s approval rules. Requires a local vault, Python 3.10+ and Node.js 22.18+; runs the tag-ontology CLI from npm. Your agent host processes the note content you open and controls file permissions. TOW has no hosted backend.",
+        "shortDescription": "Preserve and organize notes",
+        "longDescription": "Work inside an Obsidian vault to search notes, manage selected frontmatter and fix Markdown, math, code and table formatting while preserving their content. Optional post-curation follows your templates and explicit choices. Requires local vault access and Python 3.10+; optional parsing/ontology uses Node.js 22.18+ and the tag-ontology npm CLI. Your agent host processes opened content and controls permissions. TOW has no hosted backend.",
         "developerName": "NamhyeonKo",
         "category": "Productivity",
         "capabilities": ["Search notes", "Check notes", "Classify notes", "File captures", "Edit notes", "Link notes", "Merge notes", "Review domains", "Suggest tags", "Reconcile tags"],
         "websiteURL": "https://github.com/NamhyeonKo/tag-ontology-wiki",
         "supportURL": "https://github.com/NamhyeonKo/tag-ontology-wiki/issues",
-        "defaultPrompt": ["Find my project notes about RAG.", "Check these notes against the TOW conventions.", "Suggest concept tags for this note."],
+        "defaultPrompt": ["Find my project notes about RAG.", "Check the formatting of these notes without changing their content.", "Suggest concept tags for this note."],
         "composerIcon": "./assets/icon.png",
         "logo": "./assets/icon.png"
       }
