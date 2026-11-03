@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "tow",
-      "description": "Skills for a tag-first LLM wiki in Obsidian.",
+      "description": "Document management inside an Obsidian vault with content-preserving formatting and optional tag ontology.",
       "source": "./",
       "category": "productivity"
     }

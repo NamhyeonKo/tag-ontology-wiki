@@ -2,7 +2,7 @@
 
 [English](installation.md) · [개요](../README.ko.md)
 
-TOW는 로컬 에이전트 호스트에 열한 개 스킬을 추가합니다. 에이전트는 함께 설치된 Python helper와 npm의 `tag-ontology` CLI로 Obsidian vault를 다룹니다. 공개 GitHub 저장소에서 설치하며, 공식 디렉터리 신청은 필요하지 않습니다.
+TOW는 Obsidian vault 내부 문서 관리를 위한 열한 개 스킬을 로컬 에이전트 호스트에 추가합니다. vault를 작업 폴더로 열고, 함께 설치된 Python helper와 선택적인 npm `tag-ontology` CLI를 사용합니다. 공개 GitHub 저장소에서 설치하며, 공식 디렉터리 신청은 필요하지 않습니다.
 
 ## 호스트에 설치
 
@@ -34,7 +34,7 @@ codex plugin add tow@tag-ontology-wiki --json
 agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 ```
 
-설치 후 호스트에서 새 세션을 시작합니다. vault를 작업 폴더로 열거나 폴더 접근 권한을 주고, 요청에 vault의 절대 경로를 적습니다.
+설치 후 호스트에서 새 세션을 시작하고 Obsidian vault를 작업 폴더로 엽니다. 검색·선택한 편집·파일 정리 목적지는 해당 vault 안으로 한정합니다.
 
 ## 플러그인 로드 확인
 
@@ -150,11 +150,11 @@ VAULT="/vault의/절대/경로"
 | `config` | 합쳐진 설정을 출력함. 실제 폴더·사전과 비교해야 하며, 이 명령 자체가 파일 존재 여부를 검증하지는 않음 |
 | `lint` | CLI로 노트를 읽고 분류 값·필드 범위·중복 태그·태그 수 등을 검사함. 깨끗하면 `OK` 출력 |
 | `ontology check --json` | 태그 사전 검사. 깨끗하면 `ok: true`, 빈 `issues` 출력 |
-| `ontology usage --json` | 검사 범위의 노트 태그와 사전을 비교함. 미등록 태그·별칭·중복 상위 태그 등의 결과를 확인 |
+| `ontology usage --json` | 제외 경로를 뺀 설정 범위를 읽고 frontmatter·본문 태그를 사전과 비교함. 결과와 실제 읽기 범위를 확인 |
 
 이 명령들은 vault를 수정하지 않습니다. npm은 패키지 캐시를 쓸 수 있습니다. 규약·태그 문제는 vault 내용에 대한 결과이며, 그 자체가 설치 실패를 뜻하지는 않습니다. helper의 규약 lint는 frontmatter 없는 노트를 건너뛰므로 `tow-check`가 이를 직접 확인합니다. 서식·링크·태그 계층의 의미도 스킬의 검토가 필요합니다.
 
-위의 경로 없는 검사는 설정한 검색 범위(기본은 PARA 폴더)를 읽습니다. `scope: para`인데 PARA 폴더가 없으면 결과 없이 끝나는 대신 경고를 냅니다. CLI는 `.gitignore`를 자동 적용하지 않습니다. 비공개·미선택 노트가 섞여 있다면 `lint`·`ontology usage`에는 승인한 파일 경로를 지정하고, scan에는 제외 경로를 전달합니다. `find`에는 경로·제외 옵션이 없으므로 전체 검색 범위를 읽도록 허용한 상황이 아니면 범위를 지정한 `ontology scan`을 사용합니다. [범위 규칙](methodology.md#scope-before-reading-note-contents)을 참고하세요.
+위의 경로 없는 검사는 설정한 검색 범위(기본은 PARA 폴더)를 읽습니다. `scope: para`인데 PARA 폴더가 없으면 결과 없이 끝나는 대신 경고를 냅니다. CLI는 `.gitignore`를 자동 적용하지 않습니다. `lint`·`ontology scan`에는 승인한 파일 경로를 지정합니다. `usage <경로>`도 미사용 태그 계산을 위해 제외 경로를 뺀 설정 범위 전체를 읽고, `show`도 `--notes` 없이 같은 범위를 읽습니다. 실제 전체 읽기 범위를 허용했거나 미선택 경로를 사전에 안전하게 제외한 경우에만 사용합니다. 그렇지 않으면 범위를 지정한 scan과 필요한 사전 항목을 확인하고 집계 검사는 미실행으로 표시합니다. `find`에는 경로·제외 옵션이 없으므로 전체 범위를 허용하지 않았다면 `ontology scan`을 사용합니다. [범위 규칙](methodology.md#scope-before-reading-note-contents)을 참고하세요.
 
 호스트에 같은 점검을 요청할 수도 있습니다.
 
@@ -226,4 +226,4 @@ Claude Code는 `claude plugin update tow@tag-ontology-wiki`를 실행합니다. 
 
 ## 자연어 검색과 사용자 속성
 
-`tow-query`는 [Obsidian CLI 검색](https://obsidian.md/help/cli)으로 속성·본문 태그·텍스트를 먼저 찾고, 사용할 수 없거나 결과가 부족하면 허용한 파일 범위에서 직접 검색한 뒤 조건을 검증합니다. frontmatter·사전·사전 설정은 필요하지 않습니다. 속성 조건은 파싱한 값으로 확인하며, 없는 상태 값은 미확인으로 남기고 추정 후보는 정확한 일치와 구분합니다. helper의 `find`는 frontmatter만 다루므로 본문 태그까지 검색했다고 해석하면 안 됩니다.
+`tow-query`는 [Obsidian CLI 검색](https://obsidian.md/help/cli)으로 속성·본문 태그·텍스트를 먼저 찾고, 사용할 수 없거나 결과가 부족하면 허용한 파일 범위에서 직접 검색한 뒤 조건을 검증합니다. frontmatter·사전·사전 설정은 필요하지 않습니다. 속성 조건은 파싱한 값으로 확인하며, 없는 상태 값은 미확인으로 남기고 추정 후보는 정확한 일치와 구분합니다. helper의 `find`는 frontmatter 태그만 다룹니다. ontology scan은 frontmatter·본문 태그를 나누어 출력하고, show·usage는 둘을 합쳐 집계합니다. `show --exact`는 반환하는 노트 경로만 좁히며 읽기 범위와 rollup 집계는 좁히지 않습니다. 위의 범위 규칙을 먼저 적용하세요.

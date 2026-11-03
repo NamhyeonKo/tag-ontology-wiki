@@ -16,7 +16,7 @@ Report issues first; apply only approved format changes. Read the [conventions](
 | Axis | Check | Handling |
 | --- | --- | --- |
 | Frontmatter | Adopted schema, allowed values/types/order, optional presence and selected YAML syntax | Custom fields and absent metadata are valid where permitted. Run scoped `tow lint` only for TOW-schema notes with the category dictionary; classify/tag decisions remain separate |
-| Tags | Selected ontology registration, aliases, redundancy, counts and dictionary integrity | Use scoped `ontology usage` and dictionary-only `check` only when applicable; report missing dependencies separately, never auto-create them |
+| Tags | Selected ontology registration, aliases, redundancy, counts and dictionary integrity | Use dictionary-only `check`; run `ontology usage` only when its full read scope satisfies the conventions. Otherwise inspect exact-path `scan` and relevant dictionary entries; report unavailable aggregate checks |
 | Markdown | Adopted heading levels, list markers, fences, hard breaks and structure | Repair selected syntax only; preserve heading text/prose/order. Ambiguous block boundaries remain report-only |
 | Math/code/tables | Delimiters, fences, selected language-aware formatting, separators, alignment, escaping and columns | Follow the notation rules' exact payload/value checks. No formula rewriting, algorithm repair or invented cells |
 | Shape | Empty note/section, mixed topics, unclear point, walls of text | Report codes below; shape findings do not authorize body writing or reorganization |

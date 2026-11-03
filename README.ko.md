@@ -1,6 +1,6 @@
 # TOW — Tag Ontology for Wiki
 
-**Obsidian vault 관리용 에이전트 스킬 플러그인**입니다. 노트 검색·frontmatter 관리·내용을 보존하는 형식 교정을 돕고, Claude Code·Codex·Google Antigravity에서 실행됩니다.
+**Obsidian vault 내부 문서 관리용 에이전트 스킬 플러그인**입니다. vault를 작업 폴더로 열어 노트 검색·frontmatter 관리·내용을 보존하는 형식 교정을 수행하며, Claude Code·Codex·Google Antigravity에서 실행됩니다.
 
 [English](README.md)
 
@@ -98,7 +98,7 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 
 ## 처음 사용하기
 
-vault를 호스트의 작업 폴더로 열거나 해당 폴더에 접근 권한을 줍니다. 새 세션에서 위의 호스트별 방식으로 `tow-query`를 선택하고 다음처럼 요청합니다.
+vault를 호스트의 작업 폴더로 엽니다. 새 세션에서 위의 호스트별 방식으로 `tow-query`를 선택하고 다음처럼 요청합니다.
 
 ```text
 내 vault는 /절대/경로/vault야. RAG 관련 프로젝트 노트를 category와 개념 태그로

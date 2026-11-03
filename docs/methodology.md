@@ -2,6 +2,10 @@
 
 Shared rules for frontmatter and content-preserving formatting, with optional user-guided post-curation and a TOW organization recipe. Each skill reads this document before it starts work; the step-by-step procedures live in the skills.
 
+## Working scope
+
+Use the Obsidian vault as the agent host's workspace. All note discovery, selected edits, intake destinations and post-curation stay within that vault. The helper's `--root` identifies this working vault when needed; it does not configure a connection to another project's knowledge base. Vault organization settings remain in its own `tow.json`.
+
 ## Vault compatibility
 
 **Use the user's vault as it is.** PARA, TOW frontmatter and the two dictionaries are independent, optional choices. Searching, reading, editing, linking, merging and reviewing notes work without them. Setup is not a prerequisite for those operations.
@@ -43,15 +47,16 @@ TOW="<plugin-root>/scripts/tow.py"
 | `tow find [<prefix>] [--type …] [--status …] [--kind …] [--tag …] [--all]` | Notes that meet every condition given: a `category` equal to `<prefix>` or below it, the frontmatter field values, a tag (ignoring case) |
 | `tow ontology <command> [arg…]` | Run the [`tag-ontology` CLI](https://github.com/NamhyeonKo/obsidian-tag-ontology) with this vault's settings |
 
-`tow ontology` adds `--root`, the tag dictionary path, and `--names kebab`, and limits notes to the search scope (`scope` in `tow.json`). In PARA scope, `show` also skips project archive folders; `--all` keeps them. `scan` requires no dictionary and exposes parsed custom frontmatter as well.
+`tow ontology` adds `--root`, the tag dictionary path, and `--names kebab`, and limits notes to the search scope (`scope` in `tow.json`). In PARA scope, `show` also skips project archive folders; `--all` keeps them. Use the underlying pinned CLI with the selected dictionary and naming rule for an ontology that does not adopt kebab naming. `scan` requires no dictionary and exposes parsed custom frontmatter, separate frontmatter `tags` and `bodyTags`, and headings. `usage` and `show` count both tag representations; `find` and convention lint use frontmatter tags only. Dictionary `apply` never edits note tags or bodies.
 
 ### Scope before reading note contents
 
 The helper/CLI does **not** automatically apply Git ignore or private-input rules. Before content searches or note scans, inspect those rules and determine the eligible paths. Names-only listings may discover candidates; content reads, `Grep`/`rg` and CLI parsing must use the filtered paths, or explicit exclusions. Filtering the results after a broad scan still reads the excluded files.
 
-- For selected notes, pass those exact paths to `tow lint`, `tow ontology scan … --json`, and `tow ontology usage … --json`, including final verification. Keep dictionary-only `tow ontology check --json` separate.
+- For selected notes, pass those exact paths to `tow lint` and `tow ontology scan … --json`, including final verification. Keep dictionary-only `tow ontology check --json` separate.
 - For an authorized folder search, pass its approved paths and private-subtree exclusions to the underlying scan/search, such as `tow ontology scan <folder> --exclude <private-subtree> --json`. Enumerate eligible files first when exclusions cannot express the selection.
-- `tow find` scans the entire configured search scope; it has no path/exclusion argument. Use it only when that whole scan is authorized and contains no unselected private inputs. Otherwise parse an explicitly scoped `tow ontology scan` result and filter its fields. The same caution applies to pathless `lint`, `usage`, and `show --notes`.
+- `tow find` scans the entire configured search scope; it has no path/exclusion argument. Use it only when that whole scan is authorized and contains no unselected private inputs. Otherwise parse an explicitly scoped `tow ontology scan` result and filter its fields. The same caution applies to pathless `lint`.
+- `usage <paths>` still scans the whole configured scope minus explicit exclusions to compute `unused`; the positional paths restrict its per-note findings, not all reads. `show` also scans that scope even without `--notes`. Run either only when its entire effective read scope is authorized or exclusions safely remove every ineligible path before reading. Otherwise use exact-path `scan` and authorized dictionary lookup, and report aggregate checks unavailable. `unused` is not proof that an entry can be deleted; partial reads or parse failures limit that conclusion. `show --exact` restricts returned note paths, not its read scope or rollup counts.
 - A body-edit request or a declined retroactive-classification proposal does not authorize a vault-wide verification search. Check only changed/selected paths; report other unresolved work without scanning it.
 
 ## Vault settings (`tow.json`)

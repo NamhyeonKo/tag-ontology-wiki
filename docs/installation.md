@@ -2,7 +2,7 @@
 
 [한국어](installation.ko.md) · [Overview](../README.md)
 
-TOW adds eleven skills to a local agent host. The agent uses the bundled Python helper and the npm `tag-ontology` CLI to work on your Obsidian vault. Installation uses this public repository; no official-directory submission is required.
+TOW adds eleven skills to a local agent host for document management inside your Obsidian vault. Open that vault as the workspace; the agent uses the bundled Python helper and optional npm `tag-ontology` CLI within it. Installation uses this public repository; no official-directory submission is required.
 
 ## Install in your host
 
@@ -34,7 +34,7 @@ codex plugin add tow@tag-ontology-wiki --json
 agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 ```
 
-Start a new host session after installation. Open your vault as the workspace, or grant the host access to it and include its absolute path in the request.
+Start a new host session after installation and open your Obsidian vault as the workspace. Keep searches, selected edits and filing destinations inside that vault.
 
 ## Confirm the plugin loaded
 
@@ -150,11 +150,11 @@ VAULT="/absolute/path/to/vault"
 | `config` | Prints merged settings; compare them with actual folders/dictionaries. This command does not validate that those files exist. |
 | `lint` | Parses notes through the CLI and checks classification values, field scope, duplicate tags, and tag counts; prints `OK` when clean |
 | `ontology check --json` | Checks the tag dictionary; a clean result has `ok: true` and empty `issues` |
-| `ontology usage --json` | Compares scoped note tags with the dictionary; inspect unregistered, alias, and redundant broader-tag findings |
+| `ontology usage --json` | Reads the configured scope minus exclusions and compares frontmatter/body tags with the dictionary; inspect findings and actual read coverage |
 
 These commands do not edit the vault. npm may write its package cache. Convention/tag findings concern the vault contents and do not by themselves mean plugin installation failed. Notes without frontmatter are skipped by the helper's convention lint; `tow-check` inspects them directly. Formatting, links, and the meaning of a tag hierarchy still need the skill's review.
 
-The pathless checks above scan the configured search scope (PARA folders by default). With `scope: para` and no PARA folders, they warn instead of silently finding nothing. The CLI does not apply `.gitignore` automatically: if that scope contains private or unselected notes, use exact approved paths for `lint`/`ontology usage` and explicit exclusions for scans. `find` has no path/exclusion option; use a scoped `ontology scan` instead when the whole search scope is not authorized. See [scope rules](methodology.md#scope-before-reading-note-contents).
+The pathless checks above scan the configured search scope (PARA folders by default). With `scope: para` and no PARA folders, they warn instead of silently finding nothing. The CLI does not apply `.gitignore` automatically. Use exact approved paths for `lint` and `ontology scan`. `usage <paths>` still reads the whole configured scope minus exclusions for unused-tag detection, and `show` does so even without `--notes`; run them only when that full read scope is authorized or safely excluded beforehand. Otherwise inspect scoped `scan` and relevant dictionary entries, and report aggregate checks unavailable. `find` has no path/exclusion option; use scoped `ontology scan` when the whole search scope is not authorized. See [scope rules](methodology.md#scope-before-reading-note-contents).
 
 You can ask the host to run the same checks:
 
@@ -208,7 +208,7 @@ For manual searches:
 "$TOW" --root "$VAULT" ontology show rag --notes --json
 ```
 
-The first command filters the `category` field; the third follows concept tags and their narrower concepts. The sample values must exist in your own dictionaries. Note scans default to the configured search scope; In PARA scope, `find` and ontology `show` skip project archive folders unless you add `--all`. Free-form scope keeps history-named folders. These helper searches cover frontmatter tags only. Natural-language `tow-query` prefers native [Obsidian CLI search](https://obsidian.md/help/cli) for properties/body tags/text and falls back to scoped file search, then verifies exact conditions. It works without dictionaries or setup, preserves custom properties and separates inferred candidates. See [query behavior](../skills/tow-query/SKILL.md).
+The first command filters the `category` field; the third follows concept tags and their narrower concepts. The sample values must exist in your own dictionaries. Note scans default to the configured search scope; In PARA scope, `find` and ontology `show` skip project archive folders unless you add `--all`. Free-form scope keeps history-named folders. `find` covers frontmatter tags only; ontology `scan` separates frontmatter/body tags, while `show` and `usage` aggregate both. `show --exact` narrows note paths, not read scope or rollup counts; use the scope rules above before ontology lookups. Natural-language `tow-query` prefers native [Obsidian CLI search](https://obsidian.md/help/cli) for properties/body tags/text and falls back to scoped file search, then verifies exact conditions. It works without dictionaries or setup, preserves custom properties and separates inferred candidates. See [query behavior](../skills/tow-query/SKILL.md).
 
 ## Update and troubleshoot
 

@@ -1,6 +1,6 @@
 # TOW — Tag Ontology for Wiki
 
-An agent skill plugin for managing **Obsidian vaults**: search notes, manage frontmatter, and fix formatting while preserving content. Runs in Claude Code, Codex, and Google Antigravity.
+An agent skill plugin for managing documents **inside your Obsidian vault**: search notes, manage frontmatter, and fix formatting while preserving content. Runs in Claude Code, Codex, and Google Antigravity with the vault as the workspace.
 
 [한국어](README.ko.md)
 
@@ -98,7 +98,7 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 
 ## First use
 
-Open the vault as your host's workspace, or grant it access to that directory. In a new session, select `tow-query` using the host-specific invocation above, then send:
+Open the vault as your host's workspace. In a new session, select `tow-query` using the host-specific invocation above, then send:
 
 ```text
 My vault is /absolute/path/to/vault. Find project notes about RAG by category
