@@ -1,8 +1,28 @@
-# Release readiness: TOW 0.4.0
+# Release readiness: TOW 0.4.1
+
+Checked on 2026-11-03 before promotion through `dev` to `main`. This patch prepares the public documentation and contribution workflow without changing skills or their canonical runtime guidance.
+
+## Release scope
+
+- Keep English `README.md` at the root and publish six reader translations under `readme/`: Korean, Simplified/Traditional Chinese, Japanese, Spanish, and French.
+- Document native install/update commands, installed-version checks, and troubleshooting for Claude Code, Codex, and Antigravity.
+- Add `CONTRIBUTING.md` and focused GitHub issue/PR templates. Retire the separate Korean installation guide; every README uses the same detailed English guides.
+- Keep `docs/methodology.md`, `docs/preservation.md`, `docs/post-curation.md`, all skill files, and the Python helper unchanged. Do not create translated `docs/` trees or widen skill discovery.
+- Advance all host manifests, the Python project, and lockfile to 0.4.1 so native plugin updates can fetch this package. The separate `tag-ontology` npm package remains at the pinned 0.1.2; it is not published by this release.
+
+## Candidate verification
+
+- Fresh full suite: **110 passed**, including all five integration tests against published `tag-ontology@0.1.2`; synthetic vaults only.
+- Ruff lint/format and strict Pyright passed. Documentation tests check translation command/skill-list parity and repository-local links.
+- Final-commit archive validation, dev/main CI, release assets, and post-publication installed-host checks are recorded in the GitHub release as they complete. Candidate checks alone do not establish those results.
+
+---
+
+## Historical verification: TOW 0.4.0
 
 Checked on 2026-11-03 before promotion through `dev` to `main`. This release manages documents inside the Obsidian vault opened as the agent host's workspace. It retains all eleven skill names and targets Claude Code, Codex and Google Antigravity.
 
-## Release scope
+### Release scope
 
 - Search existing vault notes with CLI-first retrieval and scoped file fallback; custom layouts and notes without frontmatter remain supported.
 - Keep PARA, TOW classification and tag ontology independently optional. Setup uses the user's choice and never migrates notes automatically.
@@ -12,7 +32,7 @@ Checked on 2026-11-03 before promotion through `dev` to `main`. This release man
 - Reject dictionary paths ending in `/` before initialization writes; a malformed file path must not create a dictionary directory. The four regression cases failed before the fix and passed afterward.
 - Keep `docs/superpowers/` local-only and excluded from tracked release contents. This release does not add persistent personal-vault connections, external-project authoring or a new retrieval/formatting backend. No Git history rewrite is included.
 
-## Candidate verification
+### Candidate verification
 
 - Fresh full suite: **108 passed**, including five published `tag-ontology@0.1.2` integration tests and four dictionary-path regression cases, in 11.51 seconds. Synthetic copies only; no user vault was used.
 - Ruff lint passed; Ruff format check reported 44 files already formatted; strict Pyright reported zero errors/warnings.
