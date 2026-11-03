@@ -1,6 +1,6 @@
 # TOW — Tag Ontology for Wiki
 
-A plugin for Claude Code, Codex, and Google Antigravity to search notes, manage frontmatter, and fix formatting while preserving content.
+An agent skill plugin for managing **Obsidian vaults**: search notes, manage frontmatter, and fix formatting while preserving content. Runs in Claude Code, Codex, and Google Antigravity.
 
 [한국어](README.ko.md)
 

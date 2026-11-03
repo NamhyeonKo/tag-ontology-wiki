@@ -1,6 +1,6 @@
 # TOW — Tag Ontology for Wiki
 
-노트 검색·frontmatter 관리·내용을 보존하는 형식 교정을 돕는 Claude Code·Codex·Google Antigravity 플러그인입니다.
+**Obsidian vault 관리용 에이전트 스킬 플러그인**입니다. 노트 검색·frontmatter 관리·내용을 보존하는 형식 교정을 돕고, Claude Code·Codex·Google Antigravity에서 실행됩니다.
 
 [English](README.md)
 
