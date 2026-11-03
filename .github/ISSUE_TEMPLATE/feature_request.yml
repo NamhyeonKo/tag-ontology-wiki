@@ -1,0 +1,23 @@
+name: Feature request
+description: Describe a problem TOW should help solve.
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and where does the current workflow fall short? Use synthetic or redacted examples.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired behavior
+      description: Describe the outcome, affected files, and any preservation or approval boundaries.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Existing alternatives
+      description: Current workarounds or related TOW workflows, if any.

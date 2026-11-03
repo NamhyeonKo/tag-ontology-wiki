@@ -2,9 +2,9 @@
 
 An agent skill plugin for managing documents **inside your Obsidian vault**: search notes, manage frontmatter, and fix formatting while preserving content. Runs in Claude Code, Codex, and Google Antigravity with the vault as the workspace.
 
-[한국어](README.ko.md)
+[English](README.md) · [한국어](readme/README.ko.md) · [简体中文](readme/README.zh-CN.md) · [繁體中文](readme/README.zh-TW.md) · [日本語](readme/README.ja.md) · [Español](readme/README.es.md) · [Français](readme/README.fr.md)
 
-> **Version:** 0.4.0.
+> **Version:** 0.4.1.
 
 ## Overview
 
@@ -19,6 +19,8 @@ Choose PARA during setup or keep your own folders. Ordinary search/body work nee
 TOW installs eleven workflows into your local coding agent. You name the vault and notes; the agent reads the relevant files, searches classifications and concept tags, and proposes scoped changes for your approval. The files stay in your Obsidian vault.
 
 The package contains skills, shared conventions, and the Python helper [`scripts/tow.py`](scripts/tow.py). That helper checks classification rules and calls the [`tag-ontology`](https://github.com/NamhyeonKo/obsidian-tag-ontology) npm CLI for note parsing, tag queries, and dictionary validation/changes. Your agent host supplies the model and file tools.
+
+TOW uses the Tag Ontology CLI to query tags and validate/manage dictionaries. Install the [Tag Ontology plugin for Obsidian](https://github.com/NamhyeonKo/obsidian-tag-ontology) ([community plugin page](https://community.obsidian.md/plugins/tag-ontology)) alongside TOW to visually explore the tag hierarchy and relationships you manage in a graph.
 
 ```text
 tag-ontology@0.1.2        dictionary checks, queries, edits, note parsing
@@ -96,6 +98,31 @@ Run in your shell, then start a new Antigravity session:
 agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 ```
 
+## Update
+
+Run the commands for your host in your terminal, then start a new session.
+
+**Claude Code:**
+
+```bash
+claude plugin update tow@tag-ontology-wiki
+```
+
+**Codex:**
+
+```bash
+codex plugin marketplace upgrade tag-ontology-wiki
+codex plugin add tow@tag-ontology-wiki
+```
+
+**Antigravity:** reinstall from the same source.
+
+```bash
+agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
+```
+
+Confirm the installed version with your host's plugin list/details command. See [updates and troubleshooting](docs/installation.md#update) for host-specific behavior and checks.
+
 ## First use
 
 Open the vault as your host's workspace. In a new session, select `tow-query` using the host-specific invocation above, then send:
@@ -112,7 +139,7 @@ You can search immediately without setup. For optional organization, select `tow
 
 The helper uses `npx --yes tag-ontology@0.1.2`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path.
 
-Neither TOW 0.4.0 nor `tag-ontology` 0.1.2 has a `doctor` command. Start with:
+Neither TOW 0.4.1 nor `tag-ontology` 0.1.2 has a `doctor` command. Start with:
 
 ```bash
 python3 --version
@@ -122,25 +149,18 @@ npx --yes tag-ontology@0.1.2 --version
 
 Run TOW `lint` only for adopted TOW metadata; dictionary checks apply only to initialized ontology features. Missing optional metadata/dictionaries are not installation failures. Then follow the [setup checks](docs/installation.md#check-the-setup) to verify the installed plugin, configuration, dictionaries, and note tags. `lint` covers classification fields and tag counts; the check skill adds the note-by-note formatting/reference review. A clean lint result alone does not cover every skill check.
 
-## Development
+## Documentation
 
-```bash
-uv sync
-uv run ruff check
-uv run ruff format --check
-uv run pyright
-uv run pytest
-```
+- [Installation, vault settings, and troubleshooting](docs/installation.md)
+- [Vault conventions and helper commands](docs/methodology.md)
+- [Content preservation](docs/preservation.md) and [optional post-curation](docs/post-curation.md)
+- [Evaluation and verification limits](docs/evaluation.md)
 
-The skills call [`scripts/tow.py`](scripts/tow.py), which reads notes through `npx --yes tag-ontology@0.1.2`. The exact version makes the downloaded executable reproducible for plugin distribution. To use another build of the CLI, set `TOW_TAG_ONTOLOGY` to its command, for example `TOW_TAG_ONTOLOGY="node /path/to/cli.js"`.
+Detailed guides are maintained in English and shared by every README edition.
 
-The real CLI integration tests are optional locally. Point `TOW_TAG_ONTOLOGY` at a CLI to run them alongside the unit tests:
+## Contributing
 
-```bash
-TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.1.2" uv run pytest
-```
-
-Without this variable, the integration tests are skipped. They copy the [synthetic vault](tests/fixtures/vault) into temporary directories and never use your own vault. See [evaluation](docs/evaluation.md) for the skill scenarios and verification limits.
+Bug reports, focused fixes, documentation improvements, and translation corrections are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, checks, and the distinction between skill references and reader translations. Use the [issue forms](https://github.com/NamhyeonKo/tag-ontology-wiki/issues/new/choose) to report a bug or suggest a feature.
 
 ## Support
 
