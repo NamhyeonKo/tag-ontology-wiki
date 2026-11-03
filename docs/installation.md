@@ -1,6 +1,6 @@
 # Install and use TOW from GitHub
 
-[한국어](installation.ko.md) · [Overview](../README.md)
+[Overview](../README.md) · [Contributing](../CONTRIBUTING.md)
 
 TOW adds eleven skills to a local agent host for document management inside your Obsidian vault. Open that vault as the workspace; the agent uses the bundled Python helper and optional npm `tag-ontology` CLI within it. Installation uses this public repository; no official-directory submission is required.
 
@@ -46,7 +46,7 @@ Run the relevant command in your terminal:
 | Codex | `codex plugin list --json` | Use `$` or `/skills` and select `tow-query` |
 | Antigravity | `agy plugin list --json` | `/tow-query` |
 
-Confirm `tow`, version `0.4.0`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (eleven total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
+Confirm `tow`, version `0.4.1`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (eleven total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
 
 ## Configure the vault
 
@@ -116,7 +116,7 @@ Run `--apply` only after approving every previewed item. To create a smaller sub
 
 ## Check the setup
 
-TOW 0.4.0 and `tag-ontology` 0.1.2 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
+TOW 0.4.1 and `tag-ontology` 0.1.2 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
 
 **1. Runtime versions — terminal (Node/npm only for ontology/parsing):**
 
@@ -210,9 +210,41 @@ For manual searches:
 
 The first command filters the `category` field; the third follows concept tags and their narrower concepts. The sample values must exist in your own dictionaries. Note scans default to the configured search scope; In PARA scope, `find` and ontology `show` skip project archive folders unless you add `--all`. Free-form scope keeps history-named folders. `find` covers frontmatter tags only; ontology `scan` separates frontmatter/body tags, while `show` and `usage` aggregate both. `show --exact` narrows note paths, not read scope or rollup counts; use the scope rules above before ontology lookups. Natural-language `tow-query` prefers native [Obsidian CLI search](https://obsidian.md/help/cli) for properties/body tags/text and falls back to scoped file search, then verifies exact conditions. It works without dictionaries or setup, preserves custom properties and separates inferred candidates. See [query behavior](../skills/tow-query/SKILL.md).
 
-## Update and troubleshoot
+## Update
 
-For Claude Code, run `claude plugin update tow@tag-ontology-wiki`. For Codex, refresh `codex plugin marketplace upgrade tag-ontology-wiki`, then run `codex plugin add tow@tag-ontology-wiki`. Antigravity's current CLI has no separate update subcommand; use its GitHub install command to install the package again. Inspect the resulting version and start a new session. Claude caches by plugin version, so ordinary updates require a version bump to pick up a changed package.
+Run these commands in your terminal. They update the installed plugin; they do not migrate your vault or run a TOW editing workflow.
+
+### Claude Code
+
+```bash
+claude plugin update tow@tag-ontology-wiki
+claude plugin details tow@tag-ontology-wiki
+```
+
+Third-party marketplaces have automatic updates disabled by default. To enable them, open `/plugin` in a Claude Code session, select the marketplace on the Marketplaces tab, and enable auto-update. A shell `claude plugin marketplace update` refreshes catalog listings alone; use the plugin update command above to update TOW. Claude caches by plugin version, so published package changes require a version bump to reach existing installations through ordinary updates. See [Claude Code's update guidance](https://code.claude.com/docs/en/discover-plugins#keep-plugins-updated).
+
+### Codex
+
+```bash
+codex plugin marketplace upgrade tag-ontology-wiki
+codex plugin add tow@tag-ontology-wiki
+codex plugin list --json
+```
+
+Refresh the configured Git marketplace before adding TOW from that snapshot. The marketplace refresh and plugin installation are distinct operations; repeating `add` alone is not an explicit marketplace refresh. Inspect the returned installation information rather than assuming an older loaded session has changed. See the [official OpenAI documentation](https://developers.openai.com/plugins/build/plugins) for marketplace management.
+
+### Antigravity
+
+```bash
+agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
+agy plugin list --json
+```
+
+The checked Antigravity CLI has no separate plugin update subcommand. Install again from the same GitHub source and inspect the resulting version. See the [Superpowers Antigravity instructions](https://github.com/obra/superpowers#antigravity) for the same host-native reinstall pattern.
+
+After updating, start a new host session and [confirm the plugin loaded](#confirm-the-plugin-loaded). If the old version remains, record the host version, command output, and installed plugin version before reporting it; a successful catalog refresh alone does not prove the installed plugin advanced.
+
+## Troubleshooting
 
 | Symptom | Check |
 | --- | --- |

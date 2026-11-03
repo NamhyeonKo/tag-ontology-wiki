@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible TOW problem.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: Share synthetic or redacted examples. Do not upload private vaults, credentials, or unredacted logs.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: TOW version, agent host and version, operating system, and relevant Python/Node versions.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include the command or request and the smallest synthetic note/configuration needed.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual behavior
+      description: Include relevant error output. For an update problem, include the installed version afterward.
+    validations:
+      required: true
+  - type: textarea
+    id: checks
+    attributes:
+      label: Checks already tried
+      description: Commands, troubleshooting steps, and their results, if any.
