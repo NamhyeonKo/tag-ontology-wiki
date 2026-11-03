@@ -1,6 +1,6 @@
 [project]
 name = "tag-ontology-wiki"
-version = "0.2.1"
+version = "0.3.0"
 description = "TOW: vault convention checks and skills for a tag-first LLM wiki."
 readme = "README.md"
 license = "MIT"

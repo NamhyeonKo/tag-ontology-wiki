@@ -2,7 +2,7 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "tow",
   "displayName": "TOW",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Tag Ontology for Wiki: skills for a tag-first LLM wiki in Obsidian (PARA, classification fields, concept tag ontology).",
   "logo": "assets/icon.png",
   "suggestedPrompts": ["Find my project notes about RAG.", "Check these notes against the TOW conventions.", "Suggest concept tags for this note."],

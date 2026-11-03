@@ -123,8 +123,30 @@ Retained failures include client-session metadata denials, zero-token missing-se
 
 These are individual explicitly selected synthetic scenarios, with no statistical or automatic-discovery claim. H1/link targets and preservation were checked independently; `tow lint` alone does not verify them. External paper retrieval, user-vault migration, GUI rendering and interactive approval UX were not tested. Post-promotion CI and public-main installation are separate release checks, recorded in the GitHub release; official-directory registration remains deferred.
 
+## Initial 0.3.0 setup candidate (2026-11-03; superseded below)
+
+First-time-user feedback asked for an initial PARA setup or a search scope beyond PARA. On an empty vault the 0.2.1 helper stopped at missing dictionaries, and on a vault with notes outside PARA folders `find` returned nothing without a warning. 0.3.0 adds `tow init [--apply]`, the `"scope": "vault"` setting, warnings for an empty PARA scope and missing dictionaries, and the `tow-setup` skill.
+
+All **75 tests** passed against published `tag-ontology` 0.1.2, with Ruff lint/format and strict Pyright; Claude and Antigravity package validation passed (eleven skills).
+
+Codex CLI 0.159.2 with model `gpt-6-luna` ran the uncommitted candidate's skills from the repository path (not a native install) in three synthetic vaults, proposal first and then an explicit approval resumed in the same session:
+
+| Vault | Proposal | After approval |
+| --- | --- | --- |
+| Empty | Default PARA folders, inbox, starter dictionaries; no `tow.json` | Exactly those created; `init` reports nothing to create; check and lint pass |
+| Free-form (`notes/`, `journal/`) | `{"scope": "vault"}` plus inbox and dictionaries | Exactly those created; the 5 existing files' hashes unchanged |
+| PARA-like names (`Projects/`, `Inbox/`, …) | Folder-name mapping in `tow.json` plus dictionaries | Exactly those created; the 5 existing files' hashes unchanged |
+
+Every proposal left all files unchanged, and command traces show only name listings, `config` and dry-run `init` before approval; no note contents were read. A fresh `tow-query` session in the free-form vault returned exactly `notes/Chunking.md` and `notes/RAG.md` (count 2) through the whole-vault scope. Codex's workspace sandbox denied the default npm cache, so the first CLI call in some sessions failed and the model retried with a temporary npm cache; this is a host sandbox limit, not a TOW behavior. Native installation, Claude Code and Antigravity runs of `tow-setup` were not repeated for this candidate.
+
 ## Limits
 
 These are individual application scenarios, not a statistical skill benchmark. They explicitly select the skills and therefore do not test automatic skill discovery. Format and tag edits were evaluated on synthetic copies; the private corpus comparison covered lint and category search only.
 
 The first skill scenarios used a frozen pre-release build, to avoid changing a sibling repository under active development; the re-run used the published package. Locally, the integration tests stay opt-in. All three hosts have installed query checks; Codex and Antigravity also have the editing checks above. Public-directory portal checks/submission and Obsidian rendering were not tested. At this pre-promotion cutoff, default-branch installation was still a release gate; post-promotion results belong to the GitHub release verification record.
+
+## Optional PARA and custom-vault compatibility (2026-11-03)
+
+The setup candidate above was revised after the user clarified that PARA must be a choice, not inferred from an empty vault. A free-form setup now creates no inbox or dictionaries by default; `init --dictionaries` is explicit. Whole-vault scope keeps ordinary notes in inbox/support/archive-named folders. All eleven skills were reviewed for schema, dictionary, date and layout assumptions, with shared compatibility rules and scoped CLI-first/file-fallback query behavior.
+
+The full suite passed **91 tests**, including five real `tag-ontology@0.1.2` integration tests, plus Ruff lint/format and strict Pyright. Independent skill-consumer execution covered two queries and a scoped body edit in a synthetic free-form vault; byte verification confirmed metadata/source preservation. Native Obsidian CLI was not used on an unregistered fixture, and the user's active vault was not accessed. See the [per-skill review, exact checks and limits](vault-compatibility-review.md). These results supersede the earlier candidate's automatic free-form inbox/dictionary behavior; they do not revalidate all hosts or all editing workflows.

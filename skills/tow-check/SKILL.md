@@ -14,6 +14,8 @@ Checks the given notes (files or folders) on five axes and **reports the issues*
 
 Before starting, read the [TOW conventions](../../docs/methodology.md): they define the `tow` command used below, the frontmatter rules (§4), and the body notation rules (§5).
 
+Establish which conventions the selected notes actually adopt. The schema/presence/order/date rules below apply to the TOW recipe or an explicitly selected equivalent; custom values such as `status: reading`, `related:` and notes without frontmatter are valid when the vault permits them. Generic Markdown, shape and reference checks still work. Use available dictionaries only; label unavailable checks separately and preserve custom metadata during format fixes.
+
 ## Axes
 
 | Axis | Check | Basis or tool | Handling |
@@ -47,10 +49,10 @@ Problems with the structure of the content. The user decides whether to fix them
 ## Workflow
 
 1. **Scope**: take files or folders. When another skill calls this one, use its scope as given.
-2. **Check**: run all five axes. `tow lint`, `tow ontology usage`, and `tow ontology check` run once over the scope; the rest run note by note.
+2. **Check**: evaluate all five axes against the adopted conventions. Run scoped `tow lint` only for TOW-schema notes with a category dictionary; `tow ontology usage/check` only for selected ontology checks with its dictionary. Record inapplicable/unavailable checks; perform the remaining checks note by note. Missing optional frontmatter is not an issue.
 3. **Report**: fill the [report table](#report-table), keeping fixable format issues apart from report-only issues. When a table's column boundaries or a math span can't be determined, report it as "ambiguous".
-4. **Fix (on approval)**: fix only the approved format issues and update `updated` (conventions §4). For each note, compare math, table cell values, code, links, and plain sentences before and after, and recount `$`/`$$` pairs, fence pairs, and table columns.
-5. **Done** when a re-check finds zero approved format issues and `tow lint` prints `OK`. Hand over the remaining report-only issues as a list.
+4. **Fix (on approval)**: fix only approved format issues and follow the vault's date policy (no new metadata in a custom schema). For each note, compare math, table cell values, code, links, plain sentences and unrelated metadata before/after, and recount `$`/`$$` pairs, fence pairs and table columns.
+5. **Done** when a re-check finds zero approved format issues. Report applicable lint results, skipped/unavailable checks and remaining report-only findings separately; unrelated findings do not expand the edit scope.
 
 ## Report table
 

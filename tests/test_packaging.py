@@ -20,6 +20,7 @@ SKILLS = {
     "tow-merge",
     "tow-review",
     "tow-ingest",
+    "tow-setup",
 }
 
 
@@ -94,7 +95,7 @@ def test_relocated_package_keeps_references_and_executable_without_host_variable
         text=True,
         check=True,
     )
-    assert json.loads(result.stdout) == json.loads((vault / "tow.json").read_text())
+    assert json.loads(result.stdout) == {**tow.DEFAULTS, **json.loads((vault / "tow.json").read_text())}
 
 
 def test_skill_descriptions_list_english_triggers_only() -> None:

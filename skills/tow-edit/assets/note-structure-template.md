@@ -2,6 +2,8 @@
 
 For Resource restructuring through `tow-edit` and new Resource notes through `tow-ingest`/`tow-review`. Use only sections the concept needs, in the note's language; do not copy every optional section.
 
+This is an optional TOW prose recipe. Preserve the vault's existing structure/style unless its replacement is requested; using this template does not require PARA folders, TOW frontmatter or dictionary creation.
+
 ```markdown
 # <Note title>
 

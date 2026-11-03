@@ -31,6 +31,31 @@ def snapshot(root: Path) -> dict[str, bytes]:
     return {p.relative_to(root).as_posix(): p.read_bytes() for p in root.rglob("*") if p.is_file()}
 
 
+def test_real_cli_freeform_scan_needs_no_dictionaries_and_keeps_all_note_folders(tmp_path: Path) -> None:
+    (tmp_path / "tow.json").write_text('{"scope": "vault"}')
+    for name in ("notes", "00_Inbox", "99_Etc", "archive"):
+        folder = tmp_path / name
+        folder.mkdir()
+        (folder / "RAG.md").write_text("---\nstatus: reading\nrating: 4\ntags: [rag]\n---\n# RAG\n")
+    (tmp_path / "Plain.md").write_text("# Plain\nA body-only #rag note.\n")
+    before = snapshot(tmp_path)
+    scan = json.loads(run(tmp_path, "ontology", "scan", "--json"))
+    assert {n["path"] for n in scan["notes"]} == {
+        "notes/RAG.md",
+        "00_Inbox/RAG.md",
+        "99_Etc/RAG.md",
+        "archive/RAG.md",
+        "Plain.md",
+    }
+    assert run(tmp_path, "find", "--tag", "rag").splitlines() == [
+        "00_Inbox/RAG.md",
+        "99_Etc/RAG.md",
+        "archive/RAG.md",
+        "notes/RAG.md",
+    ]
+    assert snapshot(tmp_path) == before
+
+
 def test_real_cli_finds_only_matching_fields_in_configured_folders(real_vault: Path) -> None:
     before = snapshot(real_vault)
     assert json.loads(run(real_vault, "config"))["tagDictionary"] == "meta/Tag-Dictionary.json"

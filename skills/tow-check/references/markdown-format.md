@@ -1,5 +1,7 @@
 # Markdown notation details (tables, math, code)
 
+Apply these notation defaults where adopted or explicitly selected for normalization. Existing vault style takes precedence for valid Markdown; preserve table alignment and prose form outside the approved changes. Structural validity and preservation checks still apply in every vault.
+
 Read this when checking or normalizing the tables, math, and code in a note's body. The principles are in the [TOW conventions](../../../docs/methodology.md) §5; this file has the detailed rules and examples. Every conversion **preserves content**: cell values, math, code, and plain sentences stay the same.
 
 ## 1. Tables

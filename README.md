@@ -4,19 +4,19 @@ A plugin for Claude Code, Codex, and Google Antigravity to search and maintain a
 
 [한국어](README.ko.md)
 
-> **Version:** 0.2.1.
+> **Version:** 0.3.0.
 
 ## Overview
 
-TOW is a variant of Karpathy's LLM Wiki that organizes notes by tags first. A vault that follows it uses three layers:
+TOW works with existing vault layouts, including notes without frontmatter. Its optional tag-first LLM Wiki recipe has three independently selectable layers:
 
 - **PARA folders**: Projects, Areas, Resources, Archives.
 - **Classification fields** in frontmatter: `category`, `type`, `status`, `kind`.
 - **A concept tag ontology**: a tag dictionary with aliases and broader/narrower relations.
 
-The full conventions are in [docs/methodology.md](docs/methodology.md).
+Choose PARA during setup or keep your own folders. Ordinary search/body work needs neither dictionaries nor metadata cleanup. Queries use Obsidian CLI first, scoped file search when needed, then content verification; available properties improve precision. The full conventions are in [docs/methodology.md](docs/methodology.md).
 
-TOW installs ten workflows into your local coding agent. You name the vault and notes; the agent reads the relevant files, searches classifications and concept tags, and proposes scoped changes for your approval. The files stay in your Obsidian vault.
+TOW installs eleven workflows into your local coding agent. You name the vault and notes; the agent reads the relevant files, searches classifications and concept tags, and proposes scoped changes for your approval. The files stay in your Obsidian vault.
 
 The package contains skills, shared conventions, and the Python helper [`scripts/tow.py`](scripts/tow.py). That helper checks classification rules and calls the [`tag-ontology`](https://github.com/NamhyeonKo/obsidian-tag-ontology) npm CLI for note parsing, tag queries, and dictionary validation/changes. Your agent host supplies the model and file tools.
 
@@ -32,7 +32,8 @@ your Obsidian vault
 
 | Skill | When to use it | Changes |
 | --- | --- | --- |
-| `tow-query` | Find project notes about RAG, or notes matching a category/concept | Read-only; opens notes before summarizing them |
+| `tow-setup` | Choose PARA or an existing layout; optionally enable dictionaries | Lists top-level folders only; creates folders/dictionaries/`tow.json` after approval, never moves notes |
+| `tow-query` | Find documents using natural-language conditions, custom properties, tags or text | Read-only; CLI first, scoped file fallback, verified matches and separate inferred candidates |
 | `tow-check` | Check frontmatter, headings, tables, math, and references | Reports first; fixes only approved formatting |
 | `tow-tag-suggest` | Recommend concept tags for selected notes | Applies only the additions/removals you select |
 | `tow-tag-sync` | Register new tags, resolve aliases, or reconcile the dictionary | Proposes first; applies approved dictionary/tag changes |
@@ -49,7 +50,8 @@ All three hosts share these skills, the conventions, and the CLI. In Claude Code
 
 - Claude Code, Codex, or Google Antigravity with plugin support
 - Git, for installation from GitHub
-- Node.js 22.18 or later, with npm/npx on `PATH`, for the `tag-ontology` CLI
+- Node.js 22.18 or later, with npm/npx on `PATH`, when using the optional `tag-ontology` parsing/ontology features
+- Obsidian CLI is optional; native search requires it enabled and the target vault accessible in the running app. File search remains available without it
 - Python 3.10 or later (standard library only)
 
 The skills read the vault files you scope and apply only the changes you approve. Your agent host processes opened note content under its own model and privacy settings. TOW has no hosted backend; npm downloads the pinned CLI, and the host controls file access.
@@ -98,13 +100,13 @@ or concept, excluding superseded documents. Read matching notes before
 summarizing them and return their paths and count. Do not modify files.
 ```
 
-For an existing vault, check its folder/dictionary paths first. TOW reads `tow.json` at the vault root; omitted settings use the defaults in the [setup guide](docs/installation.md#configure-the-vault). Installation does not create or migrate a vault.
+You can search immediately without setup. For optional organization, select `tow-setup`; it asks whether you want PARA and preserves your existing layout/schema. TOW reads `tow.json` at the vault root; omitted settings use the defaults in the [setup guide](docs/installation.md#configure-the-vault). Installation does not create or migrate a vault.
 
 ## CLI and setup checks
 
 The helper uses `npx --yes tag-ontology@0.1.2`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path.
 
-Neither TOW 0.2.1 nor `tag-ontology` 0.1.2 has a `doctor` command. Start with:
+Neither TOW 0.3.0 nor `tag-ontology` 0.1.2 has a `doctor` command. Start with:
 
 ```bash
 python3 --version
@@ -112,7 +114,7 @@ node --version
 npx --yes tag-ontology@0.1.2 --version
 ```
 
-Then follow the [setup checks](docs/installation.md#check-the-setup) to verify the installed plugin, configuration, dictionaries, and note tags. `lint` covers classification fields and tag counts; the check skill adds the note-by-note formatting/reference review. A clean lint result alone does not cover every skill check.
+Run TOW `lint` only for adopted TOW metadata; dictionary checks apply only to initialized ontology features. Missing optional metadata/dictionaries are not installation failures. Then follow the [setup checks](docs/installation.md#check-the-setup) to verify the installed plugin, configuration, dictionaries, and note tags. `lint` covers classification fields and tag counts; the check skill adds the note-by-note formatting/reference review. A clean lint result alone does not cover every skill check.
 
 ## Development
 
@@ -133,6 +135,10 @@ TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.1.2" uv run pytest
 ```
 
 Without this variable, the integration tests are skipped. They copy the [synthetic vault](tests/fixtures/vault) into temporary directories and never use your own vault. See [evaluation](docs/evaluation.md) for the skill scenarios and verification limits.
+
+## Support
+
+TOW is free and open source. If it saves you time, you can [buy me a coffee](https://buymeacoffee.com/namhyunko).
 
 ## License
 
