@@ -17,9 +17,9 @@ Before starting, read the [TOW conventions](../../docs/methodology.md): they def
 1. **Scope**: only the notes the user names. Recommend for a whole folder only when the user states that scope.
 2. **Headings first**: use the H2/H3 structure to find the concepts the note explains directly. Body text adds candidates only for big-picture concepts. The note's title concept is always a candidate.
 3. **Pick candidates**: apply conventions §3 plus the [judgement calls](#judgement-calls).
-4. **Look up the dictionary**: for each candidate, `grep -i "<term>"` the tag dictionary (`tagDictionary` in `tow config`) in the order exact match → alias → partial match, and use the canonical tag when one exists. Its place in the taxonomy is `paths` in `tow ontology show <tag> --json`.
+4. **Look up existing vocabulary**: when a tag dictionary is present, look up each candidate in exact match → alias → partial match order and use its canonical spelling; taxonomy paths come from `tow ontology show <tag> --json`. Without a dictionary, inspect tags in authorized notes with the shared CLI-first search policy and mark dictionary status `not checked (no dictionary)`, rather than blocking suggestions or creating a dictionary. Match the vault's adopted tag style; TOW naming/taxonomy rules below are optional.
 5. **Recommend** in the [recommendation format](#recommendation-format) and wait for the user's choice. On a note that already has tags, keep the existing tags and split the recommendation into `add` candidates and `remove` candidates (broader + narrower pairs, tags outside the rules).
-6. **Apply** only the additions and removals the user picked to `tags:`, and update `updated`; other frontmatter values and the body stay as they are. Hand unregistered tags to `tow-tag-sync`.
+6. **Apply** only selected additions/removals to `tags:`; if that property/frontmatter is absent, its creation must be explicit in the selection plan. Follow the adopted date policy; preserve other fields and the body. Hand unregistered tags to `tow-tag-sync` only when the user has chosen ontology management; otherwise report them as dictionary-unverified without requiring setup.
 
 ## Judgement calls
 

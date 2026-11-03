@@ -10,6 +10,8 @@ description: >-
 
 Reconcile notes covering the same concept using [concept ownership](../tow-review/references/concept-ownership.md). Read the [conventions](../../docs/methodology.md) and `tow config`. Merely related notes can share tags/categories and optional `tow-link` links instead of merging. Each merge case needs the user's strategy selection, including when called from an approved intake/review batch.
 
+Ownership is based on content, not required PARA folders/frontmatter. Keep the selected destination's schema or lack of metadata. The merge table below is the TOW recipe, not permission to invent fields or reinterpret custom ones; reconcile conflicting custom properties in the strategy plan, preserving unrelated values and following the adopted date policy.
+
 ## Workflow
 
 1. **Establish scope before reading/searching.** Read the conventions' [scope rules](../../docs/methodology.md#scope-before-reading-note-contents), `tow config`, and this vault's ignore/private rules. Use names-only listings to establish an eligible-file list and explicit exclusions; this step is complete only when those boundaries are known. If a required read is blocked, resolve that scoped permission or stop. Then read each selected pair/group's identity, source, level and audience (exam summary, canonical concept, lecture notes).
@@ -17,8 +19,8 @@ Reconcile notes covering the same concept using [concept ownership](../tow-revie
 3. **Select one case at a time.** Present 2–4 strategies for the current case, each with a resulting heading/file preview and exact losses. Ask about the next case only after this case is selected. Accept the user's alternative; repeat a recommendation at most once.
 4. **Inventory preservation before editing.** For every disappearing H2/H3 section, table, code block and footnote-like fact, record `transfer → destination section`, `summary → canonical detail + link`, or `discard → explicit user choice`. Any discard needs an additional confirmation of the listed facts before execution. Stop and revisit the strategy if anything has no destination.
 5. **Execute the selected strategy.** Back up uncommitted originals under the conventions. Edit body content with [Markdown notation](../tow-check/references/markdown-format.md), preserving transferred tables/math/code; merge frontmatter below; leave a summary/link when selected. Verify the actual fact destinations in a separate call **before deleting** an absorbed/replaced original.
-6. **Repair inbound links within step 1's eligible files.** Pass that file list or its exclusions to every content search; a whole-root Grep followed by filtering already reads private inputs. Rewrite deleted/renamed targets as `[[Canonical|original display]]`, or `[[Canonical#Section|original display]]` for section absorption. Preserve surrounding sentences and update changed files' dates. Report inaccessible/private scope rather than claiming it was checked. Combined notes retain their selected secondary categories/tags; register missing values through `tow-classify`/`tow-tag-sync` before use.
-7. **Verify and report.** Run `tow-check` on changed/repair notes and verify zero broken links in that scope. If tags were combined, run `tow ontology usage` and propose removing redundant broader tags rather than silently deleting them. Report each selected strategy, transferred facts, deleted files, inbound repair count and pending case/decision.
+6. **Repair inbound links within step 1's eligible files.** Use the shared CLI-first policy with that file list or its exclusions; a whole-root Grep followed by filtering already reads private inputs. Rewrite deleted/renamed targets as `[[Canonical|original display]]`, or `[[Canonical#Section|original display]]` for section absorption. Preserve surrounding sentences and follow the adopted date policy. Report inaccessible/private scope rather than claiming it was checked. Retain selected categories/tags where used; register missing values only for adopted dictionary-backed features.
+7. **Verify and report.** Run applicable `tow-check` checks on changed/repair notes and verify zero broken links in that scope. If ontology-backed tags were combined and the dictionary is available, run scoped `tow ontology usage` and propose removing redundant broader tags rather than silently deleting them. Report skipped checks, each selected strategy, transferred facts, deleted files, inbound repair count and pending case/decision.
 
 ## Overlap and strategies
 
@@ -52,4 +54,4 @@ Prefer absorption or transfer with preserved facts. A preview must identify actu
 | `created` | Earliest existing date |
 | `updated` | Processing date |
 
-Retain the conventions' schema/order and unrelated valid fields. Link repair, rather than invented aliases, preserves navigation from removed titles.
+Retain the adopted schema/order and unrelated fields. Missing metadata stays absent unless its addition is selected in the merge plan. Link repair, rather than invented aliases, preserves navigation from removed titles.

@@ -2,7 +2,9 @@
 """TOW vault convention checks (standard library only).
 
   tow.py [--root DIR] config                 print the settings in effect (tow.json + defaults)
-  tow.py [--root DIR] lint [PATH...]         check classification fields and tag counts (default: all PARA folders)
+  tow.py [--root DIR] init [--dictionaries] [--apply]
+                                             list/create PARA setup, or optional dictionaries in a free-form vault
+  tow.py [--root DIR] lint [PATH...]         check classification fields and tag counts (default: the search scope)
   tow.py [--root DIR] find [PREFIX] [--type T] [--status S] [--kind K] [--tag TAG] [--all]
                                              notes that meet every condition (--all: with project archives)
   tow.py [--root DIR] ontology CMD [ARG...]  run the tag-ontology CLI with the vault's settings
@@ -22,6 +24,7 @@ import subprocess
 import sys
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Any, Final, Literal, TypedDict, cast
 
@@ -37,10 +40,13 @@ DEFAULTS: Final[dict[str, str]] = {
     "attachments": "99_Etc/attachments",
     "dailyNotes": "02_Areas/daily-notes",
     "misc": "99_Etc",
+    "scope": "para",
 }
 PARA: Final = ("projects", "areas", "resources", "archives")
 FOLDER_KEYS: Final = (*PARA, "projectArchive", "inbox", "misc")
 WORKFLOW_PATHS: Final = ("attachments", "dailyNotes")
+DICTIONARY_PATHS: Final = ("categoryDictionary", "tagDictionary")
+SCOPES: Final = ("para", "vault")
 
 ALLOWED: Final[dict[str, frozenset[str]]] = {
     "type": frozenset({"resource", "project", "area", "daily-note"}),
@@ -59,6 +65,21 @@ PATH_COMMANDS: Final = frozenset({"scan", "usage"})
 VALUE_OPTIONS: Final = frozenset({"--root", "--dictionary", "--exclude", "--names", "--base"})
 # Public plugin directories require an exact version for downloaded executables.
 DEFAULT_CLI: Final = "npx --yes tag-ontology@0.1.2"
+INIT_HINT: Final = 'run "tow init --dictionaries" to preview missing starter files'
+STARTER_CATEGORIES: Final = """---
+updated: {today}
+---
+
+# Category Dictionary
+
+Registered `category` values. A value is the first backtick token of a bullet line or of a `###` heading;
+every other line is description. Example entries, once registered:
+
+    ### `ai` — artificial intelligence
+    - `ai/rag` : retrieval-augmented generation (RAG)
+
+Register new values through the `tow-classify` skill.
+"""
 
 
 class Heading(TypedDict):
@@ -193,7 +214,9 @@ def load_config(raw: object) -> dict[str, str]:
             raise ConfigError(f"{key}: must be a non-empty string")
         if key in FOLDER_KEYS and ("/" in value or value in (".", "..")):
             raise ConfigError(f"{key}: must be a single folder name, without '/'")
-        if key in WORKFLOW_PATHS:
+        if key == "scope" and value not in SCOPES:
+            raise ConfigError(f"scope: must be one of {', '.join(SCOPES)}")
+        if key in (*WORKFLOW_PATHS, *DICTIONARY_PATHS):
             path = Path(value)
             if path.is_absolute() or ".." in path.parts or not path.parts:
                 raise ConfigError(f"{key}: must be a vault-relative path without '..'")
@@ -210,16 +233,24 @@ def ontology_args(command: str, args: list[str], root: str, cfg: dict[str, str],
         out += ["--dictionary", cfg["tagDictionary"], "--names", "kebab"]
     if command in NOTE_COMMANDS:
         out += excludes
-    if command == "show" and "--all" not in args:
+    if command == "show" and cfg["scope"] == "para" and "--all" not in args:
         out += ["--exclude", f"**/{cfg['projectArchive']}"]
     return out
 
 
 def scope_excludes(root: Path, cfg: dict[str, str], args: list[str]) -> list[str]:
-    """An --exclude for each root entry (folder or .md) outside the PARA folders, except entries the args name."""
+    """--exclude arguments that limit notes to the search scope, except entries the args name.
+
+    `para` keeps only the PARA folders at the root; `vault` keeps every note folder, excluding only the category
+    dictionary unless it is explicitly selected.
+    """
     # ponytail: names are passed as globs, so a folder name containing * ? [ may match differently.
     # If a vault needs that, ask for an escaping rule in the CLI contract.
-    keep = {cfg[k] for k in PARA} | _named_roots(root, args)
+    named = _named_roots(root, args)
+    if cfg["scope"] == "vault":
+        outside = [] if Path(cfg["categoryDictionary"]).parts[0] in named else [cfg["categoryDictionary"]]
+        return [arg for path in sorted(outside) if (root / path).exists() for arg in ("--exclude", path)]
+    keep = {cfg[k] for k in PARA} | named
     return [
         arg
         for entry in sorted(root.iterdir())
@@ -287,7 +318,7 @@ def cmd_lint(root: Path, cfg: dict[str, str], paths: list[str]) -> int:
     try:
         categories = category_values(dictionary.read_text(encoding="utf-8"))
     except OSError as e:
-        raise ConfigError(f"can't read the category dictionary: {dictionary}") from e
+        raise ConfigError(f"can't read the category dictionary: {dictionary}; {INIT_HINT}") from e
     result = scan(root, cfg, paths, [])
     issues = [Issue(i["code"], i["severity"], i.get("path", ""), i["message"]) for i in result["issues"]]
     issues += lint(result["notes"], categories)
@@ -301,10 +332,70 @@ def cmd_lint(root: Path, cfg: dict[str, str], paths: list[str]) -> int:
 def cmd_find(
     root: Path, cfg: dict[str, str], prefix: str | None, filters: dict[str, str], include_archive: bool
 ) -> int:
-    extra = [] if include_archive else ["--exclude", f"**/{cfg['projectArchive']}"]
+    extra = [] if include_archive or cfg["scope"] == "vault" else ["--exclude", f"**/{cfg['projectArchive']}"]
     for path in find(scan(root, cfg, [], extra)["notes"], prefix, filters):
         print(path)
     return 0
+
+
+def missing_paths(root: Path, cfg: dict[str, str], dictionaries: bool = False) -> list[str]:
+    """Folders and dictionaries the workflows expect that the vault doesn't have yet (folders end in '/')."""
+    folders = [*(cfg[k] for k in PARA), cfg["inbox"]] if cfg["scope"] == "para" else []
+    missing = [f"{f}/" for f in folders if not (root / f).is_dir()]
+    if cfg["scope"] == "para" or dictionaries:
+        missing += [cfg[k] for k in DICTIONARY_PATHS if not (root / cfg[k]).exists()]
+    return missing
+
+
+def cmd_init(root: Path, cfg: dict[str, str], apply: bool, dictionaries: bool = False) -> int:
+    """List what's missing; with `apply`, create it. Never overwrites an existing file."""
+    folders = [root / cfg[k] for k in (*PARA, "inbox")] if cfg["scope"] == "para" else []
+    files = [root / cfg[k] for k in DICTIONARY_PATHS] if cfg["scope"] == "para" or dictionaries else []
+    targets = [(p, True) for p in folders] + [(p, False) for p in files]
+    resolved_files = [p.resolve() for p in files]
+    if len(set(resolved_files)) != len(resolved_files):
+        raise ConfigError("init dictionaries must use different file paths")
+    for target, is_folder in targets:
+        resolved = target.resolve()
+        if not resolved.is_relative_to(root):
+            raise ConfigError(f"init path must stay inside the vault: {target}")
+        if (target.exists() or target.is_symlink()) and not (target.is_dir() if is_folder else target.is_file()):
+            raise ConfigError(f"init expected a {'folder' if is_folder else 'file'}: {target}")
+        for parent in target.parents:
+            if parent.is_relative_to(root) and parent.exists() and not parent.is_dir():
+                raise ConfigError(f"init expected a parent folder: {parent}")
+        if any(resolved == f or resolved.is_relative_to(f) for f in resolved_files if is_folder or resolved != f):
+            raise ConfigError(f"init file/folder paths conflict: {target}")
+    starters = {
+        cfg["categoryDictionary"]: STARTER_CATEGORIES.format(today=date.today().isoformat()),
+        cfg["tagDictionary"]: "{}\n",
+    }
+    missing = missing_paths(root, cfg, dictionaries)
+    for path in missing:
+        if apply:
+            target = root / path
+            if path.endswith("/"):
+                target.mkdir(parents=True, exist_ok=True)
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with target.open("x", encoding="utf-8") as f:
+                    f.write(starters[path])
+        print(f"{'created' if apply else 'would create'} {path}")
+    if not missing:
+        print("nothing to create")
+    elif not apply:
+        print("run again with --apply to create these")
+    return 0
+
+
+def warn_if_scope_is_empty(root: Path, cfg: dict[str, str]) -> None:
+    if cfg["scope"] == "para" and not any((root / cfg[k]).is_dir() for k in PARA):
+        folders = ", ".join(cfg[k] for k in PARA)
+        print(
+            f"tow: warning: no PARA folders ({folders}) in {root}, so the default search scope is empty; "
+            f'{INIT_HINT}, or set "scope": "vault" in tow.json to search every folder',
+            file=sys.stderr,
+        )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -312,6 +403,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", type=Path, default=Path.cwd(), help="vault folder (default: current folder)")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("config", help="print the settings in effect")
+    p = sub.add_parser("init", help="list missing folders and starter dictionaries; --apply creates them")
+    p.add_argument("--apply", action="store_true", help="create what is missing (never overwrites)")
+    p.add_argument("--dictionaries", action="store_true", help="include starter dictionaries in a free-form vault")
     p = sub.add_parser("lint", help="check classification fields and tag counts")
     p.add_argument("paths", nargs="*")
     p = sub.add_parser("find", help="find notes by category prefix, frontmatter fields and tag")
@@ -335,16 +429,26 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "config":
             print(json.dumps(cfg, ensure_ascii=False, indent=2))
             return 0
+        if args.command == "init":
+            return cmd_init(root, cfg, args.apply, args.dictionaries)
+        named: list[str] = args.paths if args.command == "lint" else []
+        if args.command == "ontology" and args.cli_command in PATH_COMMANDS:
+            named = args.cli_args
+        if (args.command in ("lint", "find") or args.cli_command in NOTE_COMMANDS) and not _named_roots(root, named):
+            warn_if_scope_is_empty(root, cfg)
         if args.command == "lint":
             return cmd_lint(root, cfg, args.paths)
         if args.command == "find":
             return cmd_find(root, cfg, args.prefix, filters, args.all)
+        dictionary = root / cfg["tagDictionary"]
+        if args.cli_command not in ("scan", "--help", "--version") and not dictionary.exists():
+            raise ConfigError(f"can't find the tag dictionary: {dictionary}; {INIT_HINT}")
         path_args: list[str] = args.cli_args if args.cli_command in PATH_COMMANDS else []
         excludes = scope_excludes(root, cfg, path_args)
         return run_cli(
             ontology_args(args.cli_command, args.cli_args, str(root), cfg, excludes), capture=False
         ).returncode
-    except (ConfigError, CliError) as e:
+    except (ConfigError, CliError, OSError) as e:
         print(f"tow: {e}", file=sys.stderr)
         return 2
 
