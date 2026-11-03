@@ -9,11 +9,12 @@ Checked on 2026-11-03 before promotion through `dev` to `main`. This release man
 - Preserve prose, math/code payloads and table values/order during selected metadata/format maintenance. Metadata-only changes use independent originals and `tow verify-body`.
 - Keep body aftercare under explicit selected operations and the user's templates/rules. A review or formatting request does not generate or rewrite filled prose.
 - Correct existing CLI coverage guidance: ontology usage/show read the configured scope minus exclusions and include both frontmatter/body tags; selected usage paths and show output flags do not narrow every read. Dictionary apply does not edit notes.
+- Reject dictionary paths ending in `/` before initialization writes; a malformed file path must not create a dictionary directory. The four regression cases failed before the fix and passed afterward.
 - Keep `docs/superpowers/` local-only and excluded from tracked release contents. This release does not add persistent personal-vault connections, external-project authoring or a new retrieval/formatting backend. No Git history rewrite is included.
 
 ## Candidate verification
 
-- Fresh full suite: **104 passed**, including five published `tag-ontology@0.1.2` integration tests, in 11.69 seconds. Synthetic copies only; no user vault was used.
+- Fresh full suite: **108 passed**, including five published `tag-ontology@0.1.2` integration tests and four dictionary-path regression cases, in 11.51 seconds. Synthetic copies only; no user vault was used.
 - Ruff lint passed; Ruff format check reported 44 files already formatted; strict Pyright reported zero errors/warnings.
 - All three host manifests, Python project and lockfile agree on **0.4.0**. Relative package links and tracked-file exclusion of local planning passed.
 - Review, final-commit archive validation, post-merge CI and publication are recorded in the GitHub release. The candidate test result alone is not a native Obsidian/GUI or new installed-host functional result.

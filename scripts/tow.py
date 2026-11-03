@@ -218,6 +218,8 @@ def load_config(raw: object) -> dict[str, str]:
             raise ConfigError(f"{key}: must be a single folder name, without '/'")
         if key == "scope" and value not in SCOPES:
             raise ConfigError(f"scope: must be one of {', '.join(SCOPES)}")
+        if key in DICTIONARY_PATHS and value.endswith("/"):
+            raise ConfigError(f"{key}: must name a file, without a trailing '/'")
         if key in (*WORKFLOW_PATHS, *DICTIONARY_PATHS):
             path = Path(value)
             if path.is_absolute() or ".." in path.parts or not path.parts:

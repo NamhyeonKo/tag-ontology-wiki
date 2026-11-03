@@ -87,7 +87,7 @@ Only override values that differ in your vault. For example, a vault with `Proje
 }
 ```
 
-The four PARA folder names identify direct children of the vault root. `projectArchive` names history folders inside projects, such as `Projects/Search/superseded/`; matching folders at any depth in the search scope count. Dictionary paths are relative to the vault root. The tag dictionary is a JSON object of concept entries; the category dictionary is a Markdown index of registered classifications. Their formats are in the [conventions](methodology.md).
+The four PARA folder names identify direct children of the vault root. `projectArchive` names history folders inside projects, such as `Projects/Search/superseded/`; matching folders at any depth in the search scope count. Dictionary paths name files relative to the vault root; a trailing `/` is rejected. The tag dictionary is a JSON object of concept entries; the category dictionary is a Markdown index of registered classifications. Their formats are in the [conventions](methodology.md).
 
 `inbox` and `misc` also name direct-child folders. `attachments` and `dailyNotes` are nonempty paths inside the vault; absolute paths, `..`, and the vault root are rejected. Set them explicitly: changing another key does not rewrite them. They control intake, attachment moves, and link exclusions without widening default PARA searches.
 

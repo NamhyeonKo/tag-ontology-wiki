@@ -423,6 +423,18 @@ def test_dictionary_setup_paths_must_be_inside_the_vault(key: str, path: str) ->
         tow.load_config({key: path})
 
 
+@pytest.mark.parametrize("key", ["categoryDictionary", "tagDictionary"])
+@pytest.mark.parametrize("scope", ["para", "vault"])
+def test_init_rejects_dictionary_directory_syntax_before_writes(tmp_path: Path, key: str, scope: str) -> None:
+    config = tmp_path / "tow.json"
+    config.write_text(json.dumps({"scope": scope, key: "meta/Dictionary.md/"}))
+    before = config.read_bytes()
+
+    assert tow.main(["--root", str(tmp_path), "init", "--dictionaries", "--apply"]) == 2
+    assert list(tmp_path.iterdir()) == [config]
+    assert config.read_bytes() == before
+
+
 def test_init_rejects_dictionary_parent_symlinks_before_creating_any_files(tmp_path: Path) -> None:
     root = tmp_path / "vault"
     root.mkdir()
