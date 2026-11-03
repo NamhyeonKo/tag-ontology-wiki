@@ -9,9 +9,11 @@ description: >-
 
 # tow-classify
 
-Manages classification fields and their category dictionary. Read the [conventions](../../docs/methodology.md) and run `tow config` first. Resolve the category dictionary from `categoryDictionary`; read its rules and index. Concept `tags:` belong to `tow-tag-sync`: clarify which axis an ambiguous "tag" request means.
+Manages classification fields and, when adopted, their category dictionary. Read the [conventions](../../docs/methodology.md) and run `tow config` first. Inspect the user's actual schema before proposing fields/values. For TOW categories, resolve the dictionary from `categoryDictionary` and read its rules/index when present. Concept-tag selection belongs to `tow-tag-suggest`, dictionary consistency to `tow-tag-sync`; clarify an ambiguous "tag" request.
 
-Use only the conventions, category dictionary, and this workflow as classification rules. A category needs no invented minimum number of notes. Allowed `type`, `status`, and `kind` values are fixed by the conventions.
+Use the adopted vault rules, category dictionary and this workflow as classification rules. A category needs no invented minimum number of notes. The conventions' fixed `type`, `status` and `kind` values apply only to TOW-schema notes. For a custom schema, preserve its field names/values, show evidence for changes and use the plan/apply/preservation steps below without TOW-specific dictionary or legacy conversion requirements. No PARA move is implied. If the user selects TOW classification and its dictionary is missing, propose that prerequisite's path/content for approval before registering values; a dictionary does not imply adopting PARA or a tag ontology.
+
+For every selected note-metadata edit, follow the [preservation contract](../../docs/preservation.md): keep independent before/candidate copies, verify only selected metadata values, and require `tow verify-body <before> <candidate>` to pass before replacing the note. This operation does not authorize fixing body format, rewriting prose or invoking post-curation. Dictionary files are verified separately by their own rules.
 
 ## A. Register a category
 
@@ -25,7 +27,7 @@ Use only the conventions, category dictionary, and this workflow as classificati
 
 4. **Register the approved entries.** Update the dictionary section/index, its Mermaid classification graph when present, and `updated`. Include any proposed graph creation in the plan. Put common synonyms/abbreviations at the end of the one-line description so later reuse checks can find them. Preserve unrelated entries and graph nodes.
 5. **Ask separately about retroactive classification.** Registration alone does not authorize editing existing notes. If approved, run B for that value across the vault unless the user selects a narrower scope; an already explicit selection or refusal settles this question.
-6. **Verify.** Lint affected notes with the installed helper and confirm the new value is recognized. Report the value, parent, diagram/date changes, and retroactive decision.
+6. **Verify.** For TOW classification, lint affected TOW notes when applicable and confirm the new value is recognized. For custom fields, compare parsed values with adopted rules. Report the value, parent, approved diagram/date changes, and retroactive decision; dictionary-only registration does not authorize reading other notes.
 
 ## B. Review existing notes
 
@@ -33,8 +35,8 @@ Use only the conventions, category dictionary, and this workflow as classificati
 2. **Legacy conversion.** Inspect the scoped lint/scan results. For old classification tags, follow [legacy-classification.md](references/legacy-classification.md): show the exact dry-run changes, then apply only approved conversions. This is an agent edit workflow using the installed tools, not an extra helper subcommand.
 3. **Read and classify.** Inspect fields and enough body text to justify each proposal. For retroactive additions, find notes where the value is clearly appropriate as a secondary category; skip notes already using it as primary.
 4. **Propose, then wait.** List file, current values, proposed values, change type, and evidence. Mark absent dictionary values for A. Present category consolidations as a separate larger change covering both dictionary and affected notes.
-5. **Apply only selected classification changes**, preserve bodies/other fields, and update `updated` under the conventions.
-6. **Verify** scoped `tow lint` and report each change and any remaining decision.
+5. **Apply only selected classification changes**, preserve bodies/other fields, and follow the adopted date policy.
+6. **Verify** selected fields against the applicable schema, using scoped `tow lint` only for TOW notes, and report each change and remaining decision.
 
 | Change type | Handling |
 | --- | --- |
@@ -45,4 +47,4 @@ Use only the conventions, category dictionary, and this workflow as classificati
 | Consolidate | Plan dictionary and note changes together with A |
 | New | Register through A before using the value |
 
-Keep one `type` and an appropriate primary category. Project-only fields stay on project documents; archive location does not imply completion. Classifying broader concepts into narrower categories is a decision for the user. When recurring synonymous categories or domain growth suggest consolidation, offer a review without scheduling or executing it.
+For TOW notes, keep one `type` and an appropriate primary category; project-only fields stay on project documents. Archive location never implies completion. Classifying broader concepts into narrower categories is a decision for the user. When recurring synonymous categories or domain growth suggest consolidation, offer a review without scheduling or executing it.

@@ -164,6 +164,12 @@ def test_load_config_rejects_bad_files(raw: object) -> None:
         tow.load_config(raw)
 
 
+def test_load_config_accepts_a_whole_vault_scope_and_rejects_others() -> None:
+    assert tow.load_config({"scope": "vault"})["scope"] == "vault"
+    with pytest.raises(tow.ConfigError, match="scope"):
+        tow.load_config({"scope": "everything"})
+
+
 def test_load_config_allows_dictionary_paths_with_folders() -> None:
     assert tow.load_config({"tagDictionary": "meta/tags.json"})["tagDictionary"] == "meta/tags.json"
 
@@ -219,6 +225,30 @@ def test_scope_excludes_normalizes_relative_and_absolute_paths(tmp_path: Path) -
     assert tow.scope_excludes(tmp_path, tow.DEFAULTS, args) == []
 
 
+def test_vault_scope_keeps_inbox_and_misc_notes_and_excludes_only_the_dictionary(tmp_path: Path) -> None:
+    for d in ["notes", "journal", "00_Inbox", "99_Etc"]:
+        (tmp_path / d).mkdir()
+    (tmp_path / "Category-Dictionary.md").write_text("")
+    cfg = {**tow.DEFAULTS, "scope": "vault"}
+    assert tow.scope_excludes(tmp_path, cfg, []) == ["--exclude", "Category-Dictionary.md"]
+    assert tow.scope_excludes(tmp_path, cfg, ["Category-Dictionary.md"]) == []
+
+
+def test_vault_scope_keeps_archive_named_notes_in_ontology_queries() -> None:
+    cfg = {**tow.DEFAULTS, "scope": "vault"}
+    assert "--exclude" not in tow.ontology_args("show", ["rag", "--notes"], "/v", cfg, [])
+
+
+def test_vault_scan_keeps_an_explicitly_selected_nested_category_dictionary(tmp_path: Path) -> None:
+    (tmp_path / "meta").mkdir()
+    (tmp_path / "meta/categories.md").write_text("# Categories\n")
+    cfg = {**tow.DEFAULTS, "scope": "vault", "categoryDictionary": "meta/categories.md"}
+    assert tow.scope_excludes(tmp_path, cfg, []) == ["--exclude", "meta/categories.md"]
+    assert tow.scope_excludes(tmp_path, cfg, ["meta/categories.md"]) == []
+    assert tow.scope_excludes(tmp_path, cfg, ["./meta/categories.md"]) == []
+    assert tow.scope_excludes(tmp_path, cfg, [str(tmp_path / "meta/categories.md")]) == []
+
+
 def test_ontology_args_for_show_add_settings_and_skip_project_archives() -> None:
     args = tow.ontology_args("show", ["rag", "--notes"], "/v", tow.DEFAULTS, ["--exclude", "00_Inbox"])
     assert args == [
@@ -267,6 +297,7 @@ def vault(tmp_path: Path) -> Path:
     root = tmp_path / "vault"
     (root / "03_Resources").mkdir(parents=True)
     (root / "Category-Dictionary.md").write_text("### `ai` — AI\n- `ai/rag` : RAG\n")
+    (root / "Tag-Dictionary.json").write_text("{}\n")
     return root
 
 
@@ -380,3 +411,129 @@ def test_main_reports_a_broken_config_file(tmp_path: Path, capsys: pytest.Captur
     (root / "tow.json").write_text("{not json")
     assert tow.main(["--root", str(root), "config"]) == 2
     assert "tow.json" in capsys.readouterr().err
+
+
+# first-time setup
+
+
+@pytest.mark.parametrize("key", ["categoryDictionary", "tagDictionary"])
+@pytest.mark.parametrize("path", ["../outside.json", "/tmp/outside.json", "."])
+def test_dictionary_setup_paths_must_be_inside_the_vault(key: str, path: str) -> None:
+    with pytest.raises(tow.ConfigError):
+        tow.load_config({key: path})
+
+
+@pytest.mark.parametrize("key", ["categoryDictionary", "tagDictionary"])
+@pytest.mark.parametrize("scope", ["para", "vault"])
+def test_init_rejects_dictionary_directory_syntax_before_writes(tmp_path: Path, key: str, scope: str) -> None:
+    config = tmp_path / "tow.json"
+    config.write_text(json.dumps({"scope": scope, key: "meta/Dictionary.md/"}))
+    before = config.read_bytes()
+
+    assert tow.main(["--root", str(tmp_path), "init", "--dictionaries", "--apply"]) == 2
+    assert list(tmp_path.iterdir()) == [config]
+    assert config.read_bytes() == before
+
+
+def test_init_rejects_dictionary_parent_symlinks_before_creating_any_files(tmp_path: Path) -> None:
+    root = tmp_path / "vault"
+    root.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (root / "meta").symlink_to(outside, target_is_directory=True)
+    (root / "tow.json").write_text('{"categoryDictionary": "meta/categories.md"}')
+    assert tow.main(["--root", str(root), "init", "--apply"]) == 2
+    assert list(outside.iterdir()) == []
+    assert not (root / "01_Projects").exists()
+
+
+@pytest.mark.parametrize(
+    "settings",
+    [
+        {"categoryDictionary": "meta/dict.md", "tagDictionary": "meta/dict.md"},
+        {"categoryDictionary": "01_Projects"},
+        {"categoryDictionary": "meta", "tagDictionary": "meta/tags.json"},
+        {},
+    ],
+)
+def test_init_rejects_conflicting_or_wrong_type_targets_before_writes(tmp_path: Path, settings: dict[str, str]) -> None:
+    (tmp_path / "tow.json").write_text(json.dumps(settings))
+    if not settings:
+        (tmp_path / "Category-Dictionary.md").mkdir()
+    before = set(tmp_path.rglob("*"))
+    assert tow.main(["--root", str(tmp_path), "init", "--apply"]) == 2
+    assert set(tmp_path.rglob("*")) == before
+
+
+def test_init_reports_filesystem_errors(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def denied(*args: object, **kwargs: object) -> None:
+        raise PermissionError("fixture permission denied")
+
+    monkeypatch.setattr(Path, "mkdir", denied)
+    assert tow.main(["--root", str(tmp_path), "init", "--apply"]) == 2
+    assert "fixture permission denied" in capsys.readouterr().err
+
+
+def test_init_lists_missing_paths_and_creates_them_only_with_apply(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert tow.main(["--root", str(tmp_path), "init"]) == 0
+    assert "would create 03_Resources/" in capsys.readouterr().out
+    assert list(tmp_path.iterdir()) == []
+    assert tow.main(["--root", str(tmp_path), "init", "--apply"]) == 0
+    for folder in ["01_Projects", "02_Areas", "03_Resources", "04_Archives", "00_Inbox"]:
+        assert (tmp_path / folder).is_dir()
+    categories = (tmp_path / "Category-Dictionary.md").read_text()
+    assert tow.category_values(categories) == set()
+    assert json.loads((tmp_path / "Tag-Dictionary.json").read_text()) == {}
+    capsys.readouterr()
+    tow.main(["--root", str(tmp_path), "init"])
+    assert capsys.readouterr().out.strip() == "nothing to create"
+
+
+def test_vault_init_creates_nothing_without_explicit_dictionary_selection(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text('{"scope": "vault", "tagDictionary": "meta/tags.json"}')
+    before = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
+    assert tow.main(["--root", str(tmp_path), "init", "--apply"]) == 0
+    assert capsys.readouterr().out.strip() == "nothing to create"
+    assert {p.name: p.read_bytes() for p in tmp_path.iterdir()} == before
+
+
+def test_vault_init_creates_only_requested_dictionaries_and_preserves_existing_files(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text('{"scope": "vault", "tagDictionary": "meta/tags.json"}')
+    (tmp_path / "Category-Dictionary.md").write_text("- `ai` : mine\n")
+    assert tow.main(["--root", str(tmp_path), "init", "--dictionaries"]) == 0
+    assert "would create meta/tags.json" in capsys.readouterr().out
+    assert not (tmp_path / "meta").exists()
+    assert tow.main(["--root", str(tmp_path), "init", "--dictionaries", "--apply"]) == 0
+    assert capsys.readouterr().out.splitlines() == ["created meta/tags.json"]
+    assert (tmp_path / "Category-Dictionary.md").read_text() == "- `ai` : mine\n"
+    assert json.loads((tmp_path / "meta/tags.json").read_text()) == {}
+    assert not (tmp_path / "00_Inbox").exists()
+
+
+def test_main_warns_when_the_para_scope_has_no_folders(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "notes").mkdir()
+    fake_cli(tmp_path, monkeypatch, scan_of())
+    assert tow.main(["--root", str(tmp_path), "find", "--tag", "rag"]) == 0
+    assert '"scope": "vault"' in capsys.readouterr().err
+    (tmp_path / "tow.json").write_text('{"scope": "vault"}')
+    tow.main(["--root", str(tmp_path), "find", "--tag", "rag"])
+    assert capsys.readouterr().err == ""
+
+
+def test_main_points_to_init_when_the_tag_dictionary_is_missing(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = vault(tmp_path)
+    (root / "Tag-Dictionary.json").unlink()
+    assert tow.main(["--root", str(root), "ontology", "check", "--json"]) == 2
+    assert "tow init" in capsys.readouterr().err

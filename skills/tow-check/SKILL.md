@@ -1,60 +1,43 @@
 ---
 name: tow-check
 description: >-
-  Use when checking notes in a TOW vault for schema and format problems — frontmatter
-  against the dictionaries, H1/section structure, table·math·code notation, content-shape
-  issues, broken wikilinks or image paths — and when normalizing their format without
-  changing content. Triggers: "check my notes", "lint this note", "is the frontmatter
-  right?", "fix the table/math formatting", "any broken links?".
+  Use when checking frontmatter and Markdown, math, code, table or reference formatting
+  while preserving content, including report-only lint and selected safe format fixes.
+  Triggers: "check my notes", "lint this note", "is the frontmatter right?",
+  "fix the table/math formatting", "any broken links?".
 ---
 
 # tow-check
 
-Checks the given notes (files or folders) on five axes and **reports the issues** (report mode, workflow steps 1–3); once the user approves, it fixes **format issues only** (fix mode, steps 4–5). Sentences, cell values, math, code, and link targets stay as they are.
+Report issues first; apply only approved format changes. Read the [conventions](../../docs/methodology.md), [preservation contract](../../docs/preservation.md) and [notation rules](references/markdown-format.md). User rules take precedence. This skill never writes missing prose, corrects formulas/code/values, summarizes, merges or splits notes.
 
-Before starting, read the [TOW conventions](../../docs/methodology.md): they define the `tow` command used below, the frontmatter rules (§4), and the body notation rules (§5).
+## Checks
 
-## Axes
-
-| Axis | Check | Basis or tool | Handling |
-| --- | --- | --- | --- |
-| ① Frontmatter present | Is there a `---` frontmatter block starting on the first line? | Look directly. `tow lint` and `tow ontology usage` pass over notes without frontmatter, so they look OK there; check this first | Report only. Writing frontmatter needs a classification decision, which is outside this skill |
-| ① Meta values | Allowed values, unregistered categories, field scope, unused properties | `tow lint <path>` | Report. A new category goes into the category dictionary after the user approves (conventions §3) |
-| ① Meta format | Property order, block lists (including `source`), empty properties (keep `tags: []`), date format, double quotes for YAML special characters, duplicate frontmatter blocks | Conventions §4 | Fixable. Quote-only changes are left out |
-| ② Tags | Unregistered tags, aliases used as tags, a broader and a narrower tag on one note, tag count, dictionary integrity | `tow ontology usage <path> --json`; tag count: `tow lint <path>`; dictionary: `tow ontology check --json` | Report. Unregistered tags and dictionary fixes go to `tow-tag-sync`; choosing a note's tags is the user's call |
-| ③ Body structure | One H1 = file name (paper reviews retain the full title under conventions §5), sections from `##` (promote one level at a time when they start at `###`), skipped heading levels (`##` then `####`), pseudo-titles (`> **Title**`, a date line at the top) → H1, list indentation (tabs, per `.obsidian/app.json` and existing notes), paired fences | Conventions §5 | Fixable |
-| ③ Inline metadata | Lines such as `Date:` or `Tag:`, or the same labels in the note's language, a `#a, #b` tag line at the top of the body, a lone `---` right after it | Conventions §4 | Report only. These lines can go once their values (date, tags the user picked) are in the frontmatter |
-| ③ Body notation | Table separator rows and column counts, inline/block math and code, math in backticks or plain text, sentence flow | [markdown-format.md](references/markdown-format.md) | Fixable |
-| ④ Shape | [Shape codes](#shape-codes) | Judgement | Report only |
-| ⑤ References | `[[link]]` targets exist (Obsidian resolves links by file name only, so a link that matches only an alias is broken), image and attachment paths exist | Check the files | Report only |
-
-`#`, `|`, and `$` inside code blocks are out of scope.
-
-## Shape codes
-
-Problems with the structure of the content. The user decides whether to fix them, so report each with the action it needs.
-
-| Code | Problem | Action |
+| Axis | Check | Handling |
 | --- | --- | --- |
-| `EMPTY` | A title and no real body | Add content |
-| `MULTI` | Two or more clearly different topics | Consider splitting the note |
-| `NOPOINT` | The point is unclear, so no one-sentence `description` can be drawn | Add a sentence that states the point |
-| `EMPTYSEC` | A heading with no content | Fill it or remove the heading |
-| `WALL` | A very long block with no headings | Split it into sections |
-
-`OK` when there is no problem; several codes are comma-separated (`NOPOINT, MULTI`).
+| Frontmatter | Adopted schema, allowed values/types/order, optional presence and selected YAML syntax | Custom fields and absent metadata are valid where permitted. Run scoped `tow lint` only for TOW-schema notes with the category dictionary; classify/tag decisions remain separate |
+| Tags | Selected ontology registration, aliases, redundancy, counts and dictionary integrity | Use dictionary-only `check`; run `ontology usage` only when its full read scope satisfies the conventions. Otherwise inspect exact-path `scan` and relevant dictionary entries; report unavailable aggregate checks |
+| Markdown | Adopted heading levels, list markers, fences, hard breaks and structure | Repair selected syntax only; preserve heading text/prose/order. Ambiguous block boundaries remain report-only |
+| Math/code/tables | Delimiters, fences, selected language-aware formatting, separators, alignment, escaping and columns | Follow the notation rules' exact payload/value checks. No formula rewriting, algorithm repair or invented cells |
+| Shape | Empty note/section, mixed topics, unclear point, walls of text | Report codes below; shape findings do not authorize body writing or reorganization |
+| References | Actual wikilink/attachment targets | Report missing/ambiguous targets. Selected wrappers/path repair go through `tow-link` or an explicit intake plan; no new note or caption text |
 
 ## Workflow
 
-1. **Scope**: take files or folders. When another skill calls this one, use its scope as given.
-2. **Check**: run all five axes. `tow lint`, `tow ontology usage`, and `tow ontology check` run once over the scope; the rest run note by note.
-3. **Report**: fill the [report table](#report-table), keeping fixable format issues apart from report-only issues. When a table's column boundaries or a math span can't be determined, report it as "ambiguous".
-4. **Fix (on approval)**: fix only the approved format issues and update `updated` (conventions §4). For each note, compare math, table cell values, code, links, and plain sentences before and after, and recount `$`/`$$` pairs, fence pairs, and table columns.
-5. **Done** when a re-check finds zero approved format issues and `tow lint` prints `OK`. Hand over the remaining report-only issues as a list.
+1. **Scope and rules.** Use the selected paths and their actual templates/conventions. Enforce private-input boundaries before reads. A request from another skill supplies only its stated scope.
+2. **Inspect and report.** Check each selected note. Label findings as safely fixable, a metadata/user decision, or ambiguous/report-only. Include exact before/after spans for proposed format fixes; missing optional frontmatter/dictionaries are not defects. Do not override user style with bundled defaults.
+3. **Apply after approval.** Copy originals and prepare a separate candidate under the preservation contract. Perform only the approved literal patches, keeping metadata edits separate from body-format patches. No blanket whole-note rewrite. A previously explicit choice settles only that exact change.
+4. **Verify before replacement.** Compare protected prose, math/code payloads, ordered table values, alignment, links and unselected metadata with the independent original. Use `tow verify-body` for a separate metadata-only step; use operation-specific checks for format changes. Reject self-comparison, token-count-only checks and a formatter exit code as preservation evidence.
+5. **Report.** Re-read saved files and verify the selected fixes. List applicable checks, skipped/unavailable checks, remaining findings and preservation results; do not claim ambiguous fixes passed. Follow the adopted date policy only through a selected metadata step.
 
-## Report table
+## Shape codes and report
 
-| Note | Format issues (fixable) | Meta and tags | Shape | References |
-| --- | --- | --- | --- | --- |
-| Transformer.md | Sections start at `###`, separator row `:---` | OK | OK | `[[Self Attention]]` has no target |
-| Text Summarization.md | Separator row `:---` | No frontmatter | EMPTYSEC | OK |
+| Code | Finding | Report-only follow-up |
+| --- | --- | --- |
+| `EMPTY` | Title without substantive content | Ask whether the user wants explicit template-guided writing |
+| `EMPTYSEC` | Empty section | Leave empty; writing/removal is a separate choice |
+| `MULTI` | Distinct topics | Offer a review/merge proposal |
+| `NOPOINT` | No supported one-sentence identity | Request clarification; do not invent a description/body sentence |
+| `WALL` | Long unstructured content | Offer explicit restructuring under the user's rules |
+
+Use `OK` when no finding applies. Report file, exact issue/span, applicable rule, proposed syntax-only change, required preservation check and unresolved choice. Route selected post-curation to its owning skill only after the user chooses that operation.

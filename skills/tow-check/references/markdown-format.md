@@ -1,57 +1,46 @@
-# Markdown notation details (tables, math, code)
+# Markdown, math, code and table formatting
 
-Read this when checking or normalizing the tables, math, and code in a note's body. The principles are in the [TOW conventions](../../../docs/methodology.md) §5; this file has the detailed rules and examples. Every conversion **preserves content**: cell values, math, code, and plain sentences stay the same.
+Read the [preservation contract](../../../docs/preservation.md) before proposing fixes. The user's adopted template/style governs presentation. Work in small, explicitly selected spans; every word, formula payload, code payload and table value is protected. Formatting does not include correcting facts, rewriting sentences, filling gaps or simplifying expressions.
 
-## 1. Tables
+## Markdown
 
-- Headers are written `| Header 1 | Header 2 |`.
-- Separator rows **always use `| --- |` for every cell** (exactly three hyphens, one space on each side), for example `| --- | --- |`. Existing separator rows are normalized to this form too: long dashes and alignment colons (`:---`, `---:`, `:---:`) become `---`.
-- Every row gets the same number of columns and uniform spacing at cell boundaries; cell content, column order, and empty cells are preserved.
-- Space- or dash-aligned tables with clear column boundaries become pipe tables. A pipe character alone doesn't make a plain sentence or an absolute-value formula a table.
-- Tables are for data with meaningful column headers. A grid of numbers (a matrix) is a `bmatrix` (§2), not a table with an empty header row (`|  |  |`).
+- Repair selected heading/list/fence markers only when their boundaries are known. Preserve heading text, paragraph/list order, punctuation and links.
+- A mismatch between the filename and H1 is a report, not permission to rename either text or file.
+- Keep prose as written. Joining sentence fragments, prose-to-list conversion, changing nominal endings and reorganizing paragraphs are post-curation, not lint fixes.
+- Preserve original line endings, hard breaks and final newlines outside the selected changes. A missing fence with an ambiguous endpoint is report-only.
 
-## 2. Math
+## Math
 
-**The test is whether it reads naturally as part of a sentence**, not whether text comes before it.
+- An approved inline/display delimiter repair can replace `$`/`$$` or move delimiter lines around an identified expression. Preserve its entire inner payload byte for byte, including spacing and text.
+- Example: `The window is $$ 2 \times 2 $$ and the stride is 2.` can become `The window is $ 2 \times 2 $ and the stride is 2.` when that exact delimiter change is selected. The payload ` 2 \times 2 ` and surrounding prose are unchanged.
+- Treat the payload as opaque bytes from the independent original, including padding. Build new delimiters around those bytes instead of retyping or trimming the expression. For an identified `$$...$$` span becoming `$...$`:
 
-- **Inline `$…$`**: short expressions, symbols, and values read as part of a sentence (mid-sentence or at the end, list items, table cells, variable descriptions).
-  - `If the window is $2 \times 2$ and the stride is 2`
-  - `a filter of size $h$`
-  - `If the convolution result before activation is $[26,41,35]$ and the bias is $b=2$, then $c = [28,43,37]$.`
-- **Block `$$`**: large expressions that read as a unit on their own (multi-line aligned equations, `bmatrix`, `aligned`, `cases`, definitions or results with large fractions or sums). The opening and closing `$$` each sit on a line of their own.
-- A `$$` block always sits between sentences, never inside one:
-
-  ```text
-  [before] If the window is / $$ 2 \times 2 $$ / and the stride is 2   ← one sentence cut into three pieces
-  [after]  If the window is $2 \times 2$ and the stride is 2
+  ```python
+  payload = original_span[2:-2]
+  replacement = b"$" + payload + b"$"
+  # Extract the actual changed span from the candidate, then check it independently.
+  assert candidate_span[1:-1] == payload
   ```
 
-- **Math written as plain text or code becomes LaTeX**: math symbols and expressions in backticks (`` `W` ``, `` `h_{t-1}` ``) or in a ` ```text ` block, and plain-text math without `$` (`Σ`, `xᵀW`, `R^V`, `a_i`). LaTeX commands in backticks (`` `\sigma` ``) don't render, so they always move into `$…$`. Words inside math are wrapped in `\text{…}` (`\text{softmax}`).
-- **Math in tables**: a `|` (absolute value, conditional) inside `$…$` in a cell reads as a column boundary, so write `\vert` or `\mid`.
-- **Matrices**: `\begin{bmatrix} 12 & 20 \\ 8 & 12 \end{bmatrix}`.
+  Compare actual original/candidate payloads before replacement and after saving. A reverse replacement of the whole new expression with the old one checks the outer diff, but can conceal changed contents; it is not the required payload check. Do not normalize whitespace or call `strip()` in this comparison.
+- Keep numbers, variables, operators, indices, bounds, conditions and `\text{...}` contents. Do not add braces, translate glyphs/macros, simplify, derive, or rewrite an expression under a formatting request.
+- Plain text or backticks may be literal code/identifiers. Report uncertain math intent rather than converting it to LaTeX automatically. Matrix re-representation and choosing whether a pipe means absolute value or a condition are content decisions.
+- Balance delimiters and compare the payload to the original. Render checks are supplementary, never a replacement for preservation checks.
 
-## 3. Code
+## Code
 
-The same test as math: **does it read naturally as part of a sentence?**
+- Fence repairs preserve all contained bytes and existing language information; add or replace a language only when explicitly selected and known.
+- Leave code and output intact by default. To format the payload itself, require a selected language-aware change and an installed formatter on an isolated copy.
+- Independently verify literal/comment contents, ordered tokens and program structure with suitable language tooling. For Python, compare ASTs without source-position attributes and the ordered non-whitespace tokens including comments, strings and numbers; do not run the note's program.
+- A formatter's successful exit or parse success alone is not a preservation proof. If the relevant check is unavailable, report the format issue and keep code bytes unchanged. Indentation may change control flow.
 
-- A short one-line piece of code, token, or example phrase read as part of a sentence is inline code within the sentence. When a code block cuts a sentence, join the two sides into one sentence.
+## Tables
 
-  ~~~text
-  [before] A combination used widely in practice:
+- Repair selected separator rows to at least three hyphens per column while retaining each existing alignment colon. Example: `| :-- | --: |` → `| :--- | ---: |`.
+- Preserve header/cell payloads, numeric spelling (`1.00` stays `1.00`), units, expressions, links and row/column order. Boundary padding/escaping is formatting only when the decoded cell boundaries and content are unambiguous.
+- Escaped pipes, inline code, formulas and wikilink aliases can contain `|`. Use a Markdown-aware parser or explicit byte boundaries; never assume every pipe is a column separator.
+- Empty cells remain empty. Mismatched columns with uncertain ownership, plain-text grids and table-to-matrix conversions are report-only; do not infer or move values.
 
-  ```text
-  Skip-gram + Negative Sampling
-  ```
-  ~~~
+## Verification
 
-  → [after] ``A combination used widely in practice: `Skip-gram + Negative Sampling` ``
-
-- Code that reads as a unit on its own (a one-line example standing alone, multi-line code, output, diagrams) keeps its fenced code block, for example a ` ```text k-fold Cross Validation ``` ` standing alone after a list.
-- Code content stays unchanged. A `#` (comment) inside a code block is not a heading.
-
-## 4. Check order
-
-1. `$`/`$$` pairs, fence pairs, table column counts and separator rows.
-2. **Sentence flow**: are the lines around a `$$` sentence fragments; does a one-line code block cut a sentence?
-3. Is any math left in backticks or plain text (§2)?
-4. Compare math, table cell values, code, and links before and after the conversion. When a span can't be determined, report it rather than filling it in by guess.
+Record each approved literal before/after span, check it against the current candidate, and compare all protected content with the independent original. Apply only those patches; broad reformatting is outside the plan. For metadata-only changes use `tow verify-body`; it intentionally rejects any changed body and is not a verifier for these format transformations. Keep ambiguous/unverified repairs pending without claiming success.

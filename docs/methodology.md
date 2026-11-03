@@ -1,6 +1,31 @@
 # TOW conventions
 
-The principles, frontmatter schema, and shared rules every TOW skill follows. Each skill reads this document before it starts work; the step-by-step procedures live in the skills.
+Shared rules for frontmatter and content-preserving formatting, with optional user-guided post-curation and a TOW organization recipe. Each skill reads this document before it starts work; the step-by-step procedures live in the skills.
+
+## Working scope
+
+Use the Obsidian vault as the agent host's workspace. All note discovery, selected edits, intake destinations and post-curation stay within that vault. The helper's `--root` identifies this working vault when needed; it does not configure a connection to another project's knowledge base. Vault organization settings remain in its own `tow.json`.
+
+## Vault compatibility
+
+**Use the user's vault as it is.** PARA, TOW frontmatter and the two dictionaries are independent, optional choices. Searching, reading, editing, linking, merging and reviewing notes work without them. Setup is not a prerequisite for those operations.
+
+- Determine applicable conventions from vault instructions, existing templates/notes within the authorized scope, and the user's choices. Field names such as `status` alone do not mean the TOW schema was adopted. Sections 2–6 describe the TOW recipe; apply its layout/schema/style constraints only where adopted. Preserve custom fields, values, ordering and prose style elsewhere.
+- Ask whether the user wants PARA during setup; reuse an explicit prior choice. Folder names or an empty vault do not imply consent. Existing layouts stay in place unless a move is separately selected.
+- Missing frontmatter is valid in a vault that does not require it. Do not add classification fields, `tags: []`, `created`, `updated`, or dictionaries as a side effect of body/link/format work. Apply the vault's established date policy when present; otherwise leave metadata unchanged. These rules qualify every skill's date/schema instruction below.
+- Read existing dictionaries when relevant, not as a universal startup gate. Tag suggestions can be unverified; classification/ontology adoption proposes only its missing prerequisites and waits for approval before creating them. Generic searches and body work continue without those features.
+- `tow lint` checks **TOW conventions**, not arbitrary vault schemas; run it only for notes using that schema and with its category dictionary available. `ontology usage/check` require the tag dictionary and apply only to the selected ontology work. Report unavailable/inapplicable checks separately from passing checks. Use direct Markdown/reference/preservation checks for generic notes; unrelated pre-existing lint findings do not block an approved body edit.
+- Resource, Area and hub describe content roles in ownership decisions, not required folders or property values. Use the user's destinations, navigation and metadata. A missing tag/category does not by itself make a note isolated.
+
+## Preservation and post-curation
+
+Ordinary maintenance changes selected frontmatter and Markdown/math/code/table **formatting**, preserving their content under the [preservation contract](preservation.md). Prefer small literal patches and deterministic checks; model confidence or an unchanged-looking render is not proof. Metadata-only changes use independent snapshots and `tow verify-body` before final replacement.
+
+Body writing, merges, intake transformations and domain aftercare require an explicit selected operation under the user's own rules/templates. Read the [post-curation contract](post-curation.md) when using `tow-edit`, `tow-merge`, `tow-ingest` or `tow-review`. Generic cleanup/lint/review never authorizes body generation, summaries, deletion, split/merge or automatic hub creation. Missing or ambiguous rules produce a question/proposal, with no body changes.
+
+## Search policy
+
+For every skill's note discovery, use **CLI first → scoped file search when unavailable or insufficient → read/verify** as detailed in [tow-query](../skills/tow-query/SKILL.md). Natural language is the user interface; query syntax is internal. Existing properties, body tags, names, links and body content all provide evidence. Missing properties stay unknown; separate exact matches from inferred candidates. Dictionary/CLI failures and partial searches are not proof of absence. All methods obey the scope rules below before reading content.
 
 ## The `tow` command
 
@@ -16,19 +41,22 @@ TOW="<plugin-root>/scripts/tow.py"
 | Command | What it does |
 | --- | --- |
 | `tow config` | Print the settings in effect |
+| `tow init [--dictionaries] [--apply]` | Preview/create the PARA starter bundle; with `scope: vault`, create nothing unless `--dictionaries` explicitly selects starter dictionaries. `--apply` never overwrites a file |
+| `tow verify-body <before> <after>` | Read-only exact body-byte comparison of two vault-local snapshots after metadata-only changes; no CLI/dictionary required |
 | `tow lint [path…]` | Check classification fields, unused properties, and tag counts (§3, §4). Prints `OK` when clean |
 | `tow find [<prefix>] [--type …] [--status …] [--kind …] [--tag …] [--all]` | Notes that meet every condition given: a `category` equal to `<prefix>` or below it, the frontmatter field values, a tag (ignoring case) |
 | `tow ontology <command> [arg…]` | Run the [`tag-ontology` CLI](https://github.com/NamhyeonKo/obsidian-tag-ontology) with this vault's settings |
 
-`tow ontology` adds `--root`, the tag dictionary path, and `--names kebab`, and limits notes to the PARA folders. For `show` it also skips project archive folders; `--all` keeps them.
+`tow ontology` adds `--root`, the tag dictionary path, and `--names kebab`, and limits notes to the search scope (`scope` in `tow.json`). In PARA scope, `show` also skips project archive folders; `--all` keeps them. Use the underlying pinned CLI with the selected dictionary and naming rule for an ontology that does not adopt kebab naming. `scan` requires no dictionary and exposes parsed custom frontmatter, separate frontmatter `tags` and `bodyTags`, and headings. `usage` and `show` count both tag representations; `find` and convention lint use frontmatter tags only. Dictionary `apply` never edits note tags or bodies.
 
 ### Scope before reading note contents
 
 The helper/CLI does **not** automatically apply Git ignore or private-input rules. Before content searches or note scans, inspect those rules and determine the eligible paths. Names-only listings may discover candidates; content reads, `Grep`/`rg` and CLI parsing must use the filtered paths, or explicit exclusions. Filtering the results after a broad scan still reads the excluded files.
 
-- For selected notes, pass those exact paths to `tow lint`, `tow ontology scan … --json`, and `tow ontology usage … --json`, including final verification. Keep dictionary-only `tow ontology check --json` separate.
+- For selected notes, pass those exact paths to `tow lint` and `tow ontology scan … --json`, including final verification. Keep dictionary-only `tow ontology check --json` separate.
 - For an authorized folder search, pass its approved paths and private-subtree exclusions to the underlying scan/search, such as `tow ontology scan <folder> --exclude <private-subtree> --json`. Enumerate eligible files first when exclusions cannot express the selection.
-- `tow find` scans the entire configured PARA scope; it has no path/exclusion argument. Use it only when that whole scan is authorized and contains no unselected private inputs. Otherwise parse an explicitly scoped `tow ontology scan` result and filter its fields. The same caution applies to pathless `lint`, `usage`, and `show --notes`.
+- `tow find` scans the entire configured search scope; it has no path/exclusion argument. Use it only when that whole scan is authorized and contains no unselected private inputs. Otherwise parse an explicitly scoped `tow ontology scan` result and filter its fields. The same caution applies to pathless `lint`.
+- `usage <paths>` still scans the whole configured scope minus explicit exclusions to compute `unused`; the positional paths restrict its per-note findings, not all reads. `show` also scans that scope even without `--notes`. Run either only when its entire effective read scope is authorized or exclusions safely remove every ineligible path before reading. Otherwise use exact-path `scan` and authorized dictionary lookup, and report aggregate checks unavailable. `unused` is not proof that an entry can be deleted; partial reads or parse failures limit that conclusion. `show --exact` restricts returned note paths, not its read scope or rollup counts.
 - A body-edit request or a declined retroactive-classification proposal does not authorize a vault-wide verification search. Check only changed/selected paths; report other unresolved work without scanning it.
 
 ## Vault settings (`tow.json`)
@@ -47,19 +75,20 @@ Values that differ between vaults live in `tow.json` at the vault root, not in t
   "inbox": "00_Inbox",
   "attachments": "99_Etc/attachments",
   "dailyNotes": "02_Areas/daily-notes",
-  "misc": "99_Etc"
+  "misc": "99_Etc",
+  "scope": "para"
 }
 ```
 
-Resolve every operational path from `tow config` and the supplied vault root, including inbox intake, paper source notes, attachments, and link exclusions. `inbox` is the capture queue, `attachments` stores note-specific media, `dailyNotes` is the daily-note subtree, and `misc` holds support files. Default searches still use only PARA; pass an explicit intake file or folder when checking it.
+Resolve configured workflow paths from `tow config` and the supplied vault root; defaults are suggestions until their roles are confirmed in a custom vault. `inbox` is the capture queue, `attachments` stores note-specific media, `dailyNotes` is the daily-note subtree, and `misc` holds support files. Helper searches use `"scope": "para"` by default for compatibility. `"scope": "vault"` includes every note folder (including inbox/support/history), excluding only the category dictionary unless explicitly selected. It does not adopt the TOW schema. Without setup, native CLI/file search still uses the user's authorized scope; do not constrain it to nonexistent default folders.
 
-Before a move, inspect the vault's ignore/private rules. Ignored capture inputs require explicit path selection; include any change in tracked/public visibility in the plan before approval. Apply this rule to intake candidates and existing-note searches. Link targets and edits exclude the configured inbox, daily notes, project history, miscellaneous support subtree, and attachments. If an attachment store overlaps a note root, exclude only the configured attachment subtree rather than the entire root.
+Before a move, inspect the vault's ignore/private rules. Ignored capture inputs require explicit path selection; include any change in tracked/public visibility in the plan before approval. Apply this rule to intake candidates and existing-note searches. In an adopted PARA layout, link targets and edits normally exclude inbox, daily notes, project history, misc and attachments. In a custom layout, use confirmed role exclusions and the user's scope; default names alone exclude nothing. Explicitly selected ordinary workflow exclusions may be included; private/ignored inputs still require explicit selection. If an attachment store overlaps a note root, exclude only the attachment subtree.
 
-> **Before you start**: read the category dictionary (`categoryDictionary`) first and use it as the classification and navigation index (the LLM Wiki's index-first principle). The tag dictionary (`tagDictionary`) is large: query it with `grep` (one line = one tag) instead of reading it whole.
+> **When available and relevant**: use the category dictionary as a classification/navigation index. Query the tag dictionary by relevant concepts/aliases rather than reading it whole. Missing dictionaries do not block ordinary work.
 
 ## 1. Overview
 
-- Method: **PARA (folders, structure) + LLM Wiki (metadata)**.
+- Optional recipe: **PARA (folders, structure) + LLM Wiki (metadata)**. Each can be adopted independently.
 - Philosophy: build the knowledge graph from **tags rather than links**, and let the LLM go from the category dictionary index straight to the files, **without RAG**. Classification goes in **fields** such as `type` and `category`; the concept entities a note covers go in **`tags:`**.
 - PARA folders (the number prefixes in the defaults sort the Obsidian sidebar):
 
@@ -71,7 +100,7 @@ Before a move, inspect the vault's ignore/private rules. Ignored capture inputs 
 | archives | `archives` | `04_Archives` | **Finished projects** |
 | project archive | `projectArchive` | `archive` | Superseded or rejected documents of an active project (§2). Any folder with this name, at any depth, counts |
 
-Captures waiting to be classified stay in an inbox, as written. In the default layout, inbox, templates and attachments sit outside PARA, so default helper scans leave them out. Custom paths do not change the helper's PARA scope; the workflows apply their own configured intake and link exclusions.
+Captures waiting to be classified stay in an inbox, as written. In the default layout, inbox, templates and attachments sit outside PARA, so default helper scans leave them out. Custom paths do not change the helper's search scope; the workflows apply their own configured intake and link exclusions.
 
 ## 2. Folders and depth
 
@@ -121,14 +150,14 @@ Concept tags are the **concept entities a note covers directly** (for example a 
 
 ### Linking notes
 
-- **Shared concept tags and shared `category` values are the primary, required way to link notes.** Related notes share a concept tag or a category, so the frontmatter alone finds linked notes without reading bodies.
+- In the TOW recipe, shared concept tags and `category` values provide connections. In other vaults, existing wikilinks, hubs, body tags and custom properties also establish navigation; new metadata is not required to link notes.
 - Body `[[wikilinks]]` are **optional prose decoration**: add one where a natural mention exists. A note without them is still linked.
-- The frontmatter `related:` field is unused: shared tags already do that job, and a second mechanism would duplicate it.
+- The TOW recipe does not use frontmatter `related:`. Preserve that property in schemas that do use it.
 - Existing notes keep the concept tags they have; the user manages them note by note. When a new category is registered, offer to apply it to existing notes.
 
 ## 4. Frontmatter schema (LLM Wiki style)
 
-Regular notes follow the frontmatter below. Real notes omit empty properties but keep `tags: []` for the user to fill. Templates include the optional properties as empty slots.
+Notes adopting the TOW schema follow the frontmatter below. Other notes retain their existing schema or lack of frontmatter. Real TOW notes omit empty properties but keep `tags: []` for the user to fill. Templates include optional properties as empty slots.
 
 ```yaml
 ---
@@ -171,8 +200,8 @@ Project notes add `status` and `kind` after `type` when needed.
 - **Paper-review exception**: an area note whose primary category is `paper/<alias>` keeps the full paper title as its H1 and as an alias. Its filename uses the main title before the subtitle to avoid forbidden filename characters such as `:`. Do not shorten that H1 to the filename; this exception does not apply to other notes.
 - **Sections** start at `##` (H2), then `###`, `####`. (Obsidian shows the file name as the title, so the body's standard starts at H2.)
 - **A `#` inside a code block** (a comment, for example) is not a heading; leave it as is.
-- **Tables**: the separator row uses `| --- |` only (no alignment colons such as `---:`). Every row has the same number of columns.
-- **Math and code**: **inline when it reads naturally as part of a sentence** (`$math$`, `` `code` ``); a block (`$$`, ` ``` `) for a large expression or standalone code that reads as a unit. A block always sits between sentences, never inside one. Math written in backticks or plain text becomes LaTeX.
+- **Tables**: repair selected separator/padding syntax while preserving alignment, cell values, escaping and row/column order. Missing or ambiguous cells are report-only; do not invent them.
+- **Math and code**: selected delimiter/fence/layout repairs preserve the complete expression/code payload. Plain text and code are not automatically converted to LaTeX. Do not change sentence flow, expressions or algorithms to satisfy a formatting preference; ambiguous spans remain report-only.
 - Details and examples: [markdown-format.md](../skills/tow-check/references/markdown-format.md)
 
 ## 6. Tag dictionary
@@ -220,11 +249,11 @@ A thesaurus that lightly follows the core of W3C **SKOS** (Simple Knowledge Orga
 
 These apply to every TOW skill; skills don't repeat them.
 
-- **Plan → approve → run**: for work that changes files, show a plan table first and run it after the user approves. Ask for approval once for the whole batch. Exceptions: merging notes is approved merge by merge; a body edit whose scope the user stated runs directly when the scope is clear.
+- **Plan → approve → run**: for work that changes files, show a plan table first and run it after the user approves. Ask for approval once for the whole batch. Merges are approved case by case. A clear body-edit request proceeds directly only when its selected rules/source and preservation boundary are already established under the post-curation contract.
 - **Delegation keeps the choices**: an intake/review batch approval covers its listed category registrations and link positions, but merges still need sequential case-by-case strategies, discarded facts need explicit confirmation, and retroactive classification needs its separate decision. A choice already stated explicitly settles that choice.
 - **The approval gate stays**: "I'm in a hurry, just do it" or "I trust you" still gets one proposal and one confirmation.
 - **Git commits and merges** happen only when the user asks for them in this task.
 - **Deleting is separate from writing**: write the new file → verify it in a separate call → only then delete the original. When steps must share one command, chain them with `&&` so a failure stops the rest. Back up uncommitted inbox originals to a scratch directory before changing or deleting them. Before a merge or a delete, check that every fact has a new home.
-- **The body is preserved by default**: classification, tag, link, and format work changes only its own area (frontmatter fields, `[[ ]]` wrapping, notation) and leaves sentences as they are. Sentences change only in a body edit whose scope the user stated, or inside an approved derivation, merge, or hub plan.
-- **Values missing from a dictionary go through registration**: a new `category` is approved by the user and added to the category dictionary before a note uses it. Notes carry only the concept tags the user picked; unregistered ones go through `tow-tag-sync` (§3).
-- **Verify before reporting done**: run `tow lint` on the changed paths (and `tow ontology usage` if concept tags changed) and include the results in the report.
+- **Content preservation**: classification/tag edits preserve body bytes; selected link wrappers preserve displayed prose; format edits preserve prose, math/code payloads and table values under the preservation contract. Body transformations require a separate explicit post-curation scope and the user's rules/template. A formatting or review approval never expands into body rewriting.
+- **Dictionary-backed changes go through registration**: when using TOW classification/ontology, register approved new values before use. Ordinary custom properties/tags do not require adopting a dictionary. The user still selects concept tags.
+- **Verify before reporting done**: verify the changed paths under their adopted conventions. Run applicable lint/ontology checks as specified in Vault compatibility, and report each unavailable check honestly.

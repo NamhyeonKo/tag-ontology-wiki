@@ -1,0 +1,168 @@
+{
+  "cases": [
+    {
+      "name": "metadata",
+      "rules": "This is a custom vault. No TOW schema, dictionary, date fields or preferred prose template has been adopted. Preserve existing content outside the explicit selected change. Keep table alignment.\n",
+      "request": "Change only status from reading to done in Note.md; all other metadata and body must stay unchanged. This exact field change is approved.",
+      "before": "---\nstatus: reading\nrating: 4\n---\n# Metadata\n\nKeep 1.00 kg and $x_1 + y$ exactly.\n",
+      "expectedPath": "Note.md",
+      "expectedAfter": "---\nstatus: done\nrating: 4\n---\n# Metadata\n\nKeep 1.00 kg and $x_1 + y$ exactly.\n",
+      "requiresUserInput": false
+    },
+    {
+      "name": "math",
+      "rules": "This is a custom vault. No TOW schema, dictionary, date fields or preferred prose template has been adopted. Preserve existing content outside the explicit selected change. Keep table alignment.\n",
+      "request": "Fix only the inline-versus-display math delimiters in the first sentence of Note.md. Preserve formula contents and every other line. This exact formatting fix is approved.",
+      "before": "# Math\n\nThe window is $$ 2 \\times 2 $$ and the stride is 2.\n\n`R^V` is a literal identifier in this note.\n",
+      "expectedPath": "Note.md",
+      "expectedAfter": "# Math\n\nThe window is $ 2 \\times 2 $ and the stride is 2.\n\n`R^V` is a literal identifier in this note.\n",
+      "requiresUserInput": false,
+      "observedFirstAttemptAfter": "# Math\n\nThe window is $2 \\times 2$ and the stride is 2.\n\n`R^V` is a literal identifier in this note.\n"
+    },
+    {
+      "name": "code",
+      "rules": "This is a custom vault. No TOW schema, dictionary, date fields or preferred prose template has been adopted. Preserve existing content outside the explicit selected change. Keep table alignment.\n",
+      "request": "Check Python formatting in Note.md. Preserve all comments and literal contents; do not run the code. Report anything that cannot be safely fixed; a formatter-proven formatting change is approved.",
+      "before": "# Code\n\n```python\nif ready:\n    emit(\"a  b\")  # keep  two spaces\nfinish()\n```\n",
+      "expectedPath": "Note.md",
+      "expectedAfter": "# Code\n\n```python\nif ready:\n    emit(\"a  b\")  # keep  two spaces\nfinish()\n```\n",
+      "requiresUserInput": false
+    },
+    {
+      "name": "table",
+      "rules": "This is a custom vault. No TOW schema, dictionary, date fields or preferred prose template has been adopted. Preserve existing content outside the explicit selected change. Keep table alignment.\n",
+      "request": "Fix only the table separator row in Note.md, preserving left/right alignment, every cell byte and row/column order. This exact fix is approved.",
+      "before": "# Table\n\n| Metric | Value |\n| :-- | --: |\n| mass | 1.00 kg |\n| expr | $a \\vert b$ |\n| link | [[Target\\|label]] |\n",
+      "expectedPath": "Note.md",
+      "expectedAfter": "# Table\n\n| Metric | Value |\n| :--- | ---: |\n| mass | 1.00 kg |\n| expr | $a \\vert b$ |\n| link | [[Target\\|label]] |\n",
+      "requiresUserInput": false
+    },
+    {
+      "name": "no-template",
+      "rules": "This is a custom vault. No TOW schema, dictionary, date fields or preferred prose template has been adopted. Preserve existing content outside the explicit selected change. Keep table alignment.\n",
+      "request": "Fill only the empty Example section in Note.md with a short example. Preserve existing content.",
+      "before": "# No Template\n\nKeep this filled sentence exactly.\n\n## Example\n\n",
+      "expectedPath": "Note.md",
+      "expectedAfter": "# No Template\n\nKeep this filled sentence exactly.\n\n## Example\n\n",
+      "requiresUserInput": true
+    },
+    {
+      "name": "ambiguous",
+      "rules": "Use the existing structure. No TOW schema, dictionary, dates or default prose template. Preserve content unless an explicit operation chooses a transformation.\n",
+      "request": "Fix only safely verifiable formatting in Note.md. The missing Python indentation intent and the table question mark are unknown; do not add content or infer values.",
+      "before": "# Ambiguous\n\n`R^V` is a literal identifier, not a formula.\n\n| A | B |\n| --- | --- |\n| 1 | ? |\n\n```python\nif ready:\nemit(\"a  b\")\n```\n",
+      "expectedPath": "Note.md",
+      "expectedAfter": "# Ambiguous\n\n`R^V` is a literal identifier, not a formula.\n\n| A | B |\n| --- | --- |\n| 1 | ? |\n\n```python\nif ready:\nemit(\"a  b\")\n```\n",
+      "requiresUserInput": true
+    },
+    {
+      "name": "with-template",
+      "rules": "Use the existing structure. No TOW schema, dictionary, dates or default prose template. Preserve content unless an explicit operation chooses a transformation.\n",
+      "request": "Fill only the empty Example section of Note.md using TEMPLATE.md, which I select explicitly. Preserve everything else.",
+      "before": "# Note\n\nKeep this filled sentence exactly.\n\n## Example\n\n",
+      "expectedPath": "Note.md",
+      "expectedAfter": "# Note\n\nKeep this filled sentence exactly.\n\n## Example\n\nThis is the selected example.\n",
+      "requiresUserInput": false,
+      "template": "For this test, put exactly this user-supplied sentence in the existing empty Example section: This is the selected example.\nAdd no other headings, links or metadata.\n"
+    },
+    {
+      "name": "ingest",
+      "rules": "Use the existing structure. No TOW schema, dictionary, dates or default prose template. Preserve content unless an explicit operation chooses a transformation.\n",
+      "request": "Move Note.md into the existing Reading/ folder verbatim. This source, destination, copy-verify-delete operation is approved. Do not add frontmatter, rewrite or reformat anything.",
+      "before": "# Original\n\nKeep 1.00 kg, $x_1 + y$ and `a  b` exactly.\n",
+      "expectedPath": "Reading/Note.md",
+      "expectedAfter": "# Original\n\nKeep 1.00 kg, $x_1 + y$ and `a  b` exactly.\n",
+      "requiresUserInput": false
+    },
+    {
+      "name": "review",
+      "rules": "Use the existing structure. No TOW schema, dictionary, dates or default prose template. Preserve content unless an explicit operation chooses a transformation.\n",
+      "request": "Review only Note.md against RULES.md and identify optional management improvements. Do not modify or create notes, hubs, metadata or templates.",
+      "before": "# Note\n\nThis note covers retrieval.\n",
+      "expectedPath": "Note.md",
+      "expectedAfter": "# Note\n\nThis note covers retrieval.\n",
+      "requiresUserInput": false
+    },
+    {
+      "name": "math-retry-1",
+      "rules": "Custom vault. Preserve original content; no TOW schema or dictionaries.\n",
+      "request": "Fix only the display-versus-inline math delimiters in the first sentence of Note.md. Preserve the formula contents and all other bytes. This exact delimiter-only fix is approved.\n",
+      "before": "# Math 1\n\nThe expression is $$ 2 \\times 2 $$ in this sentence.\n\n`R^V` stays a literal identifier.\n",
+      "expectedPath": "Note.md",
+      "expectedAfter": "# Math 1\n\nThe expression is $ 2 \\times 2 $ in this sentence.\n\n`R^V` stays a literal identifier.\n",
+      "requiresUserInput": false
+    },
+    {
+      "name": "math-retry-2",
+      "rules": "Custom vault. Preserve original content; no TOW schema or dictionaries.\n",
+      "request": "Fix only the display-versus-inline math delimiters in the first sentence of Note.md. Preserve the formula contents and all other bytes. This exact delimiter-only fix is approved.\n",
+      "before": "# Math 2\n\nThe expression is $$ \\text{a  b} + x $$ in this sentence.\n\n`R^V` stays a literal identifier.\n",
+      "expectedPath": "Note.md",
+      "expectedAfter": "# Math 2\n\nThe expression is $ \\text{a  b} + x $ in this sentence.\n\n`R^V` stays a literal identifier.\n",
+      "requiresUserInput": false
+    },
+    {
+      "name": "math-retry-3",
+      "rules": "Custom vault. Preserve original content; no TOW schema or dictionaries.\n",
+      "request": "Fix only the display-versus-inline math delimiters in the first sentence of Note.md. Preserve the formula contents and all other bytes. This exact delimiter-only fix is approved.\n",
+      "before": "# Math 3\n\nThe expression is $$ x_{i+1} \\le y $$ in this sentence.\n\n`R^V` stays a literal identifier.\n",
+      "expectedPath": "Note.md",
+      "expectedAfter": "# Math 3\n\nThe expression is $ x_{i+1} \\le y $ in this sentence.\n\n`R^V` stays a literal identifier.\n",
+      "requiresUserInput": false
+    },
+    {
+      "name": "math-retry-4",
+      "rules": "Custom vault. Preserve original content; no TOW schema or dictionaries.\n",
+      "request": "Fix only the display-versus-inline math delimiters in the first sentence of Note.md. Preserve the formula contents and all other bytes. This exact delimiter-only fix is approved.\n",
+      "before": "# Math 4\n\nThe expression is $$ \\frac{1.00}{2} + z $$ in this sentence.\n\n`R^V` stays a literal identifier.\n",
+      "expectedPath": "Note.md",
+      "expectedAfter": "# Math 4\n\nThe expression is $ \\frac{1.00}{2} + z $ in this sentence.\n\n`R^V` stays a literal identifier.\n",
+      "requiresUserInput": false
+    },
+    {
+      "name": "math-retry-5",
+      "rules": "Custom vault. Preserve original content; no TOW schema or dictionaries.\n",
+      "request": "Fix only the display-versus-inline math delimiters in the first sentence of Note.md. Preserve the formula contents and all other bytes. This exact delimiter-only fix is approved.\n",
+      "before": "# Math 5\n\nThe expression is $$ \\mathrm{NaCl} + \\alpha $$ in this sentence.\n\n`R^V` stays a literal identifier.\n",
+      "expectedPath": "Note.md",
+      "expectedAfter": "# Math 5\n\nThe expression is $ \\mathrm{NaCl} + \\alpha $ in this sentence.\n\n`R^V` stays a literal identifier.\n",
+      "requiresUserInput": false
+    },
+    {
+      "name": "code-format",
+      "rules": "Custom vault; preserve all prose, metadata, comments, strings, numbers and control flow. No TOW schema or dictionaries.\n",
+      "request": "Use the installed Python formatter to fix only code formatting inside Note.md. This exact operation is approved. Preserve code contents, comments, literal contents, ordered semantic tokens and behavior; do not run the note program. If preservation cannot be checked, report only.\n",
+      "before": "# Code\n\n```python\nif ready:\n    emit( \"a  b\" )  # keep  two spaces\nfinish( )\n```\n",
+      "expectedPath": "Note.md",
+      "expectedAfter": "# Code\n\n```python\nif ready:\n    emit(\"a  b\")  # keep  two spaces\nfinish()\n```\n",
+      "requiresUserInput": false
+    },
+    {
+      "name": "merge",
+      "rules": "Use existing headings and preserve every filled sentence verbatim. No TOW fields, dates or dictionaries.\n",
+      "request": "I select one post-curation case: copy only the paragraph under B.md ## Notes verbatim to the end of A.md ## Details, separated by one blank line. The existing A.md structure is my chosen template. This exact transfer/coexist strategy is approved; keep B.md unchanged, do not delete anything or add metadata, summary, headings or links.\n",
+      "beforeFiles": {
+        "A.md": "# A\n\n## Details\n\nKeep the existing A sentence.\n",
+        "B.md": "# B\n\n## Notes\n\nKeep B specifics: 1.00 kg and $x_1 + y$.\n"
+      },
+      "expectedFiles": {
+        "A.md": "# A\n\n## Details\n\nKeep the existing A sentence.\n\nKeep B specifics: 1.00 kg and $x_1 + y$.\n",
+        "B.md": "# B\n\n## Notes\n\nKeep B specifics: 1.00 kg and $x_1 + y$.\n"
+      },
+      "requiresUserInput": false
+    },
+    {
+      "name": "private-metadata",
+      "rules": "Custom schema; no TOW dictionary or dates. private/ is a private ignored subtree. No unrelated note contents are selected.\n",
+      "request": "Change only private/Note.md status from reading to done. I explicitly select this private file and approve this exact metadata change; preserve all other content and fields. No commit, ignore-rule change, or private-content exposure is authorized.\n",
+      "gitIgnore": "private/\n",
+      "beforeFiles": {
+        "private/Note.md": "---\nstatus: reading\nrating: 4\n---\n# Private fixture\n\nKeep this selected source verbatim.\n"
+      },
+      "expectedFiles": {
+        "private/Note.md": "---\nstatus: done\nrating: 4\n---\n# Private fixture\n\nKeep this selected source verbatim.\n"
+      },
+      "requiresUserInput": false
+    }
+  ]
+}

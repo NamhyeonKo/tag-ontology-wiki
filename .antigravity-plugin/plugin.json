@@ -2,10 +2,10 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "tow",
   "displayName": "TOW",
-  "version": "0.2.1",
-  "description": "Tag Ontology for Wiki: skills for a tag-first LLM wiki in Obsidian (PARA, classification fields, concept tag ontology).",
+  "version": "0.4.0",
+  "description": "Manage documents inside an Obsidian vault with content-preserving formatting, frontmatter and optional user-guided post-curation.",
   "logo": "assets/icon.png",
-  "suggestedPrompts": ["Find my project notes about RAG.", "Check these notes against the TOW conventions.", "Suggest concept tags for this note."],
+  "suggestedPrompts": ["Find my project notes about RAG.", "Check the formatting of these notes without changing their content.", "Suggest concept tags for this note."],
   "author": {
     "name": "NamhyeonKo",
     "url": "https://github.com/NamhyeonKo"

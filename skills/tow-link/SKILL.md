@@ -8,16 +8,16 @@ description: >-
 
 # tow-link
 
-Wrap existing mentions of other notes in `[[wikilinks]]` for navigation. Read the [conventions](../../docs/methodology.md) and `tow config` first. Shared concept tags and categories remain the primary connection; body links are optional. Preserve words, sentences, headings and sections. Use existing target files, once per target at its first eligible body mention. Do not write frontmatter `related:`.
+Wrap existing mentions of other notes in `[[wikilinks]]` for navigation. Read the [conventions](../../docs/methodology.md) and `tow config` first. Tags/categories/dictionaries are not prerequisites for navigation. Preserve words, sentences, headings, sections and existing metadata (including custom `related:`). Use existing target files, once per target at its first eligible body mention.
 
 ## Workflow
 
 1. **Scope.** Use the note, folder/domain or vault the user names; ask if unspecified.
-2. **Target index.** Collect actual filenames and frontmatter aliases across the eligible vault. Both targets and edited notes exclude the configured inbox, daily notes, project history, misc and attachments, plus private/ignored inputs under the conventions. Targets may be outside the edit scope.
+2. **Target index.** Discover actual filenames and any existing aliases across the eligible vault using the shared CLI-first search policy. No frontmatter is required. Apply adopted workflow exclusions and private/ignored rules under the conventions; default PARA/support folder names do not exclude custom-vault notes. Targets may be outside the edit scope, but stay inside the authorized read scope.
 3. **Scan.** Apply the matching rules below. Inspect existing wikilinks too: an alias-only target is broken and needs a canonical filename with its original display text. Report missing targets for the user's remove/create/keep decision; do not create a note automatically.
 4. **Plan and wait for approval.** Show the table below, then separate skipped, ambiguous and missing-target lists.
-5. **Apply selected positions only.** Wrap or correct targets, preserve displayed words, and update changed notes' `updated`.
-6. **Verify and report.** Check actual targets, first-mention counts, unchanged surrounding text and scoped lint. Report additions/corrections, targets and skip reasons per file.
+5. **Apply selected positions only.** Wrap or correct targets, preserve displayed words/metadata, and follow the adopted date policy without adding new metadata fields.
+6. **Verify and report.** Check actual targets, first-mention counts, unchanged surrounding text/metadata and applicable scoped validation. Report additions/corrections, targets, skipped checks and skip reasons per file.
 
 | File | Existing phrase and context | Target note | Proposed notation | Reason |
 | --- | --- | --- | --- | --- |
@@ -31,7 +31,7 @@ Wrap existing mentions of other notes in `[[wikilinks]]` for navigation. Read th
 - **Display preservation:** exact title → `[[Title]]`; aliases or different casing → `[[Title|original words]]`. Escape the separator as `\|` inside table cells. Existing links retain their displayed wording when their target is corrected.
 - **Once per target:** later eligible mentions remain plain. An existing valid link counts toward that target's first-mention allowance; report conflicting duplicates rather than adding more.
 - **Body only:** sentences, lists and table cells qualify. Skip headings, figure captions, quote lines, frontmatter, fenced/inline code, existing wikilink/Markdown-link interiors, and URLs. A target mentioned only in excluded regions is skipped.
-- **Existing mentions only:** adding a hub's `[[Note]]: one-line summary` belongs to `tow-review`/`tow-ingest`. Do not insert sentences or force reciprocal links; backlinks provide reverse navigation.
+- **Existing mentions only:** writing a hub summary requires a separately selected, user-guided `tow-edit` operation after a `tow-review`/`tow-ingest` proposal. Do not insert sentences or force reciprocal links; backlinks provide reverse navigation.
 
 ## Intake mode
 

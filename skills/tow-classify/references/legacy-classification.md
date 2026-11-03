@@ -1,6 +1,6 @@
 # Legacy classification conversion
 
-Use this when classification values still live in a note's `tags:` list. Read the note and parsed frontmatter with the installed tools; use the configured category dictionary. Preview exact frontmatter changes before requesting approval. The body stays byte-for-byte unchanged.
+Use this when classification values still live in a note's `tags:` list. Read the note and parsed frontmatter with the installed tools; use the configured category dictionary. Preview exact frontmatter changes before requesting approval. The body stays byte-for-byte unchanged. Use independent before/candidate snapshots and require `tow verify-body` to pass before replacement; temporary body Date/Tag lines are not removed by this metadata-only conversion.
 
 ## Eligibility
 
