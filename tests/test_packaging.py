@@ -1,10 +1,15 @@
+import hashlib
 import json
 import os
 import re
 import shutil
 import struct
 import subprocess
+import sys
+import zipfile
 from pathlib import Path
+
+import pytest
 
 import tow
 
@@ -110,3 +115,35 @@ def test_korean_text_stays_in_korean_documents() -> None:
     for document in [ROOT / "docs/methodology.md", *(ROOT / "skills").rglob("*.md")]:
         if document not in allowed:
             assert not re.search(r"[\uac00-\ud7af]", document.read_text()), document
+
+
+RELEASE_ASSETS = ROOT / ".github/scripts/release_assets.py"
+needs_git = pytest.mark.skipif(not (ROOT / ".git").exists(), reason="release archives need a Git checkout")
+
+
+def release_assets(out: Path, version: str) -> subprocess.CompletedProcess[str]:
+    command = [sys.executable, str(RELEASE_ASSETS), "--version", version, "--out", str(out)]
+    return subprocess.run(command, cwd=ROOT, capture_output=True, text=True, check=False)
+
+
+@needs_git
+def test_release_assets_build_the_portable_and_native_antigravity_archives(tmp_path: Path) -> None:
+    version = json.loads((ROOT / "plugin.json").read_text())["version"]
+    result = release_assets(tmp_path, version)
+    assert result.returncode == 0, result.stderr
+    names = [f"tow-{version}.zip", f"tow-antigravity-{version}.zip"]
+    with zipfile.ZipFile(tmp_path / names[0]) as portable, zipfile.ZipFile(tmp_path / names[1]) as native:
+        overlay = "tow/.antigravity-plugin/plugin.json"
+        assert set(portable.namelist()) - set(native.namelist()) == {overlay}
+        assert native.read("tow/plugin.json") == portable.read(overlay)
+        assert native.comment == portable.comment
+    sums = "".join(f"{hashlib.sha256((tmp_path / n).read_bytes()).hexdigest()}  {n}\n" for n in names)
+    assert (tmp_path / "SHA256SUMS").read_text() == sums
+
+
+@needs_git
+def test_release_assets_refuse_a_version_the_commit_does_not_declare(tmp_path: Path) -> None:
+    result = release_assets(tmp_path / "dist", "0.0.0")
+    assert result.returncode == 1
+    assert "does not declare 0.0.0" in result.stderr
+    assert not (tmp_path / "dist").exists()
