@@ -188,7 +188,7 @@ Explicitly select the skill, then supply the vault root and the files/folders to
 | `tow-query` | “Find project notes about RAG by category or concept. Exclude superseded documents. Read the matches and give paths and count.” |
 | `tow-check` | “Check these two notes for frontmatter, headings, tables, math, and broken references. Report first; do not edit.” |
 | `tow-tag-suggest` | “Suggest concept tags for this note. Separate additions and removals, explain why, and wait for my choice.” |
-| `tow-tag-sync` | “Check this folder's tags against the dictionary. Propose new entries and alias/broader-tag cleanup, then wait for approval.” |
+| `tow-tag-sync` | “Check this folder's tags against the dictionary. Propose new entries and alias cleanup, review broader + narrower tag pairs against each note's headings, then wait for approval.” |
 | `tow-classify` | “Propose a category for these notes. Register it first; ask separately before retroactive changes.” |
 | `tow-link` | “Link existing mentions in this folder. Show targets, skipped matches, ambiguity and missing targets before editing.” |
 | `tow-edit` | “Use Templates/Concept.md to fill only the empty Examples section from this selected source; preserve all filled content and metadata.” |

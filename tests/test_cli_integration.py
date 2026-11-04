@@ -74,13 +74,17 @@ def test_real_cli_finds_only_matching_fields_in_configured_folders(real_vault: P
 def test_real_cli_usage_and_show_respect_aliases_hierarchy_and_scope(real_vault: Path) -> None:
     before = snapshot(real_vault)
     usage = json.loads(run(real_vault, "ontology", "usage", "--json"))
-    assert usage["scanned"] == 6
+    assert usage["scanned"] == 7
     assert usage["unregistered"] == []
     assert usage["nonCanonical"] == [
         {"path": "Resources/Pipeline.md", "tag": "retrieval-augmented-generation", "canonical": "rag"}
     ]
+    # A review candidate for tow-tag-sync, not an error: the note explains both concepts in their own sections.
+    assert usage["redundant"] == [
+        {"path": "Resources/Search Basics.md", "tag": "information-retrieval", "narrower": ["bm25"]}
+    ]
     direct = json.loads(run(real_vault, "ontology", "show", "information-retrieval", "--notes", "--exact", "--json"))
-    assert direct["notePaths"] == ["Resources/Chunking.md", "Resources/Pipeline.md"]
+    assert direct["notePaths"] == ["Resources/Chunking.md", "Resources/Pipeline.md", "Resources/Search Basics.md"]
     rollup = json.loads(run(real_vault, "ontology", "show", "information-retrieval", "--notes", "--json"))
     assert rollup["notePaths"] == [
         "Projects/Category Project.md",
@@ -88,6 +92,7 @@ def test_real_cli_usage_and_show_respect_aliases_hierarchy_and_scope(real_vault:
         "Resources/Chunking.md",
         "Resources/Example.md",
         "Resources/Pipeline.md",
+        "Resources/Search Basics.md",
     ]
     alias = json.loads(run(real_vault, "ontology", "show", "retrieval-augmented-generation", "--json"))
     assert alias["tag"] == "rag"
