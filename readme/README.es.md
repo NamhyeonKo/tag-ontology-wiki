@@ -4,7 +4,7 @@ Un plugin de habilidades para agentes que permite gestionar documentos **dentro 
 
 [English](../README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-> **Versión:** 0.4.1.
+> **Versión:** 0.4.2.
 
 ## Descripción general
 
@@ -139,7 +139,7 @@ Puedes buscar de inmediato sin configurar nada. Para organizar de forma opcional
 
 El auxiliar utiliza `npx --yes tag-ontology@0.1.3`; npm obtiene esa versión exacta cuando hace falta. Los comandos manuales del auxiliar utilizan la ruta de `scripts/tow.py` instalado. El nombre `tow` en las convenciones es una abreviatura de esa ruta.
 
-Ni TOW 0.4.1 ni `tag-ontology` 0.1.3 tienen un comando `doctor`. Empieza con:
+Ni TOW 0.4.2 ni `tag-ontology` 0.1.3 tienen un comando `doctor`. Empieza con:
 
 ```bash
 python3 --version

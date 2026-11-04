@@ -2,7 +2,7 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "tow",
   "displayName": "TOW",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Manage documents inside an Obsidian vault with content-preserving formatting, frontmatter and optional user-guided post-curation.",
   "logo": "assets/icon.png",
   "suggestedPrompts": ["Find my project notes about RAG.", "Check the formatting of these notes without changing their content.", "Suggest concept tags for this note."],

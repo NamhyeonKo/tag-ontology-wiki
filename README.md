@@ -4,7 +4,7 @@ An agent skill plugin for managing documents **inside your Obsidian vault**: sea
 
 [English](README.md) · [한국어](readme/README.ko.md) · [简体中文](readme/README.zh-CN.md) · [繁體中文](readme/README.zh-TW.md) · [日本語](readme/README.ja.md) · [Español](readme/README.es.md) · [Français](readme/README.fr.md)
 
-> **Version:** 0.4.1.
+> **Version:** 0.4.2.
 
 ## Overview
 
@@ -139,7 +139,7 @@ You can search immediately without setup. For optional organization, select `tow
 
 The helper uses `npx --yes tag-ontology@0.1.3`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path.
 
-Neither TOW 0.4.1 nor `tag-ontology` 0.1.3 has a `doctor` command. Start with:
+Neither TOW 0.4.2 nor `tag-ontology` 0.1.3 has a `doctor` command. Start with:
 
 ```bash
 python3 --version

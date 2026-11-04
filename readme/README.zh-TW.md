@@ -4,7 +4,7 @@
 
 [English](../README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-> **版本：** 0.4.1。
+> **版本：** 0.4.2。
 
 ## 概覽
 
@@ -139,7 +139,7 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 
 輔助程式使用 `npx --yes tag-ontology@0.1.3`；npm 會在需要時取得該確切版本。手動執行輔助程式指令時，請使用已安裝的 `scripts/tow.py` 路徑。慣例中的名稱 `tow` 是該路徑的簡寫。
 
-TOW 0.4.1 和 `tag-ontology` 0.1.3 都沒有 `doctor` 指令。請先執行：
+TOW 0.4.2 和 `tag-ontology` 0.1.3 都沒有 `doctor` 指令。請先執行：
 
 ```bash
 python3 --version
