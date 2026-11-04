@@ -12,7 +12,7 @@
   tow.py [--root DIR] ontology CMD [ARG...]  run the tag-ontology CLI with the vault's settings
 
 Note metadata is parsed through `tag-ontology scan --json`. `verify-body` only separates a leading frontmatter block.
-Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.1.2).
+Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.1.3).
 """
 
 from __future__ import annotations
@@ -66,7 +66,7 @@ NOTE_COMMANDS: Final = frozenset({"scan", "usage", "show"})
 PATH_COMMANDS: Final = frozenset({"scan", "usage"})
 VALUE_OPTIONS: Final = frozenset({"--root", "--dictionary", "--exclude", "--names", "--base"})
 # Public plugin directories require an exact version for downloaded executables.
-DEFAULT_CLI: Final = "npx --yes tag-ontology@0.1.2"
+DEFAULT_CLI: Final = "npx --yes tag-ontology@0.1.3"
 INIT_HINT: Final = 'run "tow init --dictionaries" to preview missing starter files'
 STARTER_CATEGORIES: Final = """---
 updated: {today}

@@ -4,7 +4,7 @@
 
 [English](../README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-> **版本：** 0.4.1。
+> **版本：** 0.4.2。
 
 ## 概覽
 
@@ -23,7 +23,7 @@ TOW 會將十一個工作流程安裝至本機的程式開發代理。你指定 
 TOW 使用 Tag Ontology CLI 查詢標籤，以及驗證／管理字典。搭配安裝 [Obsidian 的 Tag Ontology 外掛程式](https://github.com/NamhyeonKo/obsidian-tag-ontology)（[社群外掛程式頁面](https://community.obsidian.md/plugins/tag-ontology)），即可透過圖形視覺化探索你所管理的標籤階層及關係。
 
 ```text
-tag-ontology@0.1.2        字典檢查、查詢、編輯、筆記解析
+tag-ontology@0.1.3        字典檢查、查詢、編輯、筆記解析
       ▲  npx tag-ontology … --json
 tow (this plugin)         vault 慣例檢查、技能
       ▲  Claude Code / Codex / Antigravity
@@ -137,14 +137,14 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 
 ## CLI 與設定檢查
 
-輔助程式使用 `npx --yes tag-ontology@0.1.2`；npm 會在需要時取得該確切版本。手動執行輔助程式指令時，請使用已安裝的 `scripts/tow.py` 路徑。慣例中的名稱 `tow` 是該路徑的簡寫。
+輔助程式使用 `npx --yes tag-ontology@0.1.3`；npm 會在需要時取得該確切版本。手動執行輔助程式指令時，請使用已安裝的 `scripts/tow.py` 路徑。慣例中的名稱 `tow` 是該路徑的簡寫。
 
-TOW 0.4.1 和 `tag-ontology` 0.1.2 都沒有 `doctor` 指令。請先執行：
+TOW 0.4.2 和 `tag-ontology` 0.1.3 都沒有 `doctor` 指令。請先執行：
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.1.2 --version
+npx --yes tag-ontology@0.1.3 --version
 ```
 
 TOW 的 `lint` 僅應針對已採用的 TOW 中繼資料執行；字典檢查僅適用於已初始化的本體功能。缺少選用的中繼資料／字典不代表安裝失敗。接著依照[設定檢查](../docs/installation.md#check-the-setup)，驗證已安裝的外掛程式、設定、字典及筆記標籤。`lint` 涵蓋分類欄位及標籤數量；check 技能則另外逐篇檢視筆記格式／參照。單憑 lint 沒有問題的結果，無法涵蓋每一項技能檢查。

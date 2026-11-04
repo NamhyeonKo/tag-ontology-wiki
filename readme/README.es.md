@@ -4,7 +4,7 @@ Un plugin de habilidades para agentes que permite gestionar documentos **dentro 
 
 [English](../README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-> **Versión:** 0.4.1.
+> **Versión:** 0.4.2.
 
 ## Descripción general
 
@@ -23,7 +23,7 @@ El paquete contiene habilidades, convenciones compartidas y el auxiliar de Pytho
 TOW utiliza la CLI de Tag Ontology para consultar etiquetas y validar o gestionar diccionarios. Instala el [plugin Tag Ontology para Obsidian](https://github.com/NamhyeonKo/obsidian-tag-ontology) ([página del plugin de la comunidad](https://community.obsidian.md/plugins/tag-ontology)) junto con TOW para explorar visualmente, en un grafo, la jerarquía de etiquetas y las relaciones que gestionas.
 
 ```text
-tag-ontology@0.1.2        comprobaciones del diccionario, consultas, ediciones, análisis de notas
+tag-ontology@0.1.3        comprobaciones del diccionario, consultas, ediciones, análisis de notas
       ▲  npx tag-ontology … --json
 tow (este plugin)         comprobaciones de las convenciones de la bóveda, habilidades
       ▲  Claude Code / Codex / Antigravity
@@ -137,14 +137,14 @@ Puedes buscar de inmediato sin configurar nada. Para organizar de forma opcional
 
 ## CLI y comprobaciones de configuración
 
-El auxiliar utiliza `npx --yes tag-ontology@0.1.2`; npm obtiene esa versión exacta cuando hace falta. Los comandos manuales del auxiliar utilizan la ruta de `scripts/tow.py` instalado. El nombre `tow` en las convenciones es una abreviatura de esa ruta.
+El auxiliar utiliza `npx --yes tag-ontology@0.1.3`; npm obtiene esa versión exacta cuando hace falta. Los comandos manuales del auxiliar utilizan la ruta de `scripts/tow.py` instalado. El nombre `tow` en las convenciones es una abreviatura de esa ruta.
 
-Ni TOW 0.4.1 ni `tag-ontology` 0.1.2 tienen un comando `doctor`. Empieza con:
+Ni TOW 0.4.2 ni `tag-ontology` 0.1.3 tienen un comando `doctor`. Empieza con:
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.1.2 --version
+npx --yes tag-ontology@0.1.3 --version
 ```
 
 Ejecuta `lint` de TOW solo para los metadatos de TOW que hayas adoptado; las comprobaciones del diccionario se aplican solo a las funciones de ontología inicializadas. La ausencia de metadatos o diccionarios opcionales no es un fallo de instalación. Después sigue las [comprobaciones de configuración](../docs/installation.md#check-the-setup) para verificar el plugin instalado, la configuración, los diccionarios y las etiquetas de las notas. `lint` cubre los campos de clasificación y el recuento de etiquetas; la habilidad de comprobación añade la revisión del formato y las referencias nota por nota. Un resultado limpio de lint por sí solo no cubre todas las comprobaciones de las habilidades.
