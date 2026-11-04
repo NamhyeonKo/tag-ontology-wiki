@@ -4,7 +4,7 @@
 
 [English](../README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-> **バージョン:** 0.4.1。
+> **バージョン:** 0.4.2。
 
 ## 概要
 
@@ -139,7 +139,7 @@ vault をホストのワークスペースとして開きます。新しいセ�
 
 ヘルパーは `npx --yes tag-ontology@0.1.3` を使用します。必要に応じて npm がその正確なバージョンを取得します。ヘルパーを手動で実行するときは、インストールされた `scripts/tow.py` のパスを使います。規約中の `tow` は、そのパスの略記です。
 
-TOW 0.4.1 にも `tag-ontology` 0.1.3 にも、`doctor` コマンドはありません。まず次を実行してください。
+TOW 0.4.2 にも `tag-ontology` 0.1.3 にも、`doctor` コマンドはありません。まず次を実行してください。
 
 ```bash
 python3 --version

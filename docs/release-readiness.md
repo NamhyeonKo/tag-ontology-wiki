@@ -1,8 +1,27 @@
-# Release readiness: TOW 0.4.1
+# Release readiness: TOW 0.4.2
+
+Checked on 2026-11-04 before promotion through `dev` to `main`. This patch moves the pinned `tag-ontology` CLI to 0.1.3 and changes how the tag skills treat a broader tag that sits next to its narrower tag. Skill names, paths, approval gates and the preservation contract are unchanged.
+
+## Release scope
+
+- Pin the default executable, CI and current install/contributing/README instructions to `npx --yes tag-ontology@0.1.3`, the published npm `latest` (engines `node >=22.18`, matching TOW's Node.js requirement). In 0.1.3, `usage` reports `redundant` as a structural review candidate that `--strict` does not fail on, and it also treats a single word of the file name as the title concept. Its `scan` text output also lists `description`, `aliases` and all headings. TOW doesn't publish the npm package.
+- `docs/methodology.md` §3/§6: a narrower tag alone no longer removes its broader tag; both stay when the note explains each directly (rule "Broader and narrower tags together").
+- `tow-tag-sync` reviews each `redundant` pair with exact-path `scan --json` and proposes a drop candidate only for background use. `tow-tag-suggest` recommends a broader concept next to its narrower one when the note explains it directly ([#20](https://github.com/NamhyeonKo/tag-ontology-wiki/pull/20)).
+- Advance all host manifests, the Python project, lockfile and every README edition to 0.4.2 so native plugin updates can fetch this package.
+
+## Candidate verification
+
+- Fresh full suite: **112 passed**, including all six integration tests against published `tag-ontology@0.1.3`; synthetic vaults only. The new integration test fails against 0.1.2 (`--strict` exits 1), so it checks the pinned behavior.
+- Ruff lint/format, strict Pyright and `uv sync --locked` passed. `npx --yes tag-ontology@0.1.3 --version` printed `0.1.3`.
+- Not run: a fresh agent applying the updated tag skills to the evaluation scenarios, and installed-host checks. Dev/main CI and the GitHub release are recorded as they complete.
+
+---
+
+## Historical verification: TOW 0.4.1
 
 Checked on 2026-11-03 before promotion through `dev` to `main`. This patch prepares the public documentation and contribution workflow without changing skills or their canonical runtime guidance.
 
-## Release scope
+### Release scope
 
 - Keep English `README.md` at the root and publish six reader translations under `readme/`: Korean, Simplified/Traditional Chinese, Japanese, Spanish, and French.
 - Document native install/update commands, installed-version checks, and troubleshooting for Claude Code, Codex, and Antigravity.
@@ -10,7 +29,7 @@ Checked on 2026-11-03 before promotion through `dev` to `main`. This patch prepa
 - Keep `docs/methodology.md`, `docs/preservation.md`, `docs/post-curation.md`, all skill files, and the Python helper unchanged. Do not create translated `docs/` trees or widen skill discovery.
 - Advance all host manifests, the Python project, and lockfile to 0.4.1 so native plugin updates can fetch this package. The separate `tag-ontology` npm package remains at the pinned 0.1.2; it is not published by this release.
 
-## Candidate verification
+### Candidate verification
 
 - Fresh full suite: **110 passed**, including all five integration tests against published `tag-ontology@0.1.2`; synthetic vaults only.
 - Ruff lint/format and strict Pyright passed. Documentation tests check translation command/skill-list parity and repository-local links.
