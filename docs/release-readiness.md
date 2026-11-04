@@ -14,6 +14,7 @@ Checked on 2026-11-04 before promotion through `dev` to `main`. This patch moves
 - Fresh full suite: **112 passed**, including all six integration tests against published `tag-ontology@0.1.3`; synthetic vaults only. The new integration test fails against 0.1.2 (`--strict` exits 1), so it checks the pinned behavior.
 - Ruff lint/format, strict Pyright and `uv sync --locked` passed. `npx --yes tag-ontology@0.1.3 --version` printed `0.1.3`.
 - Not run: a fresh agent applying the updated tag skills to the evaluation scenarios, and installed-host checks. Dev/main CI and the GitHub release are recorded as they complete.
+- The draft release is created by the new Release workflow (see Distribution artifacts below) from reviewed main commit `8d32996`. Locally, its script reproduced byte-identical archives to a manual build of that commit, and `claude plugin validate --strict` (Claude Code 2.1.318) passed on the portable archive.
 
 ---
 
@@ -85,6 +86,8 @@ See [evaluation](evaluation.md) for scenarios, preserved boundaries, versions, a
 - Add an Antigravity-specific manifest for its display name, logo, and starter prompts while sharing every skill and helper. [Antigravity authoring requirements](https://antigravity.google/docs/build-plugins).
 
 ### Distribution artifacts
+
+The [Release workflow](../.github/workflows/release.yml) automates this procedure. Run it manually with the version, the reviewed commit, a title and the notes. [`release_assets.py`](../.github/scripts/release_assets.py) refuses a commit whose manifests and Python project declare another version. It builds both archives below and checks their integrity, helper mode, symlinks and native root manifest, then writes `SHA256SUMS`. The workflow attaches all three to a **draft** release targeting that commit; publishing the draft creates its `v<version>` tag. It refuses an existing release or tag. Host validators (`claude plugin validate --strict`, `agy plugin validate --strict`) still run outside it.
 
 Keep archives outside the repository; a bundled ZIP would itself be an extra binary for directory review. Export committed files with executable modes preserved:
 

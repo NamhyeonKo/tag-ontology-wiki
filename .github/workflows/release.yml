@@ -1,0 +1,54 @@
+name: Release
+
+# Creates a draft GitHub release with the checked archives. Publishing the draft creates its tag.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version without the leading v (for example 0.4.2)
+        required: true
+      ref:
+        description: Reviewed commit to release; empty means the commit this workflow runs on
+        required: false
+        default: ""
+      title:
+        description: Release title
+        required: true
+      notes:
+        description: Release notes (Markdown)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Refuse an existing release or tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v${{ inputs.version }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then echo "::error::release $TAG already exists"; exit 1; fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then echo "::error::tag $TAG already exists"; exit 1; fi
+      - name: Build and check archives
+        env:
+          VERSION: ${{ inputs.version }}
+          REF: ${{ inputs.ref || github.sha }}
+        run: |
+          python3 .github/scripts/release_assets.py --version "$VERSION" --ref "$REF" --out "$RUNNER_TEMP/dist"
+          git rev-parse "$REF^{commit}" > "$RUNNER_TEMP/target"
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          TITLE: ${{ inputs.title }}
+          NOTES: ${{ inputs.notes }}
+        run: |
+          printf '%s\n' "$NOTES" > "$RUNNER_TEMP/notes.md"
+          gh release create "v$VERSION" "$RUNNER_TEMP"/dist/* --draft \
+            --target "$(cat "$RUNNER_TEMP/target")" --title "$TITLE" --notes-file "$RUNNER_TEMP/notes.md"
