@@ -99,6 +99,32 @@ def test_real_cli_usage_and_show_respect_aliases_hierarchy_and_scope(real_vault:
     assert snapshot(real_vault) == before
 
 
+def test_real_cli_redundant_pairs_are_review_candidates_except_title_concepts(tmp_path: Path) -> None:
+    (tmp_path / "tow.json").write_text('{"scope": "vault"}')
+    (tmp_path / "Tag-Dictionary.json").write_text(
+        json.dumps(
+            {
+                "bm25": {
+                    "description": "A lexical ranking function.",
+                    "aliases": [],
+                    "broader": ["information-retrieval"],
+                },
+                "information-retrieval": {
+                    "description": "Finding relevant material.",
+                    "aliases": ["Retrieval"],
+                    "broader": [],
+                },
+            }
+        )
+    )
+    for title in ("Search Basics", "Notes on Retrieval"):
+        (tmp_path / f"{title}.md").write_text(f"---\ntags:\n  - information-retrieval\n  - bm25\n---\n# {title}\n")
+    # --strict passes: a broader + narrower pair is left to tow-tag-sync's review, not a failure.
+    usage = json.loads(run(tmp_path, "ontology", "usage", "--strict", "--json"))
+    # A word of the file name ("Retrieval", an alias) makes the broader tag the title concept.
+    assert usage["redundant"] == [{"path": "Search Basics.md", "tag": "information-retrieval", "narrower": ["bm25"]}]
+
+
 def test_real_cli_checks_explicit_paths_without_treating_show_tags_as_paths(real_vault: Path) -> None:
     for path in ["./Inbox/Draft.md", str(real_vault / "Inbox" / "Draft.md")]:
         assert "unknown-category Inbox/Draft.md" in run(real_vault, "lint", path, code=1)
