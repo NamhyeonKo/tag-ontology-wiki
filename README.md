@@ -23,7 +23,7 @@ The package contains skills, shared conventions, and the Python helper [`scripts
 TOW uses the Tag Ontology CLI to query tags and validate/manage dictionaries. Install the [Tag Ontology plugin for Obsidian](https://github.com/NamhyeonKo/obsidian-tag-ontology) ([community plugin page](https://community.obsidian.md/plugins/tag-ontology)) alongside TOW to visually explore the tag hierarchy and relationships you manage in a graph.
 
 ```text
-tag-ontology@0.1.2        dictionary checks, queries, edits, note parsing
+tag-ontology@0.1.3        dictionary checks, queries, edits, note parsing
       ▲  npx tag-ontology … --json
 tow (this plugin)         vault convention checks, skills
       ▲  Claude Code / Codex / Antigravity
@@ -137,14 +137,14 @@ You can search immediately without setup. For optional organization, select `tow
 
 ## CLI and setup checks
 
-The helper uses `npx --yes tag-ontology@0.1.2`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path.
+The helper uses `npx --yes tag-ontology@0.1.3`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path.
 
-Neither TOW 0.4.1 nor `tag-ontology` 0.1.2 has a `doctor` command. Start with:
+Neither TOW 0.4.1 nor `tag-ontology` 0.1.3 has a `doctor` command. Start with:
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.1.2 --version
+npx --yes tag-ontology@0.1.3 --version
 ```
 
 Run TOW `lint` only for adopted TOW metadata; dictionary checks apply only to initialized ontology features. Missing optional metadata/dictionaries are not installation failures. Then follow the [setup checks](docs/installation.md#check-the-setup) to verify the installed plugin, configuration, dictionaries, and note tags. `lint` covers classification fields and tag counts; the check skill adds the note-by-note formatting/reference review. A clean lint result alone does not cover every skill check.

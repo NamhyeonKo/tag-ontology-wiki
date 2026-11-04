@@ -7,11 +7,11 @@ The checks below exercise TOW with a real `tag-ontology` CLI and installed agent
 The default `uv run pytest` runs the unit tests and skips the real CLI tests. To include them, point `TOW_TAG_ONTOLOGY` at a CLI, either the published release or a local build:
 
 ```bash
-TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.1.2" uv run pytest -q
+TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.1.3" uv run pytest -q
 TOW_TAG_ONTOLOGY="node /absolute/path/to/tag-ontology/dist/cli/main.js" uv run pytest -q
 ```
 
-CI runs them in a separate job against published 0.1.2 on Node.js 22.
+CI runs them in a separate job against published 0.1.3 on Node.js 22.
 
 [`test_cli_integration.py`](../tests/test_cli_integration.py) copies the [synthetic vault](../tests/fixtures/vault) into a new temporary directory for each test. It checks:
 
@@ -20,7 +20,7 @@ CI runs them in a separate job against published 0.1.2 on Node.js 22.
 - Explicit relative/absolute paths outside the default PARA scope; a `show` tag named like a root folder.
 - Vault-local changes files, read-only `plan`, dictionary-only `apply`, and stale-base conflicts that write nothing. Changes files outside the vault are rejected.
 
-The fixture deliberately includes an alias tag, a superseded project, an inbox capture with an unregistered category, and an excluded template. It is test data, not a starter vault. `tow lint` checks conventions; dictionary/tag reconciliation is checked separately with `tow ontology usage` and `check`.
+The fixture deliberately includes an alias tag, a superseded project, an inbox capture with an unregistered category, an excluded template, and a note (`Search Basics.md`) that explains both a broader concept and its narrower one in separate sections. It is test data, not a starter vault. `tow lint` checks conventions; dictionary/tag reconciliation is checked separately with `tow ontology usage` and `check`.
 
 ## Skill application scenarios
 
@@ -31,7 +31,7 @@ For each scenario, use a separate copy of `tests/fixtures/vault`, the CLI overri
 | `tow-query` | Find project notes about RAG, by classification or concept, excluding superseded documents | Exactly `Projects/Category Project.md` and `Projects/Search.md`, deduplicated; open notes before describing them; no writes |
 | `tow-check` | First copy the two [check fixtures](../tests/fixtures/check) into `Resources/`. Request a report on those two files, then approve only the two heading promotions and table separator normalization in `Formatting.md` | Report missing frontmatter and the missing link; change only approved notation and `updated`; preserve sentences, cell values, math, code and link targets; leave `No Frontmatter.md` unchanged |
 | `tow-tag-suggest` | Recommend tags for `Resources/Chunking.md`, then select only adding `semantic-chunking` and removing `information-retrieval` | Recommend the title concept `chunking` and section concept `semantic-chunking`, exclude the incidental BM25 mention; apply only the user's selection and `updated`; preserve the body and other metadata |
-| `tow-tag-sync` | After the preceding selection, request a proposal for Chunking and Pipeline. Approve registering `semantic-chunking` under `chunking` with alias `semantic chunking`, replacing Pipeline's alias tag with `rag`, and removing its broader tag | Wait for approval; use a valid changes file and `plan`/`apply`; add only the approved dictionary entry; change only Pipeline's approved tags/date; end with no scoped unregistered, noncanonical or redundant tags |
+| `tow-tag-sync` | After the preceding selection, request a proposal for Chunking, Pipeline and Search Basics. Approve registering `semantic-chunking` under `chunking` with alias `semantic chunking`, replacing Pipeline's alias tag with `rag`, and removing its broader tag | Review both broader + narrower pairs with exact-path `scan` before proposing: Pipeline's `information-retrieval` becomes a drop candidate once its alias tag becomes `rag` (its description and only heading cover RAG; the `Retrieval` alias inside `Retrieval-augmented generation` is not evidence), while Search Basics keeps `information-retrieval` with its `## Information retrieval` section as evidence. Wait for approval; use a valid changes file and `plan`/`apply`; add only the approved dictionary entry; change only Pipeline's approved tags/date; end with no scoped unregistered or noncanonical tags and only Search Basics' kept pair in `redundant` |
 
 For the check scenario, approve `### Formatting` → `# Formatting`, `#### Method` → `## Method`, and `| :--- | ---: |` → `| --- | --- |`. The missing frontmatter and `[[Missing Note]]` remain report-only. Use the processing date for `updated`.
 

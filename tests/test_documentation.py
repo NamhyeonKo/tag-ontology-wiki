@@ -34,3 +34,10 @@ def test_public_documentation_links_resolve_inside_the_repository() -> None:
             target = (document.parent / href.split("#", 1)[0]).resolve()
             assert target.is_relative_to(ROOT), (document, href)
             assert target.exists(), (document, href)
+
+
+def test_tag_skills_cite_the_broader_narrower_rule_in_the_conventions() -> None:
+    rule = "Broader and narrower tags together"
+    assert f"**{rule}**" in (ROOT / "docs/methodology.md").read_text()
+    for skill in ("tow-tag-sync", "tow-tag-suggest"):
+        assert f'"{rule}"' in (ROOT / "skills" / skill / "SKILL.md").read_text(), skill

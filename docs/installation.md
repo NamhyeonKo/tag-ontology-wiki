@@ -6,7 +6,7 @@ TOW adds eleven skills to a local agent host for document management inside your
 
 ## Install in your host
 
-Have Git and Python 3.10+ available to the host. Node.js 22.18+ and npm/npx are needed for optional `tag-ontology` parsing/ontology features; file search/body work can run without them. The first CLI run may download `tag-ontology@0.1.2` from npm. TOW uses the host's model, account, file permissions, and privacy settings; it has no separate service or API key.
+Have Git and Python 3.10+ available to the host. Node.js 22.18+ and npm/npx are needed for optional `tag-ontology` parsing/ontology features; file search/body work can run without them. The first CLI run may download `tag-ontology@0.1.3` from npm. TOW uses the host's model, account, file permissions, and privacy settings; it has no separate service or API key.
 
 **Claude Code — run inside a Claude Code session:**
 
@@ -116,17 +116,17 @@ Run `--apply` only after approving every previewed item. To create a smaller sub
 
 ## Check the setup
 
-TOW 0.4.1 and `tag-ontology` 0.1.2 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
+TOW 0.4.1 and `tag-ontology` 0.1.3 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
 
 **1. Runtime versions — terminal (Node/npm only for ontology/parsing):**
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.1.2 --version
+npx --yes tag-ontology@0.1.3 --version
 ```
 
-The last command should print `0.1.2`. It checks that the npm CLI can launch; it does not check your vault.
+The last command should print `0.1.3`. It checks that the npm CLI can launch; it does not check your vault.
 
 **2. Installed helper — terminal:**
 
@@ -188,7 +188,7 @@ Explicitly select the skill, then supply the vault root and the files/folders to
 | `tow-query` | “Find project notes about RAG by category or concept. Exclude superseded documents. Read the matches and give paths and count.” |
 | `tow-check` | “Check these two notes for frontmatter, headings, tables, math, and broken references. Report first; do not edit.” |
 | `tow-tag-suggest` | “Suggest concept tags for this note. Separate additions and removals, explain why, and wait for my choice.” |
-| `tow-tag-sync` | “Check this folder's tags against the dictionary. Propose new entries and alias/broader-tag cleanup, then wait for approval.” |
+| `tow-tag-sync` | “Check this folder's tags against the dictionary. Propose new entries and alias cleanup, review broader + narrower tag pairs against each note's headings, then wait for approval.” |
 | `tow-classify` | “Propose a category for these notes. Register it first; ask separately before retroactive changes.” |
 | `tow-link` | “Link existing mentions in this folder. Show targets, skipped matches, ambiguity and missing targets before editing.” |
 | `tow-edit` | “Use Templates/Concept.md to fill only the empty Examples section from this selected source; preserve all filled content and metadata.” |
