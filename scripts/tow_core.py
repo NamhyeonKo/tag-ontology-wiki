@@ -25,6 +25,17 @@ class CliError(Exception):
     """The tag-ontology command could not be run."""
 
 
+def body_bytes(content: bytes) -> bytes:
+    """Body after a leading, delimiter-only frontmatter block; no YAML or Markdown interpretation."""
+    lines = content.splitlines(keepends=True)
+    if not lines or lines[0].removeprefix(b"\xef\xbb\xbf").rstrip(b"\r\n") != b"---":
+        return content
+    for index, line in enumerate(lines[1:], 1):
+        if line.rstrip(b"\r\n") == b"---":
+            return b"".join(lines[index + 1 :])
+    raise ConfigError("can't verify body: leading frontmatter has no closing '---' line")
+
+
 def run_cli(args: list[str], capture: bool) -> subprocess.CompletedProcess[str]:
     command = shlex.split(os.environ.get("TOW_TAG_ONTOLOGY", DEFAULT_CLI))
     try:

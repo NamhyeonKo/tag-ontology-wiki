@@ -33,6 +33,7 @@ from typing import Any, Final, Literal, TypedDict, cast
 from tow_core import DEFAULT_CLI as DEFAULT_CLI
 from tow_core import CliError as CliError
 from tow_core import ConfigError as ConfigError
+from tow_core import body_bytes as body_bytes
 from tow_core import is_legacy_vault as is_legacy_vault
 from tow_core import read_user_config as read_user_config
 from tow_core import resolve_vault as resolve_vault
@@ -41,6 +42,7 @@ from tow_core import serialize_entries as serialize_entries
 from tow_core import tow_kind as tow_kind
 from tow_core import write_text_atomic as write_text_atomic
 from tow_core import write_user_config as write_user_config
+from tow_project import cmd_send as cmd_send
 
 DEFAULTS: Final[dict[str, str]] = {
     "projects": "01_Projects",
@@ -347,17 +349,6 @@ def _named_roots(root: Path, args: list[str]) -> set[str]:
 
 
 # ---- I/O: settings file, CLI calls, output
-
-
-def body_bytes(content: bytes) -> bytes:
-    """Body after a leading, delimiter-only frontmatter block; no YAML or Markdown interpretation."""
-    lines = content.splitlines(keepends=True)
-    if not lines or lines[0].removeprefix(b"\xef\xbb\xbf").rstrip(b"\r\n") != b"---":
-        return content
-    for index, line in enumerate(lines[1:], 1):
-        if line.rstrip(b"\r\n") == b"---":
-            return b"".join(lines[index + 1 :])
-    raise ConfigError("can't verify body: leading frontmatter has no closing '---' line")
 
 
 def cmd_verify_body(root: Path, before: Path, after: Path) -> int:
@@ -776,6 +767,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("value")
     p.add_argument("description")
     p.add_argument("--apply", action="store_true", help="write the category dictionary")
+    p = sub.add_parser("send", help="create a new vault note from a project draft")
+    p.add_argument("draft", type=Path, help="draft note containing frontmatter and body")
+    p.add_argument("dest", help="new vault-relative note path under a configured note folder")
+    p.add_argument("--source", type=Path, help="original selected content to preserve exactly")
+    p.add_argument("--transformed", action="store_true", help="allow draft body to differ from the source")
+    p.add_argument("--apply", action="store_true", help="create the note (never overwrites)")
     p = sub.add_parser("verify-body", help="compare exact body bytes after a metadata-only edit (read-only)")
     p.add_argument("before", type=Path, help="independent snapshot inside the vault")
     p.add_argument("after", type=Path, help="candidate note inside the vault")
@@ -802,6 +799,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "verify-body":
             return cmd_verify_body(root, args.before, args.after)
         cfg = read_config(root)
+        if args.command == "send":
+            return cmd_send(root, cfg, args.draft, args.dest, args.source, args.transformed, args.apply)
         if args.command == "config":
             print(json.dumps(cfg, ensure_ascii=False, indent=2))
             print(f"tow: vault {root} (from {vault_ref.source}, {vault_ref.layout})", file=sys.stderr)
