@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """TOW vault convention checks (standard library only).
 
-  tow.py [--root DIR] config                 print the settings in effect (tow.json + defaults)
+  tow.py [--root DIR] config                 print the settings in effect (.tow/config.json or legacy tow.json)
   tow.py [--root DIR] init [--dictionaries] [--apply]
                                              list/create PARA setup, or optional dictionaries in a free-form vault
   tow.py [--root DIR] lint [PATH...]         check classification fields and tag counts (default: the search scope)
@@ -31,6 +31,7 @@ from typing import Any, Final, Literal, TypedDict, cast
 from tow_core import DEFAULT_CLI as DEFAULT_CLI
 from tow_core import CliError as CliError
 from tow_core import ConfigError as ConfigError
+from tow_core import resolve_vault as resolve_vault
 from tow_core import run_cli as run_cli
 
 DEFAULTS: Final[dict[str, str]] = {
@@ -46,6 +47,11 @@ DEFAULTS: Final[dict[str, str]] = {
     "dailyNotes": "02_Areas/daily-notes",
     "misc": "99_Etc",
     "scope": "para",
+}
+TOW_DEFAULTS: Final[dict[str, str]] = {
+    **DEFAULTS,
+    "tagDictionary": ".tow/tag-dictionary.json",
+    "categoryDictionary": ".tow/category-dictionary.json",
 }
 PARA: Final = ("projects", "areas", "resources", "archives")
 FOLDER_KEYS: Final = (*PARA, "projectArchive", "inbox", "misc")
@@ -196,15 +202,19 @@ def _matches(note: Note, fm: dict[str, Any], prefix: str | None, filters: Mappin
     return all(fm.get(key) == value for key, value in filters.items() if key != "tag")
 
 
-def load_config(raw: object) -> dict[str, str]:
-    """Validate the content of tow.json and merge it over the defaults."""
+def load_config(raw: object, defaults: Mapping[str, str] = DEFAULTS) -> dict[str, str]:
+    """Validate config settings and merge them over the defaults."""
     if not isinstance(raw, dict):
         raise ConfigError("must be a JSON object")
     values = cast(dict[str, object], raw)
-    unknown = sorted(values.keys() - DEFAULTS.keys())
+    kind = values.get("kind")
+    if "kind" in values and kind != "vault":
+        raise ConfigError('kind: must be "vault"')
+    settings = {key: value for key, value in values.items() if key != "kind"}
+    unknown = sorted(settings.keys() - defaults.keys())
     if unknown:
         raise ConfigError(f"unknown keys: {', '.join(unknown)}")
-    for key, value in values.items():
+    for key, value in settings.items():
         if not isinstance(value, str) or not value:
             raise ConfigError(f"{key}: must be a non-empty string")
         if key in FOLDER_KEYS and ("/" in value or value in (".", "..")):
@@ -217,7 +227,7 @@ def load_config(raw: object) -> dict[str, str]:
             path = Path(value)
             if path.is_absolute() or ".." in path.parts or not path.parts:
                 raise ConfigError(f"{key}: must be a vault-relative path without '..'")
-    return {**DEFAULTS, **cast(dict[str, str], values)}
+    return {**defaults, **cast(dict[str, str], settings)}
 
 
 def ontology_args(command: str, args: list[str], root: str, cfg: dict[str, str], excludes: list[str]) -> list[str]:
@@ -304,13 +314,41 @@ def cmd_verify_body(root: Path, before: Path, after: Path) -> int:
 
 
 def read_config(root: Path) -> dict[str, str]:
-    path = root / "tow.json"
-    if not path.exists():
+    tow_config = root / ".tow" / "config.json"
+    legacy_config = root / "tow.json"
+    if tow_config.exists():
+        path, defaults = tow_config, TOW_DEFAULTS
+    elif legacy_config.exists():
+        path, defaults = legacy_config, DEFAULTS
+    else:
         return dict(DEFAULTS)
     try:
-        return load_config(json.loads(path.read_text(encoding="utf-8")))
-    except (ValueError, ConfigError) as e:
-        raise ConfigError(f"tow.json: {e}") from e
+        return load_config(json.loads(path.read_text(encoding="utf-8")), defaults)
+    except (OSError, ValueError, ConfigError) as e:
+        raise ConfigError(f"{path.relative_to(root)}: {e}") from e
+
+
+def plugin_dictionary_warning(root: Path, cfg: Mapping[str, str]) -> str | None:
+    """Compare the Tag Ontology plugin's effective dictionary path with TOW's setting."""
+    path = root / ".obsidian" / "plugins" / "tag-ontology" / "data.json"
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return "plugin settings not checked (no .obsidian/plugins/tag-ontology/data.json)"
+    except (OSError, ValueError) as e:
+        return f"plugin settings not checked (can't read .obsidian/plugins/tag-ontology/data.json: {e})"
+    if not isinstance(raw, dict):
+        return "plugin settings not checked (invalid .obsidian/plugins/tag-ontology/data.json)"
+    settings = cast(dict[str, object], raw)
+    dictionary = settings.get("dictionaryPath", "Tag-Dictionary.json")
+    if not isinstance(dictionary, str):
+        return "plugin settings not checked (invalid dictionaryPath in .obsidian/plugins/tag-ontology/data.json)"
+    if settings.get("dictionaryPathExplicit", False) is not True and (root / ".tow" / "tag-dictionary.json").is_file():
+        dictionary = ".tow/tag-dictionary.json"
+    tow_dictionary = cfg["tagDictionary"]
+    if dictionary == tow_dictionary:
+        return None
+    return f"plugin dictionary path differs: TOW uses {tow_dictionary}, Tag Ontology plugin uses {dictionary}"
 
 
 def scan(root: Path, cfg: dict[str, str], paths: list[str], extra: list[str]) -> dict[str, Any]:
@@ -413,7 +451,7 @@ def warn_if_scope_is_empty(root: Path, cfg: dict[str, str]) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="tow", description="TOW vault convention checks")
-    parser.add_argument("--root", type=Path, default=Path.cwd(), help="vault folder (default: current folder)")
+    parser.add_argument("--root", type=Path, default=None, help="vault folder (default: resolve from TOW settings)")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("config", help="print the settings in effect")
     p = sub.add_parser("init", help="list missing folders and starter dictionaries; --apply creates them")
@@ -439,13 +477,18 @@ def main(argv: list[str] | None = None) -> int:
         if args.prefix is None and not filters:
             parser.error("find needs a category prefix or at least one of --type, --status, --kind, --tag")
 
-    root: Path = args.root.resolve()
     try:
+        vault_ref = resolve_vault(Path.cwd(), args.root, os.environ)
+        root = vault_ref.root
         if args.command == "verify-body":
             return cmd_verify_body(root, args.before, args.after)
         cfg = read_config(root)
         if args.command == "config":
             print(json.dumps(cfg, ensure_ascii=False, indent=2))
+            print(f"tow: vault {root} (from {vault_ref.source}, {vault_ref.layout})", file=sys.stderr)
+            warning = plugin_dictionary_warning(root, cfg)
+            if warning:
+                print(f"tow: warning: {warning}", file=sys.stderr)
             return 0
         if args.command == "init":
             return cmd_init(root, cfg, args.apply, args.dictionaries)

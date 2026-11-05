@@ -155,6 +155,77 @@ def test_load_config_fills_in_defaults() -> None:
     assert tow.load_config({"projects": "Projects"}) == {**tow.DEFAULTS, "projects": "Projects"}
 
 
+def test_read_config_prefers_dot_tow_config_with_tow_defaults(tmp_path: Path) -> None:
+    config = tmp_path / ".tow" / "config.json"
+    config.parent.mkdir()
+    config.write_text('{"kind": "vault", "projects": "Projects"}')
+    (tmp_path / "tow.json").write_text('{"areas": "Legacy Areas"}')
+
+    assert tow.read_config(tmp_path) == {**tow.TOW_DEFAULTS, "projects": "Projects"}
+
+
+def test_read_config_keeps_tow_json_defaults_for_legacy_vaults(tmp_path: Path) -> None:
+    (tmp_path / "tow.json").write_text('{"areas": "Areas"}')
+
+    assert tow.read_config(tmp_path) == {**tow.DEFAULTS, "areas": "Areas"}
+
+
+def test_load_config_accepts_only_kind_vault() -> None:
+    config = tow.load_config({"kind": "vault", "projects": "Projects"}, tow.TOW_DEFAULTS)
+    assert config == {**tow.TOW_DEFAULTS, "projects": "Projects"}
+    assert "kind" not in config
+    with pytest.raises(tow.ConfigError, match="kind"):
+        tow.load_config({"kind": "project"}, tow.TOW_DEFAULTS)
+
+
+def test_config_reports_the_vault_source_on_stderr(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = vault(tmp_path)
+    (root / "tow.json").write_text('{"areas": "Areas"}')
+    plugin = root / ".obsidian/plugins/tag-ontology/data.json"
+    plugin.parent.mkdir(parents=True)
+    plugin.write_text('{"dictionaryPath": "Tag-Dictionary.json"}')
+
+    assert tow.main(["--root", str(root), "config"]) == 0
+
+    captured = capsys.readouterr()
+    assert json.loads(captured.out) == {**tow.DEFAULTS, "areas": "Areas"}
+    assert f"tow: vault {root} (from --root, legacy)" in captured.err
+
+
+def test_main_without_any_vault_exits_2_with_setup_hint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["config"]) == 2
+    assert "run tow-setup" in capsys.readouterr().err
+
+
+def test_config_warns_when_the_plugin_uses_another_dictionary(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    config = {**tow.TOW_DEFAULTS}
+    assert tow.plugin_dictionary_warning(tmp_path, config) == (
+        "plugin settings not checked (no .obsidian/plugins/tag-ontology/data.json)"
+    )
+    (tmp_path / ".tow").mkdir()
+    (tmp_path / ".tow/config.json").write_text('{"kind": "vault"}')
+    (tmp_path / ".tow/tag-dictionary.json").write_text("{}")
+    plugin = tmp_path / ".obsidian/plugins/tag-ontology/data.json"
+    plugin.parent.mkdir(parents=True)
+    plugin.write_text('{"dictionaryPath": "custom/tags.json", "dictionaryPathExplicit": true}')
+
+    assert tow.main(["--root", str(tmp_path), "config"]) == 0
+    captured = capsys.readouterr()
+    assert "plugin dictionary path differs" in captured.err
+    assert "custom/tags.json" in captured.err
+
+    plugin.write_text('{"dictionaryPath": "Tag-Dictionary.json"}')
+    assert tow.plugin_dictionary_warning(tmp_path, config) is None
+    assert tow.main(["--root", str(tmp_path), "config"]) == 0
+    assert "plugin dictionary path differs" not in capsys.readouterr().err
+
+
 @pytest.mark.parametrize(
     "raw",
     [[], {"project": "P"}, {"areas": 2}, {"areas": ""}, {"resources": "Notes/Resources"}, {"projectArchive": "a/b"}],
