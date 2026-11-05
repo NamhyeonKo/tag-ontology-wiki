@@ -6,6 +6,7 @@ import json
 import os
 import shlex
 import subprocess
+import tempfile
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -52,7 +53,17 @@ def write_user_config(vault: Path) -> None:
         raise ConfigError(f"not a TOW vault; run setup inside the vault first: {vault}")
     path = user_config_file()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"kind": "user", "vault": str(vault)}, indent=2), encoding="utf-8")
+    temporary: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=path.parent, prefix=f".{path.name}.", delete=False
+        ) as file:
+            temporary = file.name
+            file.write(json.dumps({"kind": "user", "vault": str(vault)}, indent=2))
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None and os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def read_user_config() -> str | None:

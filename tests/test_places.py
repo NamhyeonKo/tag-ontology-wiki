@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 import tow
+import tow_core
 from tow_core import (
     ConfigError,
     is_legacy_vault,
@@ -203,7 +204,51 @@ def test_connect_shows_the_current_connection(
     write_user_config(home, vault)
 
     assert tow.main(["connect"]) == 0
-    assert capsys.readouterr().out == f"{vault}\n"
+    assert capsys.readouterr().out == f"connected: {vault} (from ~/.tow/config.json)\n"
+
+
+def test_connect_shows_environment_connection_without_user_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    home = set_home(tmp_path, monkeypatch)
+    env_vault = tmp_path / "environment-vault"
+    env_vault.mkdir()
+    monkeypatch.setenv("TOW_VAULT", str(env_vault))
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["connect"]) == 0
+    assert capsys.readouterr().out == (f"connected: {env_vault} (from TOW_VAULT; overrides ~/.tow/config.json)\n")
+    assert not (home / ".tow" / "config.json").exists()
+
+
+def test_connect_warns_that_environment_overrides_user_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    home = set_home(tmp_path, monkeypatch)
+    env_vault = tmp_path / "environment-vault"
+    env_vault.mkdir()
+    old_vault = tmp_path / "old-vault"
+    old_vault.mkdir()
+    new_vault = tmp_path / "new-vault"
+    (new_vault / ".tow").mkdir(parents=True)
+    (new_vault / ".tow" / "config.json").write_text('{"kind": "vault"}', encoding="utf-8")
+    write_user_config(home, old_vault)
+    monkeypatch.setenv("TOW_VAULT", str(env_vault))
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["connect"]) == 0
+    assert capsys.readouterr().out == (f"connected: {env_vault} (from TOW_VAULT; overrides ~/.tow/config.json)\n")
+
+    assert tow.main(["connect", "new-vault"]) == 0
+    preview = capsys.readouterr()
+    assert preview.out == f"would connect {env_vault} → {new_vault.resolve()}\n"
+    assert "TOW_VAULT still overrides ~/.tow/config.json" in preview.err
+
+    assert tow.main(["connect", "new-vault", "--apply"]) == 0
+    applied = capsys.readouterr()
+    assert "TOW_VAULT still overrides ~/.tow/config.json" in applied.err
+    config = home / ".tow" / "config.json"
+    assert json.loads(config.read_text(encoding="utf-8")) == {"kind": "user", "vault": str(new_vault.resolve())}
 
 
 def test_connect_previews_without_apply_and_writes_with_apply(
@@ -225,6 +270,32 @@ def test_connect_previews_without_apply_and_writes_with_apply(
 
     assert tow.main(["connect", "new-vault", "--apply"]) == 0
     assert json.loads(config.read_text(encoding="utf-8")) == {"kind": "user", "vault": str(new_vault.resolve())}
+
+
+def test_user_config_write_preserves_existing_file_if_atomic_replace_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = set_home(tmp_path, monkeypatch)
+    vault = tmp_path / "vault"
+    (vault / ".tow").mkdir(parents=True)
+    (vault / ".tow" / "config.json").write_text('{"kind": "vault"}', encoding="utf-8")
+    existing = home / ".tow" / "config.json"
+    existing.parent.mkdir()
+    existing.write_text('{"kind": "user", "vault": "old"}', encoding="utf-8")
+
+    def fail_replace(source: str | Path, target: str | Path) -> None:
+        assert Path(target) == existing
+        assert existing.read_text(encoding="utf-8") == '{"kind": "user", "vault": "old"}'
+        assert Path(source).is_file()
+        raise OSError("replace failed")
+
+    monkeypatch.setattr(tow_core.os, "replace", fail_replace)
+
+    with pytest.raises(OSError, match="replace failed"):
+        tow_core.write_user_config(vault)
+
+    assert existing.read_text(encoding="utf-8") == '{"kind": "user", "vault": "old"}'
+    assert list(existing.parent.iterdir()) == [existing]
 
 
 def test_connect_refuses_a_folder_that_is_not_a_vault(

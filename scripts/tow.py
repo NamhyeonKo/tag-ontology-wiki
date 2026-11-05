@@ -534,9 +534,15 @@ def warn_if_scope_is_empty(root: Path, cfg: dict[str, str]) -> None:
 
 def cmd_connect(vault: Path | None, apply: bool) -> int:
     """Show, preview, or save the personal vault connection."""
-    current = read_user_config()
+    env_vault = os.environ.get("TOW_VAULT")
+    current = str(Path(env_vault).expanduser().resolve()) if env_vault else read_user_config()
     if vault is None:
-        print(current or "not connected")
+        if env_vault:
+            print(f"connected: {Path(env_vault).expanduser().resolve()} (from TOW_VAULT; overrides ~/.tow/config.json)")
+        elif current is not None:
+            print(f"connected: {current} (from ~/.tow/config.json)")
+        else:
+            print("not connected")
         return 0
     root = vault.expanduser().resolve()
     if apply:
@@ -546,6 +552,8 @@ def cmd_connect(vault: Path | None, apply: bool) -> int:
         if tow_kind(root) != "vault" and not is_legacy_vault(root):
             raise ConfigError(f"not a TOW vault; run setup inside the vault first: {root}")
         print(f"would connect {current or 'not connected'} → {root}")
+    if env_vault:
+        print("tow: warning: TOW_VAULT still overrides ~/.tow/config.json", file=sys.stderr)
     return 0
 
 
