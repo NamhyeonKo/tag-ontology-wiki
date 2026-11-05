@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final, Literal, cast
 
-DEFAULT_CLI: Final = "npx --yes tag-ontology@0.1.3"
+DEFAULT_CLI: Final = "npx --yes tag-ontology@0.2.0"
 VaultSource = Literal["--root", "TOW_VAULT", "user", "ancestor"]
 VaultLayout = Literal["tow", "legacy", "plain"]
 

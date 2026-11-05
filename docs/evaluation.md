@@ -7,11 +7,11 @@ The checks below exercise TOW with a real `tag-ontology` CLI and installed agent
 The default `uv run pytest` runs the unit tests and skips the real CLI tests. To include them, point `TOW_TAG_ONTOLOGY` at a CLI, either the published release or a local build:
 
 ```bash
-TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.1.3" uv run pytest -q
+TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.2.0" uv run pytest -q
 TOW_TAG_ONTOLOGY="node /absolute/path/to/tag-ontology/dist/cli/main.js" uv run pytest -q
 ```
 
-CI runs them in a separate job against published 0.1.3 on Node.js 22.
+CI runs them in a separate job against published 0.2.0 on Node.js 22.
 
 [`test_cli_integration.py`](../tests/test_cli_integration.py) copies the [synthetic vault](../tests/fixtures/vault) into a new temporary directory for each test. It checks:
 

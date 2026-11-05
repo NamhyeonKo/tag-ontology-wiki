@@ -134,7 +134,25 @@ def test_real_cli_checks_explicit_paths_without_treating_show_tags_as_paths(real
     assert show["notePaths"] == []
 
 
-def test_real_cli_plan_apply_and_stale_base_preserve_write_boundaries(real_vault: Path, tmp_path: Path) -> None:
+def test_real_cli_subset_and_overlay(real_vault: Path, tmp_path: Path) -> None:
+    before = snapshot(real_vault)
+    overlay = tmp_path / "tags.json"
+    overlay.write_text(json.dumps({"Resources/Example.md": {"tags": ["rag"]}}))
+
+    show = json.loads(run(real_vault, "ontology", "show", "rag", "--notes", "--tags-file", str(overlay), "--json"))
+    assert {m["path"] for m in show["noteMatches"]} >= {"Resources/Example.md"}
+    match = next(m for m in show["noteMatches"] if m["path"] == "Resources/Example.md")
+    assert match["matches"] == [{"tag": "rag", "source": "overlay"}]
+
+    subset = json.loads(run(real_vault, "ontology", "subset", "rag", "--json"))
+    assert set(subset["dictionary"]) == {"information-retrieval", "rag"}
+    assert snapshot(real_vault) == before
+
+
+def test_real_cli_plan_apply_and_stale_base_preserve_write_boundaries(
+    real_vault: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(real_vault)
     before = snapshot(real_vault)
     draft = json.loads(run(real_vault, "ontology", "show", "rag", "--json"))["draft"]
     draft["description"] = "An answer-generation method that retrieves supporting material before generating an answer."

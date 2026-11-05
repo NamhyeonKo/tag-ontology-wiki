@@ -6,7 +6,7 @@ TOW adds eleven skills to a local agent host for document management inside your
 
 ## Install in your host
 
-Have Git and Python 3.10+ available to the host. Node.js 22.18+ and npm/npx are needed for optional `tag-ontology` parsing/ontology features; file search/body work can run without them. The first CLI run may download `tag-ontology@0.1.3` from npm. TOW uses the host's model, account, file permissions, and privacy settings; it has no separate service or API key.
+Have Git and Python 3.10+ available to the host. Node.js 22.18+ and npm/npx are needed for optional `tag-ontology` parsing/ontology features; file search/body work can run without them. The first CLI run may download `tag-ontology@0.2.0` from npm. TOW uses the host's model, account, file permissions, and privacy settings; it has no separate service or API key.
 
 **Claude Code — run inside a Claude Code session:**
 
@@ -116,17 +116,17 @@ Run `--apply` only after approving every previewed item. To create a smaller sub
 
 ## Check the setup
 
-TOW 0.4.2 and `tag-ontology` 0.1.3 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
+TOW 0.4.2 and `tag-ontology` 0.2.0 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
 
 **1. Runtime versions — terminal (Node/npm only for ontology/parsing):**
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.1.3 --version
+npx --yes tag-ontology@0.2.0 --version
 ```
 
-The last command should print `0.1.3`. It checks that the npm CLI can launch; it does not check your vault.
+The last command should print `0.2.0`. It checks that the npm CLI can launch; it does not check your vault.
 
 **2. Installed helper — terminal:**
 

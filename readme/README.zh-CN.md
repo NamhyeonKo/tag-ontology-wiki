@@ -23,7 +23,7 @@ TOW 为本地编程智能体安装十一项工作流程。指定 vault 和笔记
 TOW 使用 Tag Ontology CLI 查询标签并验证、管理词典。同时安装 [Obsidian 的 Tag Ontology 插件](https://github.com/NamhyeonKo/obsidian-tag-ontology)（[社区插件页面](https://community.obsidian.md/plugins/tag-ontology)），即可通过图谱直观查看所管理标签的层级和关系。
 
 ```text
-tag-ontology@0.1.3        词典检查、查询、编辑和笔记解析
+tag-ontology@0.2.0        词典检查、查询、编辑和笔记解析
       ▲  npx tag-ontology … --json
 tow（本插件）             vault 约定检查、技能
       ▲  Claude Code / Codex / Antigravity
@@ -136,14 +136,14 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 
 ## CLI 与设置检查
 
-辅助脚本使用 `npx --yes tag-ontology@0.1.3`；npm 在需要时下载该确切版本。手动运行辅助命令时，使用已安装的 `scripts/tow.py` 路径。约定中的 `tow` 是该路径的简写。
+辅助脚本使用 `npx --yes tag-ontology@0.2.0`；npm 在需要时下载该确切版本。手动运行辅助命令时，使用已安装的 `scripts/tow.py` 路径。约定中的 `tow` 是该路径的简写。
 
-TOW 0.4.2 和 `tag-ontology` 0.1.3 均没有 `doctor` 命令。先运行：
+TOW 0.4.2 和 `tag-ontology` 0.2.0 均没有 `doctor` 命令。先运行：
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.1.3 --version
+npx --yes tag-ontology@0.2.0 --version
 ```
 
 仅对采用 TOW 元数据的笔记运行 TOW `lint`；词典检查仅适用于已初始化的本体功能。缺少未选用的可选元数据或词典，并不表示安装失败。然后按[设置检查](../docs/installation.md#check-the-setup)验证插件、配置、词典和笔记标签。`lint` 检查分类字段和标签数量，检查技能还逐篇检查格式与引用。仅有 lint 通过并不代表完成了技能的全部检查。

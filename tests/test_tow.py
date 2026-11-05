@@ -356,6 +356,10 @@ def test_workflow_root_folders_reject_nested_paths(key: str, value: str) -> None
 # tag-ontology arguments
 
 
+def test_default_cli_is_pinned_to_tag_ontology_0_2_0() -> None:
+    assert tow_core.DEFAULT_CLI == "npx --yes tag-ontology@0.2.0"
+
+
 def test_scope_excludes_everything_at_the_root_but_para_folders(tmp_path: Path) -> None:
     for d in ["01_Projects", "02_Areas", "03_Resources", "04_Archives", "00_Inbox", "99_Etc", ".obsidian"]:
         (tmp_path / d).mkdir()
@@ -437,6 +441,25 @@ def test_ontology_args_for_scan_have_no_dictionary_options() -> None:
 def test_ontology_args_for_check_have_no_note_scope() -> None:
     assert tow.ontology_args("check", [], "/v", tow.DEFAULTS, ["--exclude", "x"]) == [
         "check", "--root", "/v", "--dictionary", "Tag-Dictionary.json", "--names", "kebab",
+    ]  # fmt: skip
+
+
+def test_ontology_args_passes_tags_file_and_subset(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = vault(tmp_path)
+    (root / "00_Inbox").mkdir()
+    fake = fake_cli(tmp_path, monkeypatch, scan_of())
+    monkeypatch.chdir(root)
+
+    assert tow.main(["--root", str(root), "ontology", "usage", "--tags-file", "00_Inbox/overlay.json", "--json"]) == 0
+    usage_args = json.loads((fake / "args.json").read_text())
+    assert "--tags-file 00_Inbox/overlay.json" in " ".join(usage_args)
+    assert any(usage_args[index : index + 2] == ["--exclude", "00_Inbox"] for index in range(len(usage_args) - 1))
+
+    assert tow.main(["--root", str(root), "ontology", "subset", "rag", "--json"]) == 0
+    subset_args = json.loads((fake / "args.json").read_text())
+    assert subset_args == [
+        "subset", "rag", "--json", "--root", str(root),
+        "--dictionary", "Tag-Dictionary.json", "--names", "kebab",
     ]  # fmt: skip
 
 
