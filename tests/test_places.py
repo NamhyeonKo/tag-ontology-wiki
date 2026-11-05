@@ -189,6 +189,57 @@ def test_serialize_entries_matches_the_dictionary_layout() -> None:
     assert serialize_entries({}) == "{\n}\n"
 
 
+def test_connect_shows_the_current_connection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    home = set_home(tmp_path, monkeypatch)
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["connect"]) == 0
+    assert capsys.readouterr().out == "not connected\n"
+
+    vault = tmp_path / "personal-vault"
+    vault.mkdir()
+    write_user_config(home, vault)
+
+    assert tow.main(["connect"]) == 0
+    assert capsys.readouterr().out == f"{vault}\n"
+
+
+def test_connect_previews_without_apply_and_writes_with_apply(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    home = set_home(tmp_path, monkeypatch)
+    old_vault = tmp_path / "old-vault"
+    old_vault.mkdir()
+    new_vault = tmp_path / "new-vault"
+    (new_vault / ".tow").mkdir(parents=True)
+    (new_vault / ".tow" / "config.json").write_text('{"kind": "vault"}', encoding="utf-8")
+    write_user_config(home, old_vault)
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["connect", "new-vault"]) == 0
+    assert capsys.readouterr().out == f"would connect {old_vault} → {new_vault.resolve()}\n"
+    config = home / ".tow" / "config.json"
+    assert json.loads(config.read_text(encoding="utf-8")) == {"kind": "user", "vault": str(old_vault)}
+
+    assert tow.main(["connect", "new-vault", "--apply"]) == 0
+    assert json.loads(config.read_text(encoding="utf-8")) == {"kind": "user", "vault": str(new_vault.resolve())}
+
+
+def test_connect_refuses_a_folder_that_is_not_a_vault(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    home = set_home(tmp_path, monkeypatch)
+    not_a_vault = tmp_path / "plain-folder"
+    not_a_vault.mkdir()
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["connect", str(not_a_vault)]) == 2
+    assert "run setup inside the vault first" in capsys.readouterr().err
+    assert not (home / ".tow" / "config.json").exists()
+
+
 def test_shared_plumbing_remains_importable_from_tow() -> None:
     from tow_core import DEFAULT_CLI, CliError, run_cli
 

@@ -46,6 +46,15 @@ def user_config_file() -> Path:
     return Path.home() / ".tow" / "config.json"
 
 
+def write_user_config(vault: Path) -> None:
+    """Connect this user to a configured TOW vault."""
+    if not vault.is_absolute() or not (tow_kind(vault) == "vault" or is_legacy_vault(vault)):
+        raise ConfigError(f"not a TOW vault; run setup inside the vault first: {vault}")
+    path = user_config_file()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"kind": "user", "vault": str(vault)}, indent=2), encoding="utf-8")
+
+
 def read_user_config() -> str | None:
     path = user_config_file()
     try:

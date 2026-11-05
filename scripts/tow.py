@@ -32,9 +32,13 @@ from typing import Any, Final, Literal, TypedDict, cast
 from tow_core import DEFAULT_CLI as DEFAULT_CLI
 from tow_core import CliError as CliError
 from tow_core import ConfigError as ConfigError
+from tow_core import is_legacy_vault as is_legacy_vault
+from tow_core import read_user_config as read_user_config
 from tow_core import resolve_vault as resolve_vault
 from tow_core import run_cli as run_cli
 from tow_core import serialize_entries as serialize_entries
+from tow_core import tow_kind as tow_kind
+from tow_core import write_user_config as write_user_config
 
 DEFAULTS: Final[dict[str, str]] = {
     "projects": "01_Projects",
@@ -528,10 +532,30 @@ def warn_if_scope_is_empty(root: Path, cfg: dict[str, str]) -> None:
         )
 
 
+def cmd_connect(vault: Path | None, apply: bool) -> int:
+    """Show, preview, or save the personal vault connection."""
+    current = read_user_config()
+    if vault is None:
+        print(current or "not connected")
+        return 0
+    root = vault.expanduser().resolve()
+    if apply:
+        write_user_config(root)
+        print(f"connected {root}")
+    else:
+        if tow_kind(root) != "vault" and not is_legacy_vault(root):
+            raise ConfigError(f"not a TOW vault; run setup inside the vault first: {root}")
+        print(f"would connect {current or 'not connected'} → {root}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="tow", description="TOW vault convention checks")
     parser.add_argument("--root", type=Path, default=None, help="vault folder (default: resolve from TOW settings)")
     sub = parser.add_subparsers(dest="command", required=True)
+    p = sub.add_parser("connect", help="show or set the personal vault connection")
+    p.add_argument("vault", nargs="?", type=Path, help="vault to connect")
+    p.add_argument("--apply", action="store_true", help="write the connection")
     sub.add_parser("config", help="print the settings in effect")
     p = sub.add_parser("init", help="list missing folders and starter dictionaries; --apply creates them")
     p.add_argument("--apply", action="store_true", help="create what is missing (never overwrites)")
@@ -563,6 +587,8 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("find needs a category prefix or at least one of --type, --status, --kind, --tag")
 
     try:
+        if args.command == "connect":
+            return cmd_connect(args.vault, args.apply)
         vault_ref = resolve_vault(Path.cwd(), args.root, os.environ)
         root = vault_ref.root
         if args.command == "verify-body":
