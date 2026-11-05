@@ -299,10 +299,10 @@ def cmd_project_tag(project: Path, vault: Path, vault_cfg: Mapping[str, str], ch
             entries.pop(key, None)
         if not tags:
             continue
+        if not _exists_exactly(project_root, key):
+            raise ConfigError(f"project document not found with this exact path and case: {key}")
         try:
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        except FileNotFoundError:
-            raise ConfigError(f"project document not found: {key}") from None
         except OSError as e:
             raise ConfigError(f"can't read project document {key}: {e}") from e
         local = mode == "shared" and not _tracked(project_root, key)
@@ -317,11 +317,21 @@ def cmd_project_tag(project: Path, vault: Path, vault_cfg: Mapping[str, str], ch
             "(git rev-parse --git-path info/exclude) before tagging untracked or ignored files"
         )
 
-    used = {tag for entries in new.values() for entry in entries.values() for tag in _strings(entry, "tags")}
-    broader = {tag for entry in project_only.values() for tag in _strings(entry, "broader")}
+    # Shared mode: the shared dictionary holds only what documents.json uses, so tags of local files stay local.
+    sources = [new[DOCUMENTS]] if mode == "shared" else list(new.values())
+    used = {tag for entries in sources for entry in entries.values() for tag in _strings(entry, "tags")}
+    kept = _project_closure(used, project_only) if mode == "shared" else project_only
+    for tag in concepts:
+        if tag not in kept:
+            raise ConfigError(
+                f"new concept {tag} is not used by any tracked document, and the shared project dictionary "
+                "holds only those; tag a tracked document with it, or register it in the vault first "
+                "(from inside the vault)"
+            )
+    broader = {tag for entry in kept.values() for tag in _strings(entry, "broader")}
     request = sorted(tag for tag in used | broader if tag in vault_tags)
     dictionary = _subset(vault, vault_cfg, request) if request else {}
-    dictionary.update(project_only)
+    dictionary.update(kept)
     if dictionary != old_dictionary:
         _check(project_root, serialize_entries(dictionary))
 
@@ -337,14 +347,33 @@ def cmd_project_tag(project: Path, vault: Path, vault_cfg: Mapping[str, str], ch
         for line in lines:
             print(f"would {line}")
         return 0
-    # ponytail: three independent atomic replaces, not one transaction; rerunning the same changes file
-    # converges because each documents value is the complete tag list. Dictionary first, so a partial
-    # write never leaves document tags missing from it.
+    # ponytail: separate atomic replaces, not one transaction; rerunning the same changes file converges
+    # because each documents value is the complete tag list. Additions land before removals, so an entry
+    # moving between the documents files is never missing from both.
+    current = dict(old)
+    steps = [(PROJECT_DICTIONARY, dictionary)]
+    steps += [(name, {**old[name], **new[name]}) for name in (DOCUMENTS, LOCAL_DOCUMENTS)]
+    steps += [(name, new[name]) for name in (DOCUMENTS, LOCAL_DOCUMENTS)]
+    for name, entries in steps:
+        if entries != current[name]:
+            write_text_atomic(project_root / name, serialize_entries(entries))
+            current[name] = entries
     for name in (PROJECT_DICTIONARY, DOCUMENTS, LOCAL_DOCUMENTS):
         if new[name] != old[name]:
-            write_text_atomic(project_root / name, serialize_entries(new[name]))
             print(f"updated {name}")
     return 0
+
+
+def _project_closure(used: set[str], project_only: Mapping[str, Any]) -> dict[str, Any]:
+    """Project-only entries for the used tags, plus the project-only concepts above them through broader."""
+    kept: dict[str, Any] = {}
+    pending = [tag for tag in used if tag in project_only]
+    while pending:
+        tag = pending.pop()
+        if tag not in kept:
+            kept[tag] = project_only[tag]
+            pending += [target for target in _strings(kept[tag], "broader") if target in project_only]
+    return kept
 
 
 def _read_object(path: Path, missing_ok: bool = False) -> dict[str, Any]:
@@ -409,6 +438,19 @@ def _document_path(project_root: Path, key: str) -> Path:
     if posix.suffix != ".md":
         raise ConfigError(f"project document must be a .md file: {key}")
     return path
+
+
+def _exists_exactly(project_root: Path, key: str) -> bool:
+    """Whether key names a file with exactly this spelling, even on a case-insensitive filesystem."""
+    folder = project_root
+    for part in PurePosixPath(key).parts:
+        try:
+            if part not in os.listdir(folder):
+                return False
+        except OSError:
+            return False
+        folder = folder / part
+    return folder.is_file()
 
 
 def _tracked(project_root: Path, key: str) -> bool:

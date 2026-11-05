@@ -2,7 +2,7 @@ import hashlib
 import json
 import subprocess
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import pytest
 from conftest import fake_cli
@@ -286,13 +286,14 @@ def tag_setup(
     monkeypatch: pytest.MonkeyPatch,
     subset: dict[str, Any] | None = None,
     check: str | None = None,
+    mode: Literal["local", "shared"] = "shared",
 ) -> tuple[Path, Path]:
-    """A shared-mode project and a vault holding VAULT_TAGS; the fake CLI answers `subset` with `subset`."""
+    """A project in `mode` and a vault holding VAULT_TAGS; the fake CLI answers `subset` with `subset`."""
     vault = make_vault(tmp_path / "vault")
     (vault / ".tow" / "config.json").write_text('{"kind": "vault"}\n', encoding="utf-8")
     (vault / ".tow" / "tag-dictionary.json").write_text(json.dumps(VAULT_TAGS), encoding="utf-8")
     project = init_repo(tmp_path / "project")
-    assert tow_project.cmd_project_init(project, vault, TAG_CFG, "shared", [], True) == 0
+    assert tow_project.cmd_project_init(project, vault, TAG_CFG, mode, [], True) == 0
     outputs = {"subset": envelope("subset", dictionary=VAULT_TAGS if subset is None else subset)}
     outputs["check"] = check or envelope("check")
     fake_cli(tmp_path, monkeypatch, {}, outputs)
@@ -412,6 +413,8 @@ def test_project_tag_keeps_project_only_concepts_across_a_refresh(
         "other": VAULT_TAGS["other"],
     }
     (project / ".tow" / "tag-dictionary.json").write_text(json.dumps(old, indent=2), encoding="utf-8")
+    old_entry = {"old.md": {"tags": ["project-only"], "sha256": "0"}}
+    (project / ".tow" / "documents.json").write_text(json.dumps(old_entry), encoding="utf-8")
     capsys.readouterr()
 
     assert project_tag(project, vault, write_changes(tmp_path, {"note.md": ["used"]}), apply=False) == 0
@@ -468,6 +471,7 @@ def test_project_tag_asks_subset_for_vault_tags_and_project_broader_targets(
         ({"./note.md": ["used"]}, {}, "inside the project"),
         ({"notes.txt": ["used"]}, {}, r"\.md"),
         ({"absent.md": ["used"]}, {}, "not found"),
+        ({"Note.md": ["used"]}, {}, "exact path and case"),
         ({"note.md": ["used"]}, {"used": {"description": "Mine", "broader": []}}, "already in the vault"),
         ({"note.md": ["used"]}, {"In-Use": {"description": "Alias", "broader": []}}, "already in the vault"),
         ({"note.md": "used"}, {}, "changes file"),
@@ -528,3 +532,85 @@ def test_project_tag_never_edits_project_documents(tmp_path: Path, monkeypatch: 
     assert {path: path.read_bytes() for path in project.rglob("*.md")} == documents_before
     assert snapshot(vault) == vault_before
     assert set(read_json(project / ".tow" / "documents.json")) == {"docs/plain.md", "note.md"}
+
+
+def test_project_tag_keeps_tags_of_local_files_out_of_the_shared_dictionary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    subset = {key: VAULT_TAGS[key] for key in ("parent", "root", "used")}
+    project, vault = tag_setup(tmp_path, monkeypatch, subset)
+    for name in ("tracked.md", "draft.md"):
+        (project / name).write_text(f"{name}\n", encoding="utf-8")
+    git(project, "add", "tracked.md")
+    chain = {
+        "po-child": {"description": "Child", "broader": ["po-root"]},
+        "po-root": {"description": "Root", "broader": ["root"]},
+    }
+    local_only: dict[str, Any] = {"po-local": {"description": "Local only", "broader": []}}
+    (project / ".tow" / "tag-dictionary.json").write_text(json.dumps({**chain, **local_only}), encoding="utf-8")
+    documents = {"tracked.md": ["used", "po-child"], "draft.md": ["used", "other", "po-local"]}
+
+    assert project_tag(project, vault, write_changes(tmp_path, documents)) == 0
+
+    assert read_json(tmp_path / "calls.json")[0][:3] == ["subset", "root", "used"]
+    assert read_json(project / ".tow" / "tag-dictionary.json") == {**subset, **chain}
+    assert read_json(project / ".tow" / "documents.local.json")["draft.md"]["tags"] == ["used", "other", "po-local"]
+
+
+def test_project_tag_refuses_a_new_concept_used_only_by_local_files_in_shared_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch, {})
+    (project / "draft.md").write_text("draft\n", encoding="utf-8")
+    changes = write_changes(tmp_path, {"draft.md": ["new-local"]}, {"new-local": {"description": "N", "broader": []}})
+    before = snapshot(project)
+
+    with pytest.raises(tow.ConfigError, match="tag a tracked document with it, or register it in the vault"):
+        project_tag(project, vault, changes)
+
+    assert snapshot(project) == before
+
+
+def test_project_tag_accepts_a_new_concept_on_untracked_files_in_local_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch, {}, mode="local")
+    (project / "draft.md").write_text("draft\n", encoding="utf-8")
+    concept: dict[str, Any] = {"description": "N", "broader": []}
+
+    assert (
+        project_tag(project, vault, write_changes(tmp_path, {"draft.md": ["new-local"]}, {"new-local": concept})) == 0
+    )
+
+    assert read_json(project / ".tow" / "tag-dictionary.json") == {"new-local": concept}
+    assert set(read_json(project / ".tow" / "documents.json")) == {"draft.md"}
+    assert not (project / ".tow" / "documents.local.json").exists()
+
+
+@pytest.mark.parametrize("tracked", [False, True], ids=["to-local", "to-shared"])
+def test_project_tag_writes_a_moved_entry_to_its_new_file_first(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, tracked: bool
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch, {key: VAULT_TAGS[key] for key in ("parent", "used")})
+    (project / "draft.md").write_text("draft\n", encoding="utf-8")
+    if tracked:
+        git(project, "add", "draft.md")
+    source = project / ".tow" / ("documents.local.json" if tracked else "documents.json")
+    source.write_text(json.dumps({"draft.md": {"tags": ["used"], "sha256": "0"}}), encoding="utf-8")
+    real_write = tow_project.write_text_atomic
+    document_writes: list[str] = []
+
+    def fail_second_documents_write(path: Path, text: str, *, exclusive: bool = False) -> None:
+        if path.name.startswith("documents"):
+            document_writes.append(path.name)
+            if len(document_writes) == 2:
+                raise OSError("disk full")
+        real_write(path, text, exclusive=exclusive)
+
+    monkeypatch.setattr(tow_project, "write_text_atomic", fail_second_documents_write)
+
+    with pytest.raises(OSError, match="disk full"):
+        project_tag(project, vault, write_changes(tmp_path, {"draft.md": ["used"]}))
+
+    files = [project / ".tow" / name for name in ("documents.json", "documents.local.json")]
+    assert any("draft.md" in read_json(path) for path in files if path.exists())
