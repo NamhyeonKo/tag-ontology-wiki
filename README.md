@@ -1,10 +1,10 @@
 # TOW — Tag Ontology for Wiki
 
-An agent skill plugin for managing documents **inside your Obsidian vault**: search notes, manage frontmatter, and fix formatting while preserving content. Runs in Claude Code, Codex, and Google Antigravity with the vault as the workspace.
+An agent skill plugin for working across an Obsidian vault and a coding project: search both by concept, tag project documents in `.tow/` metadata without editing them, and send selected content to the vault as a new note. Vault-maintenance workflows preserve note content. Runs in Claude Code, Codex, and Google Antigravity.
 
 [English](README.md) · [한국어](readme/README.ko.md) · [简体中文](readme/README.zh-CN.md) · [繁體中文](readme/README.zh-TW.md) · [日本語](readme/README.ja.md) · [Español](readme/README.es.md) · [Français](readme/README.fr.md)
 
-> **Version:** 0.4.2.
+> **Version:** 0.5.0.
 
 ## Overview
 
@@ -16,7 +16,7 @@ Ordinary maintenance preserves prose, math/code contents and table values; only 
 
 Choose PARA during setup or keep your own folders. Ordinary search/body work needs neither dictionaries nor metadata cleanup. Queries use Obsidian CLI first, scoped file search when needed, then content verification; available properties improve precision. The full conventions are in [docs/methodology.md](docs/methodology.md).
 
-TOW installs eleven workflows into your local coding agent. You name the vault and notes; the agent reads the relevant files, searches classifications and concept tags, and proposes scoped changes for your approval. The files stay in your Obsidian vault.
+TOW installs twelve workflows into your local agent host. Vault-only workflows manage notes in Obsidian; from a project, `tow-query` searches the connected vault and current project, and `tow-send-vault` creates a new vault note from selected content after approval. Project tags and hashes are stored in project `.tow/` metadata; project documents are not edited.
 
 The package contains skills, shared conventions, and the Python helper [`scripts/tow.py`](scripts/tow.py). That helper checks classification rules and calls the [`tag-ontology`](https://github.com/NamhyeonKo/obsidian-tag-ontology) npm CLI for note parsing, tag queries, and dictionary validation/changes. Your agent host supplies the model and file tools.
 
@@ -34,7 +34,8 @@ your Obsidian vault
 
 | Skill | When to use it | Changes |
 | --- | --- | --- |
-| `tow-setup` | Choose PARA or an existing layout; optionally enable dictionaries | Lists top-level folders only; creates folders/dictionaries/`tow.json` after approval, never moves notes |
+| `tow-setup` | Set up a vault, connect it for project use, or register project metadata | Inspects names first; writes only approved `.tow/` metadata or personal connection settings |
+| `tow-send-vault` | Send selected project content to the connected vault | Creates a new note after approval; preserves the selected body unless a transformation is requested |
 | `tow-query` | Find documents using natural-language conditions, custom properties, tags or text | Read-only; CLI first, scoped file fallback, verified matches and separate inferred candidates |
 | `tow-check` | Check frontmatter, Markdown, math, code, tables and references | Reports first; selected syntax fixes preserve prose, payloads and values |
 | `tow-tag-suggest` | Recommend concept tags for selected notes | Applies only the additions/removals you select |
@@ -125,21 +126,22 @@ Confirm the installed version with your host's plugin list/details command. See 
 
 ## First use
 
-Open the vault as your host's workspace. In a new session, select `tow-query` using the host-specific invocation above, then send:
+For vault-only maintenance, open the vault as your host's workspace. For project use, open the project workspace instead and select `tow-setup` to connect the vault and register project `.tow/` metadata. In a new project session, select `tow-query` and send:
 
 ```text
 My vault is /absolute/path/to/vault. Find project notes about RAG by category
-or concept, excluding superseded documents. Read matching notes before
-summarizing them and return their paths and count. Do not modify files.
+or concept, excluding superseded documents. Search both this project and the
+connected vault, read matching notes before summarizing them, and return their
+source, paths, match reasons, and count. Do not modify files.
 ```
 
-You can search immediately without setup. For optional organization, select `tow-setup`; it asks whether you want PARA and preserves your existing layout/schema. TOW reads `tow.json` at the vault root; omitted settings use the defaults in the [setup guide](docs/installation.md#configure-the-vault). Installation does not create or migrate a vault.
+Search works without project registration or dictionaries; project tagging requires project `.tow/` metadata. The personal connection lives in `$TOW_VAULT` or `~/.tow/config.json`, never in project files. Inside a vault, queries remain vault-only. For optional vault organization, `tow-setup` asks whether you want PARA and preserves your existing layout/schema. New vault settings live in `.tow/config.json`; legacy 0.4.x vaults with root `tow.json` remain readable until migrated. See the [setup guide](docs/installation.md#configure-the-vault) and [project connection instructions](docs/installation.md#connect-a-vault-to-a-project).
 
 ## CLI and setup checks
 
-The helper uses `npx --yes tag-ontology@0.2.0`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path.
+The helper uses `npx --yes tag-ontology@0.2.0`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path. For project commands, run it from the project; vault-targeted commands may use `--root <vault>`.
 
-Neither TOW 0.4.2 nor `tag-ontology` 0.2.0 has a `doctor` command. Start with:
+Neither TOW 0.5.0 nor `tag-ontology` 0.2.0 has a `doctor` command. Start with:
 
 ```bash
 python3 --version

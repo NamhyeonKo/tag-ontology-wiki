@@ -1,10 +1,10 @@
 # TOW — Tag Ontology for Wiki
 
-Un plugin de habilidades para agentes que permite gestionar documentos **dentro de tu bóveda de Obsidian**: buscar notas, gestionar el frontmatter y corregir el formato conservando el contenido. Funciona en Claude Code, Codex y Google Antigravity con la bóveda como espacio de trabajo.
+Un plugin de habilidades para agentes que conecta una bóveda de Obsidian con un proyecto de programación: busca en ambos por concepto, etiqueta documentos del proyecto mediante metadatos `.tow/` y envía el contenido seleccionado a la bóveda como una nota nueva. No modifica los documentos del proyecto y conserva el contenido en el mantenimiento de la bóveda. Funciona en Claude Code, Codex y Google Antigravity.
 
 [English](../README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-> **Versión:** 0.4.2.
+> **Versión:** 0.5.0.
 
 ## Descripción general
 
@@ -16,7 +16,7 @@ El mantenimiento habitual conserva la prosa, el contenido de las fórmulas y del
 
 Elige PARA durante la configuración o conserva tus propias carpetas. Las búsquedas habituales y el trabajo sobre el cuerpo de las notas no requieren diccionarios ni limpieza de metadatos. Las consultas usan primero Obsidian CLI, después búsquedas en archivos con un alcance delimitado cuando hace falta y, por último, la verificación del contenido; las propiedades disponibles mejoran la precisión. Las convenciones completas están en [docs/methodology.md](../docs/methodology.md).
 
-TOW instala once flujos de trabajo en tu agente de programación local. Indicas la bóveda y las notas; el agente lee los archivos pertinentes, busca clasificaciones y etiquetas conceptuales, y propone cambios de alcance delimitado para que los apruebes. Los archivos permanecen en tu bóveda de Obsidian.
+TOW instala doce flujos de trabajo en el entorno local de tu agente. Los flujos exclusivos de la bóveda gestionan notas de Obsidian; desde un proyecto, `tow-query` busca tanto en la bóveda conectada como en el proyecto actual, y `tow-send-vault` crea una nota nueva en la bóveda con el contenido seleccionado tras tu aprobación. Las etiquetas y los hashes del proyecto se guardan en los metadatos `.tow/` del proyecto; los documentos del proyecto no se modifican.
 
 El paquete contiene habilidades, convenciones compartidas y el auxiliar de Python [`scripts/tow.py`](../scripts/tow.py). Este auxiliar comprueba las reglas de clasificación y llama a la CLI de npm [`tag-ontology`](https://github.com/NamhyeonKo/obsidian-tag-ontology) para analizar notas, consultar etiquetas y validar o modificar el diccionario. El entorno de tu agente proporciona el modelo y las herramientas de archivos.
 
@@ -34,7 +34,8 @@ tu bóveda de Obsidian
 
 | Habilidad | Cuándo usarla | Cambios |
 | --- | --- | --- |
-| `tow-setup` | Elegir PARA o una estructura existente; habilitar diccionarios opcionalmente | Solo enumera las carpetas de nivel superior; crea carpetas, diccionarios y `tow.json` tras la aprobación; nunca mueve notas |
+| `tow-setup` | Configurar una bóveda, conectarla para usarla desde un proyecto o registrar metadatos del proyecto | Inspecciona primero los nombres; solo escribe metadatos `.tow/` aprobados o la conexión personal |
+| `tow-send-vault` | Enviar contenido seleccionado del proyecto a la bóveda conectada | Crea una nota nueva tras la aprobación; conserva el cuerpo seleccionado salvo que se pida transformarlo |
 | `tow-query` | Buscar documentos mediante condiciones en lenguaje natural, propiedades personalizadas, etiquetas o texto | Solo lectura; primero la CLI, después archivos con alcance delimitado como alternativa; coincidencias verificadas y candidatos inferidos por separado |
 | `tow-check` | Comprobar frontmatter, Markdown, fórmulas, código, tablas y referencias | Primero informa; las correcciones de sintaxis seleccionadas conservan la prosa, el contenido y los valores |
 | `tow-tag-suggest` | Recomendar etiquetas conceptuales para las notas seleccionadas | Aplica solo las adiciones o eliminaciones que selecciones |
@@ -125,21 +126,22 @@ Confirma la versión instalada con el comando de lista o detalles de plugins de 
 
 ## Primer uso
 
-Abre la bóveda como espacio de trabajo de tu entorno. En una sesión nueva, selecciona `tow-query` mediante la invocación específica de tu entorno indicada arriba y envía:
+Para el mantenimiento exclusivo de la bóveda, ábrela como espacio de trabajo del entorno. Para usar TOW desde un proyecto, abre el proyecto y selecciona `tow-setup` para conectar la bóveda y registrar los metadatos `.tow/` del proyecto. En una sesión nueva del proyecto, selecciona `tow-query` y envía:
 
 ```text
 Mi bóveda está en /absolute/path/to/vault. Busca notas de proyectos sobre RAG por categoría
-o concepto, excluyendo los documentos sustituidos. Lee las notas que coincidan antes de
-resumirlas y devuelve sus rutas y su cantidad. No modifiques archivos.
+o concepto, excluyendo los documentos sustituidos. Busca tanto en este proyecto como en la
+bóveda conectada, lee las notas coincidentes antes de resumirlas y devuelve origen, rutas,
+motivos de coincidencia y cantidad. No modifiques archivos.
 ```
 
-Puedes buscar de inmediato sin configurar nada. Para organizar de forma opcional, selecciona `tow-setup`; te pregunta si quieres PARA y conserva tu estructura y esquema existentes. TOW lee `tow.json` en la raíz de la bóveda; los ajustes omitidos utilizan los valores predeterminados de la [guía de configuración](../docs/installation.md#configure-the-vault). La instalación no crea ni migra una bóveda.
+Puedes buscar sin registrar el proyecto ni tener diccionarios; para etiquetar el proyecto se necesitan metadatos `.tow/`. La conexión personal se guarda en `$TOW_VAULT` o `~/.tow/config.json`, nunca en los archivos del proyecto. Las consultas desde la bóveda solo buscan en ella. Para organizar la bóveda, selecciona `tow-setup`; preguntará si quieres PARA y conservará la estructura y el esquema existentes. La configuración nueva de la bóveda se guarda en `.tow/config.json`; las bóvedas 0.4.x con `tow.json` en la raíz siguen siendo legibles hasta migrarlas. Consulta la [guía de configuración](../docs/installation.md#configure-the-vault) y las [instrucciones de conexión del proyecto](../docs/installation.md#connect-a-vault-to-a-project).
 
 ## CLI y comprobaciones de configuración
 
 El auxiliar utiliza `npx --yes tag-ontology@0.2.0`; npm obtiene esa versión exacta cuando hace falta. Los comandos manuales del auxiliar utilizan la ruta de `scripts/tow.py` instalado. El nombre `tow` en las convenciones es una abreviatura de esa ruta.
 
-Ni TOW 0.4.2 ni `tag-ontology` 0.2.0 tienen un comando `doctor`. Empieza con:
+Ni TOW 0.5.0 ni `tag-ontology` 0.2.0 tienen un comando `doctor`. Empieza con:
 
 ```bash
 python3 --version

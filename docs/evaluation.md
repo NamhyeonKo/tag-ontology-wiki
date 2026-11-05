@@ -139,6 +139,17 @@ Codex CLI 0.159.2 with model `gpt-6-luna` ran the uncommitted candidate's skills
 
 Every proposal left all files unchanged, and command traces show only name listings, `config` and dry-run `init` before approval; no note contents were read. A fresh `tow-query` session in the free-form vault returned exactly `notes/Chunking.md` and `notes/RAG.md` (count 2) through the whole-vault scope. Codex's workspace sandbox denied the default npm cache, so the first CLI call in some sessions failed and the model retried with a temporary npm cache; this is a host sandbox limit, not a TOW behavior. Native installation, Claude Code and Antigravity runs of `tow-setup` were not repeated for this candidate.
 
+## Cross-project checks (0.5.0)
+
+The automated suite covers the cross-project helper contracts with temporary vaults and projects; these tests do not establish model-backed skill reliability or host permission enforcement.
+
+- `tests/test_places.py` checks personal connection resolution, `$TOW_VAULT` precedence, and preview-before-write behavior for `tow connect`.
+- `tests/test_project.py` covers local/shared project initialization, `.tow/`-only tagging, names-only file discovery, project status, and vault/project concept lookup. The tests verify that project-tagging workflows do not edit project documents.
+- `tests/test_send.py` checks preview/apply behavior, no-overwrite, destination containment, body equality with the selected source unless `--transformed` is explicit, and verification after writing.
+- `tests/test_tow.py` covers legacy-vault reading and migration preview/apply, including separate verified legacy-file removal.
+
+These are code-level checks, not observed runs of every skill in every host. No shell command can be confined by TOW's skill instructions; host sandboxing or OS permissions remain the process boundary. E8, offering a re-send when a source changes after capture, is not supported in this release.
+
 ## Limits
 
 These are individual application scenarios, not a statistical skill benchmark. They explicitly select the skills and therefore do not test automatic skill discovery. Format and tag edits were evaluated on synthetic copies; the private corpus comparison covered lint and category search only.

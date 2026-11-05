@@ -1,10 +1,10 @@
 # TOW — Tag Ontology for Wiki
 
-用於管理 **Obsidian vault 內部**文件的代理技能外掛程式：搜尋筆記、管理 frontmatter，並在保留內容的前提下修正格式。以 vault 為工作區，可在 Claude Code、Codex 和 Google Antigravity 中執行。
+用於連接 Obsidian vault 與程式專案的代理技能外掛程式：依概念搜尋兩處內容，在專案 `.tow/` 中繼資料為文件加上標籤，並將選取內容傳送為新的 vault 筆記。專案文件不會被修改；vault 維護工作會保留內容。可在 Claude Code、Codex 和 Google Antigravity 中執行。
 
 [English](../README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-> **版本：** 0.4.2。
+> **版本：** 0.5.0。
 
 ## 概覽
 
@@ -16,7 +16,7 @@
 
 設定時可選擇 PARA，也可保留自己的資料夾。一般搜尋及內文操作不需要字典，也不需要清理中繼資料。查詢會先使用 Obsidian CLI，必要時進行限定範圍的檔案搜尋，最後驗證內容；可用的屬性能提高查詢精確度。完整慣例請見 [docs/methodology.md](../docs/methodology.md)。
 
-TOW 會將十一個工作流程安裝至本機的程式開發代理。你指定 vault 和筆記後，代理會讀取相關檔案、搜尋分類及概念標籤，並提出限定範圍的變更供你核准。檔案仍保留在你的 Obsidian vault 中。
+TOW 會將十二個工作流程安裝至本機代理宿主。vault 專用流程管理 Obsidian 筆記；在專案中，`tow-query` 會同時搜尋已連接的 vault 和目前專案，`tow-send-vault` 則在核准後將選取內容建立為新的 vault 筆記。專案標籤和雜湊儲存在專案 `.tow/` 中繼資料中，不會修改專案文件。
 
 套件包含技能、共用慣例，以及 Python 輔助程式 [`scripts/tow.py`](../scripts/tow.py)。該輔助程式會檢查分類規則，並呼叫 [`tag-ontology`](https://github.com/NamhyeonKo/obsidian-tag-ontology) npm CLI，以解析筆記、查詢標籤，以及驗證／變更字典。模型及檔案工具由你的代理宿主提供。
 
@@ -34,7 +34,8 @@ tow (this plugin)         vault 慣例檢查、技能
 
 | 技能 | 使用時機 | 變更 |
 | --- | --- | --- |
-| `tow-setup` | 選擇 PARA 或現有結構；可選擇啟用字典 | 只列出頂層資料夾；核准後才建立資料夾、字典及 `tow.json`，絕不移動筆記 |
+| `tow-setup` | 設定 vault、連接 vault 供專案使用，或註冊專案中繼資料 | 先檢查名稱；僅寫入已核准的 `.tow/` 中繼資料或個人連接設定 |
+| `tow-send-vault` | 將選取的專案內容傳送到已連接的 vault | 核准後建立新筆記；除非要求轉換，否則保留選取的內文 |
 | `tow-query` | 以自然語言條件、自訂屬性、標籤或文字尋找文件 | 唯讀；優先使用 CLI，必要時改用限定範圍的檔案搜尋；驗證符合項目，並將推論候選項目分開列出 |
 | `tow-check` | 檢查 frontmatter、Markdown、數學公式、程式碼、表格及參照 | 先回報；所選的語法修正會保留文字、資料本體及值 |
 | `tow-tag-suggest` | 為所選筆記推薦概念標籤 | 只套用你選擇的新增／移除項目 |
@@ -125,21 +126,21 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 
 ## 首次使用
 
-將 vault 作為宿主的工作區開啟。在新的工作階段中，使用上述對應宿主的呼叫方式選擇 `tow-query`，然後傳送：
+只維護 vault 時，將 vault 作為宿主工作區開啟。在專案中使用時，開啟專案工作區並選擇 `tow-setup`，以連接 vault 並註冊專案 `.tow/` 中繼資料。在新的專案工作階段中選擇 `tow-query`，然後傳送：
 
 ```text
 我的 vault 位於 /absolute/path/to/vault。請依類別或概念尋找與 RAG 相關的
-專案筆記，排除已被取代的文件。請先閱讀符合的筆記再進行摘要，
-並傳回它們的路徑及數量。不要修改檔案。
+專案筆記，排除已被取代的文件。請同時搜尋目前專案和已連接的 vault，
+閱讀符合的筆記後再摘要，並傳回來源、路徑、符合原因及數量。不要修改檔案。
 ```
 
-不必設定即可立即搜尋。如需選用的組織功能，請選擇 `tow-setup`；它會詢問你是否要採用 PARA，並保留現有的結構／結構描述。TOW 會讀取 vault 根目錄下的 `tow.json`；省略的設定會使用[設定指南](../docs/installation.md#configure-the-vault)中的預設值。安裝不會建立或遷移 vault。
+不必註冊專案或字典即可搜尋；專案標籤功能需要 `.tow/` 中繼資料。個人連接儲存於 `$TOW_VAULT` 或 `~/.tow/config.json`，不會寫入專案檔案。在 vault 內查詢時只搜尋該 vault。設定 vault 時，`tow-setup` 會詢問是否採用 PARA，並保留現有結構／結構描述。新 vault 設定位於 `.tow/config.json`；舊版 0.4.x vault 的根目錄 `tow.json` 在遷移前仍可讀取。詳見[設定指南](../docs/installation.md#configure-the-vault)與[專案連接說明](../docs/installation.md#connect-a-vault-to-a-project)。
 
 ## CLI 與設定檢查
 
 輔助程式使用 `npx --yes tag-ontology@0.2.0`；npm 會在需要時取得該確切版本。手動執行輔助程式指令時，請使用已安裝的 `scripts/tow.py` 路徑。慣例中的名稱 `tow` 是該路徑的簡寫。
 
-TOW 0.4.2 和 `tag-ontology` 0.2.0 都沒有 `doctor` 指令。請先執行：
+TOW 0.5.0 和 `tag-ontology` 0.2.0 都沒有 `doctor` 指令。請先執行：
 
 ```bash
 python3 --version

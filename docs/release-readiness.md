@@ -1,20 +1,40 @@
-# Release readiness: TOW 0.4.2
+# Release readiness: TOW 0.5.0
 
-Checked on 2026-11-04 before promotion through `dev` to `main`. This patch moves the pinned `tag-ontology` CLI to 0.1.3 and changes how the tag skills treat a broader tag that sits next to its narrower tag. Skill names, paths, approval gates and the preservation contract are unchanged.
+## Release order and hand-off
 
-## Release scope
+1. Publish `tag-ontology` 0.2.0 to npm before merging or releasing TOW 0.5.0. TOW's pinned integration job depends on that package being available.
+2. Promote and release TOW 0.5.0 only after the dependency is published and the candidate checks pass. This documentation task does not run the release workflow, create tags, publish a marketplace package, or push changes.
+3. Users migrating a legacy vault must update the Tag Ontology Obsidian plugin to 0.10.0 before running `tow migrate`, so the plugin recognizes `.tow/tag-dictionary.json`.
 
-- Pin the default executable, CI and current install/contributing/README instructions to `npx --yes tag-ontology@0.1.3`, the published npm `latest` (engines `node >=22.18`, matching TOW's Node.js requirement). In 0.1.3, `usage` reports `redundant` as a structural review candidate that `--strict` does not fail on, and it also treats a single word of the file name as the title concept. Its `scan` text output also lists `description`, `aliases` and all headings. TOW doesn't publish the npm package.
+## Release scope (0.5.0)
+
+- Add cross-project query, project metadata, personal vault connections, and approved send-to-vault workflows; move vault config and dictionaries into `.tow/` while retaining legacy compatibility.
+- Keep the exact `tag-ontology@0.2.0` pin and advance all host manifests, the Python project, lockfile and README editions to 0.5.0 so native plugin updates can fetch this package.
+- Preserve the existing skill names, paths, approval gates and content-preservation contract. Project tagging writes `.tow/` metadata without editing project documents.
+
+## Candidate verification (0.5.0)
+
+- Record the final local test, lint, format, type-check, lockfile and documentation-link results here after running the candidate checks.
+- Model-backed skill application, installed-host checks, post-merge CI and publication are separate release gates; do not infer those results from local checks.
+
+---
+
+## Historical verification: TOW 0.4.2
+
+Checked on 2026-11-04 before promotion through `dev` to `main`. This patch moved the pinned `tag-ontology` CLI to 0.1.3 and changed how the tag skills treat a broader tag that sits next to its narrower tag. Skill names, paths, approval gates and the preservation contract were unchanged.
+
+### Release scope
+
+- Pin the default executable, CI and install/contributing/README instructions to `npx --yes tag-ontology@0.1.3`, the published npm package required by project overlay support (engines `node >=22.18`, matching TOW's Node.js requirement). In 0.1.3, `usage` reports `redundant` as a structural review candidate that `--strict` does not fail on, and it also treats a single word of the file name as the title concept. Its `scan` text output also lists `description`, `aliases` and all headings. TOW doesn't publish the npm package.
 - `docs/methodology.md` §3/§6: a narrower tag alone no longer removes its broader tag; both stay when the note explains each directly (rule "Broader and narrower tags together").
 - `tow-tag-sync` reviews each `redundant` pair with exact-path `scan --json` and proposes a drop candidate only for background use. `tow-tag-suggest` recommends a broader concept next to its narrower one when the note explains it directly ([#20](https://github.com/NamhyeonKo/tag-ontology-wiki/pull/20)).
-- Advance all host manifests, the Python project, lockfile and every README edition to 0.4.2 so native plugin updates can fetch this package.
 
-## Candidate verification
+### Candidate verification
 
 - Fresh full suite: **112 passed**, including all six integration tests against published `tag-ontology@0.1.3`; synthetic vaults only. The new integration test fails against 0.1.2 (`--strict` exits 1), so it checks the pinned behavior.
 - Ruff lint/format, strict Pyright and `uv sync --locked` passed. `npx --yes tag-ontology@0.1.3 --version` printed `0.1.3`.
 - Not run: a fresh agent applying the updated tag skills to the evaluation scenarios, and installed-host checks. Dev/main CI and the GitHub release are recorded as they complete.
-- The draft release is created by the new Release workflow (see Distribution artifacts below) from reviewed main commit `8d32996`. Locally, its script reproduced byte-identical archives to a manual build of that commit, and `claude plugin validate --strict` (Claude Code 2.1.318) passed on the portable archive.
+- The draft release was created by the Release workflow from reviewed main commit `8d32996`. Locally, its script reproduced byte-identical archives to a manual build of that commit, and `claude plugin validate --strict` (Claude Code 2.1.318) passed on the portable archive.
 
 ---
 
