@@ -32,8 +32,13 @@ def cmd_send(
     ):
         raise ConfigError("send destination must be a vault-relative file under a configured note folder")
     target = root / relative
-    if not target.resolve().is_relative_to(root):
-        raise ConfigError(f"send destination must stay inside the vault: {dest}")
+    note_folder = (root / relative.parts[0]).resolve()
+    if (
+        not note_folder.is_relative_to(root)
+        or not target.parent.resolve().is_relative_to(note_folder)
+        or not target.resolve().is_relative_to(note_folder)
+    ):
+        raise ConfigError(f"send destination must stay inside its configured note folder: {dest}")
 
     if source is None:
         raise ConfigError("send requires --source")
@@ -49,13 +54,51 @@ def cmd_send(
         print(f"would create {dest}")
         return 0
 
-    target.parent.mkdir(parents=True, exist_ok=True)
-    if not target.parent.resolve().is_relative_to(root) or not target.resolve().is_relative_to(root):
-        raise ConfigError(f"send destination must stay inside the vault: {dest}")
-    fd = os.open(target, os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0), 0o666)
-    with os.fdopen(fd, "wb") as output:
-        output.write(content)
-    if target.read_bytes() != content:
-        raise ConfigError(f"send verification failed: {dest}")
+    missing: list[Path] = []
+    parent = target.parent
+    while not parent.exists():
+        missing.append(parent)
+        parent = parent.parent
+    created_dirs: list[Path] = []
+    created_identity: tuple[int, int] | None = None
+    try:
+        for folder in reversed(missing):
+            try:
+                folder.mkdir()
+            except FileExistsError:
+                if not folder.is_dir():
+                    raise
+            else:
+                created_dirs.append(folder)
+        if not target.parent.resolve().is_relative_to(note_folder) or not target.resolve().is_relative_to(note_folder):
+            raise ConfigError(f"send destination must stay inside its configured note folder: {dest}")
+        fd = os.open(target, os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0), 0o666)
+        info = os.fstat(fd)
+        created_identity = (info.st_dev, info.st_ino)
+        with os.fdopen(fd, "wb") as output:
+            output.write(content)
+        if target.read_bytes() != content:
+            raise ConfigError(f"send verification failed: {dest}")
+    except BaseException:
+        try:
+            if created_identity is not None:
+                try:
+                    info = target.lstat()
+                except FileNotFoundError:
+                    pass
+                else:
+                    if (info.st_dev, info.st_ino) == created_identity:
+                        target.unlink()
+        finally:
+            _remove_empty_dirs(created_dirs)
+        raise
     print(f"created {dest}")
     return 0
+
+
+def _remove_empty_dirs(paths: list[Path]) -> None:
+    for path in reversed(paths):
+        try:
+            path.rmdir()
+        except OSError:
+            break
