@@ -714,6 +714,23 @@ def test_vault_init_creates_nothing_without_explicit_dictionary_selection(
     assert {p.name: p.read_bytes() for p in tmp_path.iterdir()} == before
 
 
+def test_init_creates_para_folders_for_tow_layout(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / ".tow").mkdir()
+    (tmp_path / ".tow/config.json").write_text('{"kind": "vault", "scope": "para"}')
+
+    assert tow.main(["--root", str(tmp_path), "init", "--apply"]) == 0
+    capsys.readouterr()
+    for folder in ("01_Projects", "02_Areas", "03_Resources", "04_Archives", "00_Inbox"):
+        assert (tmp_path / folder).is_dir()
+
+
+def test_init_creates_para_folders_for_plain_layout(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert tow.main(["--root", str(tmp_path), "init", "--apply"]) == 0
+    capsys.readouterr()
+    for folder in ("01_Projects", "02_Areas", "03_Resources", "04_Archives", "00_Inbox"):
+        assert (tmp_path / folder).is_dir()
+
+
 def test_init_creates_the_dot_tow_starter_bundle_once(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert tow.main(["--root", str(tmp_path), "init"]) == 0
     preview = capsys.readouterr().out
@@ -771,7 +788,7 @@ def test_migrate_previews_then_copies_and_converts(tmp_path: Path, capsys: pytes
     assert (tmp_path / "Category-Dictionary.md").exists()
 
 
-def test_migrate_refuses_when_targets_exist(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_migrate_refuses_when_existing_target_bytes_differ(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     (tmp_path / "tow.json").write_text("{}")
     (tmp_path / "Tag-Dictionary.json").write_text("{}\n")
     (tmp_path / "Category-Dictionary.md").write_text("- `ai` : AI\n")
@@ -781,6 +798,46 @@ def test_migrate_refuses_when_targets_exist(tmp_path: Path, capsys: pytest.Captu
     assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 2
     assert "already exists" in capsys.readouterr().err
     assert list((tmp_path / ".tow").iterdir()) == [tmp_path / ".tow/config.json"]
+
+
+def test_migrate_resumes_after_a_later_target_write_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text("{}")
+    (tmp_path / "Tag-Dictionary.json").write_text("{}\n")
+    (tmp_path / "Category-Dictionary.md").write_text("- `ai` : AI\n")
+    real_write = tow.write_text_atomic
+    failed_path = tmp_path / ".tow/category-dictionary.json"
+
+    def fail_once(path: Path, text: str, *, exclusive: bool = False) -> None:
+        if path == failed_path:
+            raise OSError("simulated write failure")
+        real_write(path, text, exclusive=exclusive)
+
+    monkeypatch.setattr(tow, "write_text_atomic", fail_once)
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 2
+    assert "simulated write failure" in capsys.readouterr().err
+    assert not (tmp_path / ".tow/config.json").exists()
+    assert tow_core.resolve_vault(tmp_path, None, {}).layout == "legacy"
+
+    monkeypatch.setattr(tow, "write_text_atomic", real_write)
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 0
+    capsys.readouterr()
+    assert json.loads((tmp_path / ".tow/config.json").read_text()) == {"kind": "vault"}
+    assert json.loads((tmp_path / ".tow/category-dictionary.json").read_text()) == {"ai": {"description": "AI"}}
+
+
+def test_migrate_accepts_existing_targets_with_expected_bytes(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text("{}")
+    (tmp_path / "Tag-Dictionary.json").write_text("{}\n")
+    (tmp_path / "Category-Dictionary.md").write_text("- `ai` : AI\n")
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 0
+    capsys.readouterr()
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 0
+    assert capsys.readouterr().out.strip() == "nothing to migrate"
 
 
 def test_migrate_remove_legacy_requires_verified_copies(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

@@ -79,6 +79,13 @@ OVERVIEW_TAG_LIMIT: Final = 20
 NUMBERED_SECTION: Final = re.compile(r"\d+\.\d+\. ")
 CATEGORY_VALUE: Final = re.compile(r"^(?:- |### )`([^`]+)`")
 CATEGORY_NAME: Final = re.compile(r"[A-Za-z0-9-]+(?:/[A-Za-z0-9-]+)*")
+TOW_BUNDLE: Final = (
+    ".tow/config.json",
+    ".tow/tags.md",
+    ".tow/tag-dictionary.json",
+    ".tow/categories.md",
+    ".tow/category-dictionary.json",
+)
 
 NOTE_COMMANDS: Final = frozenset({"scan", "usage", "show"})
 PATH_COMMANDS: Final = frozenset({"scan", "usage"})
@@ -452,17 +459,7 @@ def cmd_category_add(root: Path, cfg: dict[str, str], value: str, description: s
 
 def cmd_migrate(root: Path, apply: bool, remove_legacy: bool) -> int:
     """Copy a legacy vault into .tow/, or separately verify then remove its originals."""
-    targets = (
-        root / ".tow/config.json",
-        root / ".tow/tags.md",
-        root / ".tow/tag-dictionary.json",
-        root / ".tow/categories.md",
-        root / ".tow/category-dictionary.json",
-    )
-    if not remove_legacy and any(path.exists() or path.is_symlink() for path in targets):
-        raise ConfigError("migration target already exists; migration never overwrites .tow/ files")
-    if not remove_legacy and tow_kind(root) == "vault":
-        raise ConfigError(f"tow migrate requires a legacy vault: {root}")
+    targets = tuple(root / path for path in TOW_BUNDLE)
     if not is_legacy_vault(root):
         raise ConfigError(f"tow migrate requires a legacy vault: {root}")
     config_path = root / "tow.json"
@@ -563,18 +560,53 @@ def cmd_migrate(root: Path, apply: bool, remove_legacy: bool) -> int:
             raise ConfigError(f"migration target must stay inside the vault: {target}")
     starters = Path(__file__).parent / "starters"
     output = {
-        targets[0]: json.dumps(migrated_config, ensure_ascii=False, indent=2) + "\n",
         targets[1]: (starters / "tags.md").read_text(encoding="utf-8"),
         targets[2]: tag_bytes.decode("utf-8"),
         targets[3]: (starters / "categories.md").read_text(encoding="utf-8"),
         targets[4]: serialize_entries(category_entries_to_write),
     }
+    config_target = targets[0]
+    config_text = json.dumps(migrated_config, ensure_ascii=False, indent=2) + "\n"
+    expected = {**output, config_target: config_text}
+    for target, text in expected.items():
+        if (target.exists() or target.is_symlink()) and (
+            not target.is_file() or target.read_bytes() != text.encode("utf-8")
+        ):
+            raise ConfigError(f"migration target already exists with different contents: {target.relative_to(root)}")
+
+    complete_before = all(target.is_file() for target in expected)
     for target, text in output.items():
-        if apply:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            write_text_atomic(target, text, exclusive=True)
-        print(f"{'created' if apply else 'would create'} {target.relative_to(root)}")
-    if not apply:
+        if not target.exists():
+            if apply:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                write_text_atomic(target, text, exclusive=True)
+            print(f"{'created' if apply else 'would create'} {target.relative_to(root)}")
+
+    if apply:
+        try:
+            if any(
+                not target.is_file() or target.read_bytes() != text.encode("utf-8") for target, text in output.items()
+            ):
+                raise ConfigError("migration verification failed; legacy files were kept")
+        except OSError as e:
+            raise ConfigError(f"migration verification failed: {e}") from e
+        if not config_target.exists():
+            config_target.parent.mkdir(parents=True, exist_ok=True)
+            write_text_atomic(config_target, config_text, exclusive=True)
+            print(f"created {config_target.relative_to(root)}")
+        try:
+            if any(
+                not target.is_file() or target.read_bytes() != text.encode("utf-8") for target, text in expected.items()
+            ):
+                raise ConfigError("migration verification failed; legacy files were kept")
+        except OSError as e:
+            raise ConfigError(f"migration verification failed: {e}") from e
+        print("nothing to migrate" if complete_before else "migration complete")
+    elif all(target.is_file() for target in expected):
+        print("nothing to migrate")
+    else:
+        if not config_target.exists():
+            print(f"would create {config_target.relative_to(root)}")
         print("run again with --apply to create .tow/")
     return 0
 
@@ -597,14 +629,7 @@ def missing_paths(root: Path, cfg: dict[str, str], dictionaries: bool = False) -
         if cfg["scope"] == "para" or dictionaries:
             missing += [cfg[k] for k in DICTIONARY_PATHS if not (root / cfg[k]).exists()]
         return missing
-    bundle = (
-        ".tow/config.json",
-        ".tow/tags.md",
-        ".tow/tag-dictionary.json",
-        ".tow/categories.md",
-        ".tow/category-dictionary.json",
-    )
-    return [*missing, *(path for path in bundle if not (root / path).exists())]
+    return [*missing, *(path for path in TOW_BUNDLE if not (root / path).exists())]
 
 
 def cmd_init(
@@ -623,16 +648,7 @@ def cmd_init(
     if legacy:
         files = [root / init_cfg[k] for k in DICTIONARY_PATHS] if init_cfg["scope"] == "para" or dictionaries else []
     else:
-        files = [
-            root / path
-            for path in (
-                ".tow/config.json",
-                ".tow/tags.md",
-                ".tow/tag-dictionary.json",
-                ".tow/categories.md",
-                ".tow/category-dictionary.json",
-            )
-        ]
+        files = [root / path for path in TOW_BUNDLE]
     targets = [(p, True) for p in folders] + [(p, False) for p in files]
     resolved_files = [p.resolve() for p in files]
     if len(set(resolved_files)) != len(resolved_files):
