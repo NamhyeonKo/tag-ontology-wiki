@@ -11,6 +11,7 @@
                                              compare body bytes of two vault-local snapshots after metadata edits
   tow.py [--root DIR] find [PREFIX] [--type T] [--status S] [--kind K] [--tag TAG] [--all]
                                              notes that meet every condition (--all: with project archives)
+  tow.py [--root DIR] lookup TAG [--exact]    notes matching one concept in the vault and current project
   tow.py [--root DIR] ontology CMD [ARG...]  run the tag-ontology CLI with the vault's settings
   tow.py [--root DIR] project init --mode {local,shared} [--exclude GLOB] [--apply]
                                              initialize project metadata
@@ -50,6 +51,7 @@ from tow_core import serialize_entries as serialize_entries
 from tow_core import tow_kind as tow_kind
 from tow_core import write_text_atomic as write_text_atomic
 from tow_core import write_user_config as write_user_config
+from tow_project import cmd_lookup as cmd_lookup
 from tow_project import cmd_project_concepts as cmd_project_concepts
 from tow_project import cmd_project_files as cmd_project_files
 from tow_project import cmd_project_init as cmd_project_init
@@ -802,6 +804,9 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("verify-body", help="compare exact body bytes after a metadata-only edit (read-only)")
     p.add_argument("before", type=Path, help="independent snapshot inside the vault")
     p.add_argument("after", type=Path, help="candidate note inside the vault")
+    p = sub.add_parser("lookup", help="find notes matching one concept in the vault and current project")
+    p.add_argument("tag", help="tag name or alias")
+    p.add_argument("--exact", action="store_true", help="match only this tag, not narrower concepts")
     p = sub.add_parser("find", help="find notes by category prefix, frontmatter fields and tag")
     p.add_argument("prefix", nargs="?", help="category prefix: matches the category and everything below it")
     for key in FIND_FILTERS:
@@ -846,6 +851,12 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_project_concepts(args.project_path, vault, read_config(vault))
         vault_ref = resolve_vault(Path.cwd(), args.root, os.environ)
         root = vault_ref.root
+        if args.command == "lookup":
+            cfg = read_config(root)
+            project = resolve_project(Path.cwd(), root)
+            if project is not None and tow_kind(project) != "project":
+                project = None
+            return cmd_lookup(root, cfg, project, args.tag, args.exact)
         if args.command == "verify-body":
             return cmd_verify_body(root, args.before, args.after)
         cfg = read_config(root)

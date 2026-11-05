@@ -836,3 +836,269 @@ def test_project_concepts_emits_additions_only(
             },
         ]
     }
+
+
+def fake_lookup_cli(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    responses: dict[str, dict[str, Any]],
+) -> Path:
+    responses_path = tmp_path / "lookup-responses.json"
+    responses_path.write_text(json.dumps(responses), encoding="utf-8")
+    script = tmp_path / "fake_lookup_cli.py"
+    script.write_text(
+        "import json, pathlib, sys\n"
+        f"directory = pathlib.Path({str(tmp_path)!r})\n"
+        "args = sys.argv[1:]\n"
+        "root = args[args.index('--root') + 1]\n"
+        "record = {'args': args}\n"
+        "if '--dictionary' in args:\n"
+        "    dictionary = pathlib.Path(args[args.index('--dictionary') + 1])\n"
+        "    if not dictionary.is_absolute(): dictionary = pathlib.Path(root) / dictionary\n"
+        "    record['dictionary'] = json.loads(dictionary.read_text())\n"
+        "record['tags_files'] = [args[i + 1] for i, value in enumerate(args[:-1]) if value == '--tags-file']\n"
+        "calls = directory / 'lookup-calls.json'\n"
+        "calls.write_text(json.dumps([*(json.loads(calls.read_text()) if calls.exists() else []), record]))\n"
+        "response = json.loads((directory / 'lookup-responses.json').read_text())[root]\n"
+        "if 'stderr' in response:\n"
+        "    sys.stderr.write(response['stderr'])\n"
+        "    sys.exit(response['code'])\n"
+        "print(json.dumps(response['json']))\n"
+        "sys.exit(response.get('code', 0))\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("TOW_TAG_ONTOLOGY", f"{tow.sys.executable} {script}")
+    return tmp_path / "lookup-calls.json"
+
+
+def lookup_response(tag: str, *notes: dict[str, Any]) -> dict[str, Any]:
+    return {"code": 0, "json": {"ok": True, "tag": tag, "noteMatches": list(notes)}}
+
+
+def lookup_note(path: str, *matches: tuple[str, str]) -> dict[str, Any]:
+    return {"path": path, "matches": [{"tag": tag, "source": source} for tag, source in matches]}
+
+
+def test_lookup_merges_vault_then_project_results_sorted_by_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch)
+    project_entry = {"description": "Project override", "aliases": ["local-used"], "broader": []}
+    project_dictionary: dict[str, Any] = {
+        "used": project_entry,
+        "project-only": {"description": "Only here", "broader": []},
+    }
+    (project / ".tow" / "tag-dictionary.json").write_text(json.dumps(project_dictionary), encoding="utf-8")
+    (project / ".tow" / "config.json").write_text(
+        json.dumps({"kind": "project", "docs": ["docs"], "exclude": ["docs/private"]}), encoding="utf-8"
+    )
+    (project / ".tow" / "documents.json").write_text("{}\n", encoding="utf-8")
+    (project / "docs").mkdir()
+    responses = {
+        str(vault): lookup_response(
+            "used", lookup_note("z-vault.md", ("used", "tags")), lookup_note("a-vault.md", ("used", "bodyTags"))
+        ),
+        str(project): lookup_response(
+            "used",
+            lookup_note("docs/z.md", ("used", "overlay")),
+            lookup_note("docs/private/drop.md", ("used", "tags")),
+            lookup_note("outside.md", ("used", "tags")),
+            lookup_note("docs/a.md", ("used", "tags")),
+        ),
+    }
+    calls_path = fake_lookup_cli(tmp_path, monkeypatch, responses)
+    monkeypatch.chdir(project)
+    capsys.readouterr()
+    before_project, before_vault = snapshot(project), snapshot(vault)
+
+    assert tow.main(["--root", str(vault), "lookup", "used"]) == 0
+
+    assert json.loads(capsys.readouterr().out) == {
+        "tag": "used",
+        "results": [
+            {
+                "source": "vault",
+                "path": "a-vault.md",
+                "matches": [{"tag": "used", "source": "bodyTags", "kind": "exact"}],
+            },
+            {"source": "vault", "path": "z-vault.md", "matches": [{"tag": "used", "source": "tags", "kind": "exact"}]},
+            {"source": "project", "path": "docs/a.md", "matches": [{"tag": "used", "source": "tags", "kind": "exact"}]},
+            {
+                "source": "project",
+                "path": "docs/z.md",
+                "matches": [{"tag": "used", "source": "overlay", "kind": "exact"}],
+            },
+        ],
+        "unavailable": [],
+    }
+    calls = read_json(calls_path)
+    project_call = next(call for call in calls if call["args"][call["args"].index("--root") + 1] == str(project))
+    assert project_call["dictionary"] == {**VAULT_TAGS, **project_dictionary}
+    assert project_call["tags_files"] == [str(project / ".tow" / "documents.json")]
+    assert "--exclude" in project_call["args"] and "docs/private" in project_call["args"]
+    assert snapshot(project) == before_project
+    assert snapshot(vault) == before_vault
+
+
+def test_lookup_marks_exact_and_narrower_matches(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _, vault = tag_setup(tmp_path, monkeypatch)
+    responses = {
+        str(vault): lookup_response(
+            "used",
+            lookup_note("note.md", ("child", "bodyTags"), ("used", "tags")),
+        )
+    }
+    calls_path = fake_lookup_cli(tmp_path, monkeypatch, responses)
+    monkeypatch.chdir(vault)
+    capsys.readouterr()
+
+    assert tow.main(["--root", str(vault), "lookup", "IN-USE"]) == 0
+
+    output = json.loads(capsys.readouterr().out)
+    assert output["results"] == [
+        {
+            "source": "vault",
+            "path": "note.md",
+            "matches": [
+                {"tag": "child", "source": "bodyTags", "kind": "narrower"},
+                {"tag": "used", "source": "tags", "kind": "exact"},
+            ],
+        }
+    ]
+    assert "--exact" not in read_json(calls_path)[0]["args"]
+
+
+def test_lookup_exact_option_is_passed_to_each_known_place(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch)
+    responses = {
+        str(vault): lookup_response("used", lookup_note("vault.md", ("used", "tags"))),
+        str(project): lookup_response("used", lookup_note("project.md", ("used", "overlay"))),
+    }
+    calls_path = fake_lookup_cli(tmp_path, monkeypatch, responses)
+    monkeypatch.chdir(project)
+    capsys.readouterr()
+
+    assert tow.main(["--root", str(vault), "lookup", "used", "--exact"]) == 0
+
+    assert ["--exact" in call["args"] for call in read_json(calls_path)] == [True, True]
+
+
+def test_lookup_inside_the_vault_returns_only_vault_results(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch)
+    responses = {str(vault): lookup_response("used", lookup_note("vault.md", ("used", "tags")))}
+    calls_path = fake_lookup_cli(tmp_path, monkeypatch, responses)
+    monkeypatch.chdir(vault)
+    capsys.readouterr()
+
+    assert tow.main(["--root", str(vault), "lookup", "used"]) == 0
+
+    assert json.loads(capsys.readouterr().out)["results"] == [
+        {"source": "vault", "path": "vault.md", "matches": [{"tag": "used", "source": "tags", "kind": "exact"}]}
+    ]
+    calls = read_json(calls_path)
+    assert len(calls) == 1
+    assert calls[0]["args"][calls[0]["args"].index("--root") + 1] == str(vault)
+    assert project.is_dir()
+
+
+def test_lookup_without_a_tow_project_returns_only_vault_results(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _, vault = tag_setup(tmp_path, monkeypatch)
+    responses = {str(vault): lookup_response("used", lookup_note("vault.md", ("used", "tags")))}
+    calls_path = fake_lookup_cli(tmp_path, monkeypatch, responses)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    monkeypatch.chdir(outside)
+    capsys.readouterr()
+
+    assert tow.main(["--root", str(vault), "lookup", "used"]) == 0
+
+    assert json.loads(capsys.readouterr().out)["results"] == [
+        {"source": "vault", "path": "vault.md", "matches": [{"tag": "used", "source": "tags", "kind": "exact"}]}
+    ]
+    calls = read_json(calls_path)
+    assert len(calls) == 1
+    assert calls[0]["args"][calls[0]["args"].index("--root") + 1] == str(vault)
+
+
+def test_lookup_treats_an_unknown_project_tag_as_no_results(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch)
+    calls_path = fake_lookup_cli(tmp_path, monkeypatch, {})
+    monkeypatch.chdir(project)
+    capsys.readouterr()
+
+    assert tow.main(["--root", str(vault), "lookup", "not-registered"]) == 1
+
+    assert json.loads(capsys.readouterr().out) == {
+        "tag": "not-registered",
+        "results": [],
+        "unavailable": [],
+    }
+    assert not calls_path.exists()
+
+
+def test_lookup_reports_an_unavailable_place(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch)
+    responses = {
+        str(vault): {"code": 2, "stderr": "tag-ontology: ambiguous alias\n"},
+        str(project): lookup_response("used", lookup_note("project.md", ("used", "overlay"))),
+    }
+    calls_path = fake_lookup_cli(tmp_path, monkeypatch, responses)
+    monkeypatch.chdir(project)
+    capsys.readouterr()
+
+    assert tow.main(["--root", str(vault), "lookup", "used"]) == 0
+
+    assert json.loads(capsys.readouterr().out) == {
+        "tag": "used",
+        "results": [
+            {
+                "source": "project",
+                "path": "project.md",
+                "matches": [{"tag": "used", "source": "overlay", "kind": "exact"}],
+            }
+        ],
+        "unavailable": ["vault: tag-ontology: ambiguous alias"],
+    }
+    assert len(read_json(calls_path)) == 2
+
+
+def test_lookup_finds_a_project_only_tag_without_querying_the_vault(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch)
+    project_dictionary = {"project-only": {"description": "Only here", "aliases": ["po"], "broader": []}}
+    (project / ".tow" / "tag-dictionary.json").write_text(json.dumps(project_dictionary), encoding="utf-8")
+    responses = {str(project): lookup_response("project-only", lookup_note("only.md", ("project-only", "tags")))}
+    calls_path = fake_lookup_cli(tmp_path, monkeypatch, responses)
+    monkeypatch.chdir(project)
+    capsys.readouterr()
+
+    assert tow.main(["--root", str(vault), "lookup", "project-only"]) == 0
+
+    assert json.loads(capsys.readouterr().out) == {
+        "tag": "project-only",
+        "results": [
+            {
+                "source": "project",
+                "path": "only.md",
+                "matches": [{"tag": "project-only", "source": "tags", "kind": "exact"}],
+            }
+        ],
+        "unavailable": [],
+    }
+    calls = read_json(calls_path)
+    assert len(calls) == 1
+    assert calls[0]["args"][calls[0]["args"].index("--root") + 1] == str(project)
+    assert calls[0]["dictionary"] == {**VAULT_TAGS, **project_dictionary}

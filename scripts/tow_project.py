@@ -386,6 +386,126 @@ def cmd_project_tag(project: Path, vault: Path, vault_cfg: Mapping[str, str], ch
     return 0
 
 
+def cmd_lookup(vault: Path, cfg: Mapping[str, str], project: Path | None, tag: str, exact: bool) -> int:
+    """Print one concept's matching notes from the connected vault and current project."""
+    from tow import ontology_args, scope_excludes
+
+    vault_root = vault.resolve()
+    vault_dictionary = _read_object(vault_root / cfg["tagDictionary"])
+    results: list[dict[str, Any]] = []
+    unavailable: list[str] = []
+    answered = False
+    query = tag.lower()
+
+    def known(dictionary: Mapping[str, Any]) -> bool:
+        return any(
+            tag == name or query == name.lower() or query in {alias.lower() for alias in _strings(entry, "aliases")}
+            for name, entry in dictionary.items()
+        )
+
+    def lookup(
+        source: Literal["vault", "project"],
+        args: list[str],
+        docs: list[str] | None = None,
+        excludes: list[str] | None = None,
+    ) -> None:
+        nonlocal answered
+        try:
+            ok, data = _cli_json(args)
+        except (CliError, OSError) as e:
+            unavailable.append(f"{source}: {e}")
+            return
+        if not ok:
+            unavailable.append(f"{source}: {_errors(data) or 'tag-ontology show failed'}")
+            return
+        resolved = data.get("tag")
+        note_matches = data.get("noteMatches")
+        if not isinstance(resolved, str) or not isinstance(note_matches, list):
+            unavailable.append(f"{source}: invalid tag-ontology show result")
+            return
+        place_results: list[dict[str, Any]] = []
+        for raw_note in cast(list[object], note_matches):
+            if not isinstance(raw_note, dict):
+                unavailable.append(f"{source}: invalid tag-ontology show result")
+                return
+            note = cast(dict[str, Any], raw_note)
+            path = note.get("path")
+            matches = note.get("matches")
+            if not isinstance(path, str) or not isinstance(matches, list):
+                unavailable.append(f"{source}: invalid tag-ontology show result")
+                return
+            if (
+                source == "project"
+                and docs is not None
+                and excludes is not None
+                and not _project_path_in_scope(path, docs, excludes)
+            ):
+                continue
+            tagged_matches: list[dict[str, str]] = []
+            for raw_match in cast(list[object], matches):
+                if not isinstance(raw_match, dict):
+                    unavailable.append(f"{source}: invalid tag-ontology show result")
+                    return
+                match = cast(dict[str, Any], raw_match)
+                matched_tag = match.get("tag")
+                match_source = match.get("source")
+                if not isinstance(matched_tag, str) or match_source not in {"tags", "bodyTags", "overlay"}:
+                    unavailable.append(f"{source}: invalid tag-ontology show result")
+                    return
+                tagged_matches.append({"tag": matched_tag, "source": match_source})
+            place_results.append(
+                {
+                    "source": source,
+                    "path": path,
+                    "matches": [
+                        {
+                            "tag": match["tag"],
+                            "source": match["source"],
+                            "kind": "exact" if match["tag"] == resolved else "narrower",
+                        }
+                        for match in tagged_matches
+                    ],
+                }
+            )
+        results.extend(sorted(place_results, key=lambda result: result["path"]))
+        answered = True
+
+    if known(vault_dictionary):
+        vault_args = [tag, "--notes", "--json"]
+        if exact:
+            vault_args.append("--exact")
+        excludes = scope_excludes(vault_root, dict(cfg), [])
+        lookup(
+            "vault",
+            ontology_args("show", vault_args, str(vault_root), dict(cfg), excludes),
+        )
+
+    if project is not None:
+        project_root = _project_root(project)
+        project_config = _read_object(project_root / ".tow" / "config.json")
+        docs, excludes = _project_scope(project_config)
+        project_dictionary = _read_object(project_root / PROJECT_DICTIONARY, missing_ok=True)
+        merged_dictionary = {**vault_dictionary, **project_dictionary}
+        if known(merged_dictionary):
+            with tempfile.TemporaryDirectory() as folder:
+                dictionary_path = Path(folder) / "tag-dictionary.json"
+                dictionary_path.write_text(serialize_entries(merged_dictionary), encoding="utf-8")
+                args = ["show", tag, "--notes", "--json"]
+                if exact:
+                    args.append("--exact")
+                args += ["--root", str(project_root), "--dictionary", str(dictionary_path), "--names", "kebab"]
+                for pattern in excludes:
+                    args += ["--exclude", pattern]
+                for name in (DOCUMENTS, LOCAL_DOCUMENTS):
+                    overlay = project_root / name
+                    if overlay.is_file():
+                        args += ["--tags-file", str(overlay)]
+                lookup("project", args, docs, excludes)
+
+    print(json.dumps({"tag": tag, "results": results, "unavailable": unavailable}, ensure_ascii=False, indent=2))
+    return 0 if answered else 1
+
+
 def cmd_project_status(project: Path, vault: Path | None = None, cfg: Mapping[str, str] | None = None) -> int:
     """Report stale project document metadata and tags absent from the project dictionary."""
     root = _project_root(project)
@@ -455,14 +575,25 @@ def _project_excluded(key: str, pattern: str) -> bool:
     return any(matcher.fullmatch("/".join(parts[:index])) for index in range(1, len(parts) + 1))
 
 
-def project_files(project: Path) -> list[tuple[Literal["tracked", "untracked", "ignored"], str]]:
-    """List visible Markdown documents by Git status without opening their contents."""
-    root = _project_root(project)
-    config = _read_object(root / ".tow" / "config.json")
+def _project_scope(config: Mapping[str, Any]) -> tuple[list[str], list[str]]:
     docs = config.get("docs", [])
     excludes = config.get("exclude", [])
     if not _is_strings(docs) or not _is_strings(excludes):
         raise ConfigError("project config docs and exclude must be lists of strings")
+    return cast(list[str], docs), cast(list[str], excludes)
+
+
+def _project_path_in_scope(key: str, docs: list[str], excludes: list[str]) -> bool:
+    return (
+        not docs or any(key == doc.rstrip("/") or key.startswith(doc.rstrip("/") + "/") for doc in docs)
+    ) and not any(_project_excluded(key, pattern) for pattern in excludes)
+
+
+def project_files(project: Path) -> list[tuple[Literal["tracked", "untracked", "ignored"], str]]:
+    """List visible Markdown documents by Git status without opening their contents."""
+    root = _project_root(project)
+    config = _read_object(root / ".tow" / "config.json")
+    docs, excludes = _project_scope(config)
     files = {
         path.relative_to(root).as_posix()
         for path in root.rglob("*.md")
@@ -471,11 +602,7 @@ def project_files(project: Path) -> list[tuple[Literal["tracked", "untracked", "
         and path.suffix == ".md"
         and not any(part.startswith(".") for part in path.relative_to(root).parts)
     }
-    if docs:
-        files = {
-            key for key in files if any(key == doc.rstrip("/") or key.startswith(doc.rstrip("/") + "/") for doc in docs)
-        }
-    files = {key for key in files if not any(_project_excluded(key, pattern) for pattern in excludes)}
+    files = {key for key in files if _project_path_in_scope(key, docs, excludes)}
     tracked_out = git(root, "ls-files")
     visible_out = git(root, "ls-files", "--others", "--exclude-standard")
     ignored_out = git(root, "ls-files", "--others", "--ignored", "--exclude-standard")
