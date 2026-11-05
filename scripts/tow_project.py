@@ -183,6 +183,8 @@ def cmd_project_init(
             raise ConfigError("shared project metadata is ignored by Git; remove the conflicting ignore rule first")
     if mode == "local" and target is not None:
         tracked = git(project_root, "ls-files", ".tow")
+        if tracked is None:
+            raise ConfigError("can't determine whether .tow contains tracked files; local mode is unavailable")
         if tracked:
             raise ConfigError("local mode is unavailable while .tow contains tracked files")
     pattern: str | None = None

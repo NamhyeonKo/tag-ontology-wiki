@@ -19,11 +19,20 @@ def git_path(cwd: Path, *args: str) -> Path:
     return (cwd / path).resolve() if not path.is_absolute() else path
 
 
+@pytest.fixture(autouse=True)
+def isolate_git_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    global_config = tmp_path / "empty-gitconfig"
+    global_config.write_text("", encoding="utf-8")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(global_config))
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+
+
 def init_repo(path: Path) -> Path:
     path.mkdir(parents=True)
     git(path, "init")
     git(path, "config", "user.name", "TOW Test")
     git(path, "config", "user.email", "tow-test@example.invalid")
+    git(path, "config", "commit.gpgsign", "false")
     return path
 
 
@@ -130,6 +139,26 @@ def test_project_init_refuses_local_mode_when_dot_tow_is_tracked(
         "/.tow/"
         not in git_path(project, "rev-parse", "--git-path", "info/exclude").read_text(encoding="utf-8").splitlines()
     )
+
+
+def test_project_init_refuses_local_mode_when_tracked_file_check_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = init_repo(tmp_path / "project")
+    vault = make_vault(tmp_path / "vault")
+    real_git = tow_project.git
+
+    def fail_ls_files(cwd: Path, *args: str) -> str | None:
+        if args == ("ls-files", ".tow"):
+            return None
+        return real_git(cwd, *args)
+
+    monkeypatch.setattr(tow_project, "git", fail_ls_files)
+
+    with pytest.raises(tow.ConfigError, match=r"can't determine whether \.tow contains tracked files"):
+        tow_project.cmd_project_init(project, vault, {}, "local", [], True)
+
+    assert not (project / ".tow" / "config.json").exists()
 
 
 def test_project_init_shared_refuses_when_gitignore_hides_all_project_metadata(tmp_path: Path) -> None:
