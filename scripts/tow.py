@@ -21,14 +21,17 @@ import argparse
 import json
 import os
 import re
-import shlex
-import subprocess
 import sys
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from typing import Any, Final, Literal, TypedDict, cast
+
+from tow_core import DEFAULT_CLI as DEFAULT_CLI
+from tow_core import CliError as CliError
+from tow_core import ConfigError as ConfigError
+from tow_core import run_cli as run_cli
 
 DEFAULTS: Final[dict[str, str]] = {
     "projects": "01_Projects",
@@ -65,8 +68,6 @@ CATEGORY_VALUE: Final = re.compile(r"^(?:- |### )`([^`]+)`")
 NOTE_COMMANDS: Final = frozenset({"scan", "usage", "show"})
 PATH_COMMANDS: Final = frozenset({"scan", "usage"})
 VALUE_OPTIONS: Final = frozenset({"--root", "--dictionary", "--exclude", "--names", "--base"})
-# Public plugin directories require an exact version for downloaded executables.
-DEFAULT_CLI: Final = "npx --yes tag-ontology@0.1.3"
 INIT_HINT: Final = 'run "tow init --dictionaries" to preview missing starter files'
 STARTER_CATEGORIES: Final = """---
 updated: {today}
@@ -104,14 +105,6 @@ class Issue:
     severity: Literal["error", "warning"]
     path: str
     message: str
-
-
-class ConfigError(Exception):
-    pass
-
-
-class CliError(Exception):
-    pass
 
 
 # ---- Pure functions: scan result -> findings
@@ -318,14 +311,6 @@ def read_config(root: Path) -> dict[str, str]:
         return load_config(json.loads(path.read_text(encoding="utf-8")))
     except (ValueError, ConfigError) as e:
         raise ConfigError(f"tow.json: {e}") from e
-
-
-def run_cli(args: list[str], capture: bool) -> subprocess.CompletedProcess[str]:
-    command = shlex.split(os.environ.get("TOW_TAG_ONTOLOGY", DEFAULT_CLI))
-    try:
-        return subprocess.run([*command, *args], capture_output=capture, text=True, check=False)
-    except FileNotFoundError as e:
-        raise CliError(f"can't run the tag-ontology CLI ({e.filename}); it needs Node.js") from e
 
 
 def scan(root: Path, cfg: dict[str, str], paths: list[str], extra: list[str]) -> dict[str, Any]:
