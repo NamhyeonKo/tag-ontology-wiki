@@ -317,21 +317,23 @@ def cmd_project_tag(project: Path, vault: Path, vault_cfg: Mapping[str, str], ch
             "(git rev-parse --git-path info/exclude) before tagging untracked or ignored files"
         )
 
-    # Shared mode: the shared dictionary holds only what documents.json uses, so tags of local files stay local.
+    # Shared mode: vault concepts enter the shared dictionary only through documents.json, so tags of local
+    # files stay local; new project-only concepts must come in through a tracked document for the same reason.
     sources = [new[DOCUMENTS]] if mode == "shared" else list(new.values())
     used = {tag for entries in sources for entry in entries.values() for tag in _strings(entry, "tags")}
-    kept = _project_closure(used, project_only) if mode == "shared" else project_only
-    for tag in concepts:
-        if tag not in kept:
-            raise ConfigError(
-                f"new concept {tag} is not used by any tracked document, and the shared project dictionary "
-                "holds only those; tag a tracked document with it, or register it in the vault first "
-                "(from inside the vault)"
-            )
-    broader = {tag for entry in kept.values() for tag in _strings(entry, "broader")}
+    if mode == "shared":
+        shared_concepts = _project_closure(used, project_only)
+        for tag in concepts:
+            if tag not in shared_concepts:
+                raise ConfigError(
+                    f"new concept {tag} is not used by any tracked document, and the project dictionary is "
+                    "shared; tag a tracked document with it, or register it in the vault first "
+                    "(from inside the vault)"
+                )
+    broader = {tag for entry in project_only.values() for tag in _strings(entry, "broader")}
     request = sorted(tag for tag in used | broader if tag in vault_tags)
     dictionary = _subset(vault, vault_cfg, request) if request else {}
-    dictionary.update(kept)
+    dictionary.update(project_only)
     if dictionary != old_dictionary:
         _check(project_root, serialize_entries(dictionary))
 

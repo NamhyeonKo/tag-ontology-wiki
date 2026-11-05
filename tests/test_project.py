@@ -413,8 +413,6 @@ def test_project_tag_keeps_project_only_concepts_across_a_refresh(
         "other": VAULT_TAGS["other"],
     }
     (project / ".tow" / "tag-dictionary.json").write_text(json.dumps(old, indent=2), encoding="utf-8")
-    old_entry = {"old.md": {"tags": ["project-only"], "sha256": "0"}}
-    (project / ".tow" / "documents.json").write_text(json.dumps(old_entry), encoding="utf-8")
     capsys.readouterr()
 
     assert project_tag(project, vault, write_changes(tmp_path, {"note.md": ["used"]}), apply=False) == 0
@@ -546,14 +544,17 @@ def test_project_tag_keeps_tags_of_local_files_out_of_the_shared_dictionary(
         "po-child": {"description": "Child", "broader": ["po-root"]},
         "po-root": {"description": "Root", "broader": ["root"]},
     }
-    local_only: dict[str, Any] = {"po-local": {"description": "Local only", "broader": []}}
-    (project / ".tow" / "tag-dictionary.json").write_text(json.dumps({**chain, **local_only}), encoding="utf-8")
+    others: dict[str, Any] = {
+        "po-local": {"description": "Local only", "broader": []},
+        "po-unused": {"description": "Unused", "broader": ["parent"]},
+    }
+    (project / ".tow" / "tag-dictionary.json").write_text(json.dumps({**chain, **others}), encoding="utf-8")
     documents = {"tracked.md": ["used", "po-child"], "draft.md": ["used", "other", "po-local"]}
 
     assert project_tag(project, vault, write_changes(tmp_path, documents)) == 0
 
-    assert read_json(tmp_path / "calls.json")[0][:3] == ["subset", "root", "used"]
-    assert read_json(project / ".tow" / "tag-dictionary.json") == {**subset, **chain}
+    assert read_json(tmp_path / "calls.json")[0][:5] == ["subset", "parent", "root", "used", "--root"]
+    assert read_json(project / ".tow" / "tag-dictionary.json") == {**subset, **chain, **others}
     assert read_json(project / ".tow" / "documents.local.json")["draft.md"]["tags"] == ["used", "other", "po-local"]
 
 
