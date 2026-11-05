@@ -12,6 +12,8 @@
   tow.py [--root DIR] find [PREFIX] [--type T] [--status S] [--kind K] [--tag TAG] [--all]
                                              notes that meet every condition (--all: with project archives)
   tow.py [--root DIR] ontology CMD [ARG...]  run the tag-ontology CLI with the vault's settings
+  tow.py [--root DIR] project init --mode {local,shared} [--exclude GLOB] [--apply]
+                                             initialize project metadata
 
 Note metadata is parsed through `tag-ontology scan --json`. `verify-body` only separates a leading frontmatter block.
 Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.2.0).
@@ -36,12 +38,14 @@ from tow_core import ConfigError as ConfigError
 from tow_core import body_bytes as body_bytes
 from tow_core import is_legacy_vault as is_legacy_vault
 from tow_core import read_user_config as read_user_config
+from tow_core import resolve_project as resolve_project
 from tow_core import resolve_vault as resolve_vault
 from tow_core import run_cli as run_cli
 from tow_core import serialize_entries as serialize_entries
 from tow_core import tow_kind as tow_kind
 from tow_core import write_text_atomic as write_text_atomic
 from tow_core import write_user_config as write_user_config
+from tow_project import cmd_project_init as cmd_project_init
 from tow_project import cmd_send as cmd_send
 
 DEFAULTS: Final[dict[str, str]] = {
@@ -767,6 +771,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("value")
     p.add_argument("description")
     p.add_argument("--apply", action="store_true", help="write the category dictionary")
+    p = sub.add_parser("project", help="manage project metadata")
+    project_sub = p.add_subparsers(dest="project_command", required=True)
+    p = project_sub.add_parser("init", help="initialize project metadata; --apply creates files and Git excludes")
+    p.add_argument("--mode", choices=("local", "shared"), required=True)
+    p.add_argument("--exclude", action="append", default=[], metavar="GLOB", help="exclude a project document glob")
+    p.add_argument("--apply", action="store_true", help="create project metadata")
     p = sub.add_parser("send", help="create a new vault note from a project draft")
     p.add_argument("draft", type=Path, help="draft note containing frontmatter and body")
     p.add_argument("dest", help="new vault-relative note path under a configured note folder")
@@ -801,6 +811,11 @@ def main(argv: list[str] | None = None) -> int:
         cfg = read_config(root)
         if args.command == "send":
             return cmd_send(root, cfg, args.draft, args.dest, args.source, args.transformed, args.apply)
+        if args.command == "project":
+            project = resolve_project(Path.cwd(), root)
+            if project is None:
+                raise ConfigError("project init must run outside the vault")
+            return cmd_project_init(project, root, cfg, args.mode, args.exclude, args.apply)
         if args.command == "config":
             print(json.dumps(cfg, ensure_ascii=False, indent=2))
             print(f"tow: vault {root} (from {vault_ref.source}, {vault_ref.layout})", file=sys.stderr)
