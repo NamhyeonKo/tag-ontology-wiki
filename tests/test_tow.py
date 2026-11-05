@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 
 import tow
+import tow_core
 from tow import Issue, Note
 
 CATEGORIES = {"ai", "ai/rag", "my-project"}
@@ -182,6 +183,17 @@ def test_find_filters_by_frontmatter_fields_and_tags() -> None:
 
 
 # config
+
+
+def test_write_text_atomic_refuses_existing_targets_when_exclusive(tmp_path: Path) -> None:
+    path = tmp_path / "kept.txt"
+    path.write_text("original")
+
+    with pytest.raises(FileExistsError):
+        tow_core.write_text_atomic(path, "replacement", exclusive=True)
+
+    assert path.read_text() == "original"
+    assert list(tmp_path.iterdir()) == [path]
 
 
 def test_load_config_fills_in_defaults() -> None:
@@ -664,19 +676,23 @@ def test_init_creates_a_json_category_dictionary_for_tow_vaults(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     (tmp_path / ".tow").mkdir()
-    (tmp_path / ".tow/config.json").write_text('{"kind": "vault"}')
+    (tmp_path / ".tow/config.json").write_text('{"kind": "vault", "scope": "vault"}')
 
-    assert tow.main(["--root", str(tmp_path), "init", "--dictionaries", "--apply"]) == 0
+    assert tow.main(["--root", str(tmp_path), "init", "--apply"]) == 0
     capsys.readouterr()
     assert (tmp_path / ".tow/category-dictionary.json").read_text() == "{\n}\n"
+    assert not (tmp_path / "01_Projects").exists()
 
 
 def test_init_lists_missing_paths_and_creates_them_only_with_apply(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    (tmp_path / "tow.json").write_text("{}")
     assert tow.main(["--root", str(tmp_path), "init"]) == 0
-    assert "would create 03_Resources/" in capsys.readouterr().out
-    assert list(tmp_path.iterdir()) == []
+    captured = capsys.readouterr()
+    assert "would create 03_Resources/" in captured.out
+    assert 'run "tow migrate"' in captured.err
+    assert [path.name for path in tmp_path.iterdir()] == ["tow.json"]
     assert tow.main(["--root", str(tmp_path), "init", "--apply"]) == 0
     for folder in ["01_Projects", "02_Areas", "03_Resources", "04_Archives", "00_Inbox"]:
         assert (tmp_path / folder).is_dir()
@@ -696,6 +712,165 @@ def test_vault_init_creates_nothing_without_explicit_dictionary_selection(
     assert tow.main(["--root", str(tmp_path), "init", "--apply"]) == 0
     assert capsys.readouterr().out.strip() == "nothing to create"
     assert {p.name: p.read_bytes() for p in tmp_path.iterdir()} == before
+
+
+def test_init_creates_the_dot_tow_starter_bundle_once(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert tow.main(["--root", str(tmp_path), "init"]) == 0
+    preview = capsys.readouterr().out
+    for name in (
+        ".tow/config.json",
+        ".tow/tags.md",
+        ".tow/tag-dictionary.json",
+        ".tow/categories.md",
+        ".tow/category-dictionary.json",
+    ):
+        assert f"would create {name}" in preview
+    assert list(tmp_path.iterdir()) == []
+
+    assert tow.main(["--root", str(tmp_path), "init", "--apply"]) == 0
+    capsys.readouterr()
+    assert (tmp_path / ".tow/config.json").read_text() == '{"kind": "vault"}\n'
+    assert (tmp_path / ".tow/tag-dictionary.json").read_text() == "{\n}\n"
+    assert (tmp_path / ".tow/category-dictionary.json").read_text() == "{\n}\n"
+    assert (tmp_path / ".tow/tags.md").read_text() == (Path(tow.__file__).parent / "starters/tags.md").read_text()
+    assert (tmp_path / ".tow/categories.md").read_text() == (
+        Path(tow.__file__).parent / "starters/categories.md"
+    ).read_text()
+    assert tow.main(["--root", str(tmp_path), "init"]) == 0
+    assert capsys.readouterr().out.strip() == "nothing to create"
+
+
+def test_migrate_previews_then_copies_and_converts(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / "tow.json").write_text(
+        '{"scope": "vault", "tagDictionary": "Tag-Dictionary.json", '
+        '"categoryDictionary": "Category-Dictionary.md", "areas": "Knowledge"}'
+    )
+    (tmp_path / "Tag-Dictionary.json").write_bytes(b'{"alpha": {"description": "A"}}\r\n')
+    (tmp_path / "Category-Dictionary.md").write_text(
+        "# Categories\n### `ai` — artificial intelligence\n- `ai/rag` : retrieval augmented generation\n"
+    )
+
+    assert tow.main(["--root", str(tmp_path), "migrate"]) == 0
+    assert "would create .tow/config.json" in capsys.readouterr().out
+    assert not (tmp_path / ".tow").exists()
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 0
+    capsys.readouterr()
+    assert json.loads((tmp_path / ".tow/config.json").read_text()) == {
+        "kind": "vault",
+        "scope": "vault",
+        "areas": "Knowledge",
+    }
+    assert (tmp_path / ".tow/tag-dictionary.json").read_bytes() == b'{"alpha": {"description": "A"}}\r\n'
+    assert json.loads((tmp_path / ".tow/category-dictionary.json").read_text()) == {
+        "ai": {"description": "artificial intelligence"},
+        "ai/rag": {"description": "retrieval augmented generation"},
+    }
+    assert (tmp_path / "tow.json").exists()
+    assert (tmp_path / "Tag-Dictionary.json").exists()
+    assert (tmp_path / "Category-Dictionary.md").exists()
+
+
+def test_migrate_refuses_when_targets_exist(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / "tow.json").write_text("{}")
+    (tmp_path / "Tag-Dictionary.json").write_text("{}\n")
+    (tmp_path / "Category-Dictionary.md").write_text("- `ai` : AI\n")
+    (tmp_path / ".tow").mkdir()
+    (tmp_path / ".tow/config.json").write_text('{"kind": "vault"}')
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 2
+    assert "already exists" in capsys.readouterr().err
+    assert list((tmp_path / ".tow").iterdir()) == [tmp_path / ".tow/config.json"]
+
+
+def test_migrate_remove_legacy_requires_verified_copies(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / "tow.json").write_text('{"areas": "Knowledge"}')
+    (tmp_path / "Tag-Dictionary.json").write_text("{}\n")
+    (tmp_path / "Category-Dictionary.md").write_text("- `ai` : AI\n")
+    (tmp_path / ".tow").mkdir()
+    (tmp_path / ".tow/config.json").write_text('{"kind": "vault", "areas": "Knowledge"}')
+    (tmp_path / ".tow/tag-dictionary.json").write_text("tampered\n")
+    (tmp_path / ".tow/category-dictionary.json").write_text('{\n"ai": {"description": "AI"}\n}\n')
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--remove-legacy", "--apply"]) == 2
+    assert "verification" in capsys.readouterr().err
+    assert all((tmp_path / name).exists() for name in ("tow.json", "Tag-Dictionary.json", "Category-Dictionary.md"))
+
+
+def test_migrate_remove_legacy_verifies_starter_manual_copies(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text("{}")
+    (tmp_path / "Tag-Dictionary.json").write_text("{}\n")
+    (tmp_path / "Category-Dictionary.md").write_text("- `ai` : AI\n")
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 0
+    capsys.readouterr()
+    (tmp_path / ".tow/tags.md").write_text("changed manual\n")
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--remove-legacy", "--apply"]) == 2
+    assert "verification" in capsys.readouterr().err
+    assert all((tmp_path / name).exists() for name in ("tow.json", "Tag-Dictionary.json", "Category-Dictionary.md"))
+
+
+def test_migrate_remove_legacy_succeeds_when_tow_json_is_absent(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "Tag-Dictionary.json").write_text("{}\n")
+    (tmp_path / "Category-Dictionary.md").write_text("- `ai` : AI\n")
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 0
+    capsys.readouterr()
+    assert tow.main(["--root", str(tmp_path), "migrate", "--remove-legacy", "--apply"]) == 0
+    capsys.readouterr()
+    assert not (tmp_path / "Tag-Dictionary.json").exists()
+    assert not (tmp_path / "Category-Dictionary.md").exists()
+    assert (tmp_path / ".tow/config.json").exists()
+
+
+def test_migrate_remove_legacy_keeps_custom_dictionary_sources_after_verification(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "meta").mkdir()
+    (tmp_path / "tow.json").write_text(
+        '{"tagDictionary": "meta/tags.json", "categoryDictionary": "meta/categories.md"}'
+    )
+    (tmp_path / "meta/tags.json").write_text('{"alpha": {"description": "A"}}\n')
+    (tmp_path / "meta/categories.md").write_text("- `ai` : AI\n")
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 0
+    capsys.readouterr()
+    assert tow.main(["--root", str(tmp_path), "migrate", "--remove-legacy", "--apply"]) == 0
+    capsys.readouterr()
+    assert not (tmp_path / "tow.json").exists()
+    assert json.loads((tmp_path / ".tow/config.json").read_text()) == {
+        "kind": "vault",
+        "tagDictionary": "meta/tags.json",
+        "categoryDictionary": "meta/categories.md",
+    }
+    assert (tmp_path / "meta/tags.json").exists()
+    assert (tmp_path / "meta/categories.md").exists()
+
+
+def test_migrate_remove_legacy_deletes_only_after_verification(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text(
+        '{"areas": "Knowledge", "categoryDictionary": "Category-Dictionary.md", "tagDictionary": "Tag-Dictionary.json"}'
+    )
+    (tmp_path / "Tag-Dictionary.json").write_text('{"alpha": {"description": "A"}}\n')
+    (tmp_path / "Category-Dictionary.md").write_text("- `ai` : artificial intelligence\n")
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 0
+    capsys.readouterr()
+    assert tow.main(["--root", str(tmp_path), "migrate", "--remove-legacy"]) == 0
+    assert "would delete tow.json" in capsys.readouterr().out
+    assert all((tmp_path / name).exists() for name in ("tow.json", "Tag-Dictionary.json", "Category-Dictionary.md"))
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--remove-legacy", "--apply"]) == 0
+    capsys.readouterr()
+    assert all(not (tmp_path / name).exists() for name in ("tow.json", "Tag-Dictionary.json", "Category-Dictionary.md"))
+    assert (tmp_path / ".tow/config.json").exists()
 
 
 def test_vault_init_creates_only_requested_dictionaries_and_preserves_existing_files(

@@ -47,23 +47,34 @@ def user_config_file() -> Path:
     return Path.home() / ".tow" / "config.json"
 
 
+def write_text_atomic(path: Path, text: str, *, exclusive: bool = False) -> None:
+    """Atomically write UTF-8 text; exclusive writes never replace an existing path."""
+    if exclusive and (path.exists() or path.is_symlink()):
+        raise FileExistsError(f"file exists: {path}")
+    temporary: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", newline="", dir=path.parent, prefix=f".{path.name}.", delete=False
+        ) as file:
+            temporary = file.name
+            file.write(text)
+        if exclusive:
+            os.link(temporary, path)
+            os.unlink(temporary)
+        else:
+            os.replace(temporary, path)
+    finally:
+        if temporary is not None and os.path.exists(temporary):
+            os.unlink(temporary)
+
+
 def write_user_config(vault: Path) -> None:
     """Connect this user to a configured TOW vault."""
     if not vault.is_absolute() or not (tow_kind(vault) == "vault" or is_legacy_vault(vault)):
         raise ConfigError(f"not a TOW vault; run setup inside the vault first: {vault}")
     path = user_config_file()
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary: str | None = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="w", encoding="utf-8", dir=path.parent, prefix=f".{path.name}.", delete=False
-        ) as file:
-            temporary = file.name
-            file.write(json.dumps({"kind": "user", "vault": str(vault)}, indent=2))
-        os.replace(temporary, path)
-    finally:
-        if temporary is not None and os.path.exists(temporary):
-            os.unlink(temporary)
+    write_text_atomic(path, json.dumps({"kind": "user", "vault": str(vault)}, indent=2))
 
 
 def read_user_config() -> str | None:
