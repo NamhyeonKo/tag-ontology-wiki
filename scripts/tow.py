@@ -22,6 +22,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from datetime import date
@@ -33,6 +34,7 @@ from tow_core import CliError as CliError
 from tow_core import ConfigError as ConfigError
 from tow_core import resolve_vault as resolve_vault
 from tow_core import run_cli as run_cli
+from tow_core import serialize_entries as serialize_entries
 
 DEFAULTS: Final[dict[str, str]] = {
     "projects": "01_Projects",
@@ -70,12 +72,14 @@ TAG_LIMIT: Final = 15
 OVERVIEW_TAG_LIMIT: Final = 20
 NUMBERED_SECTION: Final = re.compile(r"\d+\.\d+\. ")
 CATEGORY_VALUE: Final = re.compile(r"^(?:- |### )`([^`]+)`")
+CATEGORY_NAME: Final = re.compile(r"[A-Za-z0-9-]+(?:/[A-Za-z0-9-]+)*")
 
 NOTE_COMMANDS: Final = frozenset({"scan", "usage", "show"})
 PATH_COMMANDS: Final = frozenset({"scan", "usage"})
 VALUE_OPTIONS: Final = frozenset({"--root", "--dictionary", "--exclude", "--names", "--base"})
 INIT_HINT: Final = 'run "tow init --dictionaries" to preview missing starter files'
-STARTER_CATEGORIES: Final = """---
+STARTER_CATEGORIES: Final = "{}\n"
+LEGACY_STARTER_CATEGORIES: Final = """---
 updated: {today}
 ---
 
@@ -183,6 +187,40 @@ def category_values(text: str) -> set[str]:
     return {m.group(1) for line in text.splitlines() if (m := CATEGORY_VALUE.match(line))}
 
 
+def category_entries(text: str) -> dict[str, dict[str, str]]:
+    """Parse a JSON category dictionary and reject values outside its data contract."""
+    try:
+        raw: object = json.loads(text)
+    except ValueError as e:
+        raise ConfigError(f"invalid category dictionary JSON: {e}") from e
+    if not isinstance(raw, dict):
+        raise ConfigError("category dictionary must be a JSON object")
+    entries: dict[str, dict[str, str]] = {}
+    for value, entry in cast(dict[str, object], raw).items():
+        if not isinstance(entry, dict):
+            raise ConfigError(f"category dictionary entry {value!r} must be an object")
+        fields = cast(dict[object, object], entry)
+        description = fields.get("description")
+        if set(fields) != {"description"} or not isinstance(description, str):
+            raise ConfigError(f"category dictionary entry {value!r} must contain only a string description")
+        entries[value] = {"description": description}
+    return entries
+
+
+def load_categories(root: Path, cfg: Mapping[str, str]) -> set[str]:
+    """Load registered category values from JSON or a legacy Markdown dictionary."""
+    path = root / cfg["categoryDictionary"]
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as e:
+        raise ConfigError(f"can't read the category dictionary: {path}; {INIT_HINT}") from e
+    if path.suffix == ".json":
+        return set(category_entries(text))
+    if path.suffix == ".md":
+        return category_values(text)
+    raise ConfigError(f"unsupported category dictionary format: {path}")
+
+
 def find(notes: Iterable[Note], prefix: str | None, filters: Mapping[str, str] | None = None) -> list[str]:
     """Paths of the notes that meet every condition given.
 
@@ -255,7 +293,12 @@ def scope_excludes(root: Path, cfg: dict[str, str], args: list[str]) -> list[str
     # If a vault needs that, ask for an escaping rule in the CLI contract.
     named = _named_roots(root, args)
     if cfg["scope"] == "vault":
-        outside = [] if Path(cfg["categoryDictionary"]).parts[0] in named else [cfg["categoryDictionary"]]
+        category_dictionary = Path(cfg["categoryDictionary"])
+        outside = (
+            [cfg["categoryDictionary"]]
+            if category_dictionary.suffix == ".md" and category_dictionary.parts[0] not in named
+            else []
+        )
         return [arg for path in sorted(outside) if (root / path).exists() for arg in ("--exclude", path)]
     keep = {cfg[k] for k in PARA} | named
     return [
@@ -365,11 +408,7 @@ def scan(root: Path, cfg: dict[str, str], paths: list[str], extra: list[str]) ->
 
 
 def cmd_lint(root: Path, cfg: dict[str, str], paths: list[str]) -> int:
-    dictionary = root / cfg["categoryDictionary"]
-    try:
-        categories = category_values(dictionary.read_text(encoding="utf-8"))
-    except OSError as e:
-        raise ConfigError(f"can't read the category dictionary: {dictionary}; {INIT_HINT}") from e
+    categories = load_categories(root, cfg)
     result = scan(root, cfg, paths, [])
     issues = [Issue(i["code"], i["severity"], i.get("path", ""), i["message"]) for i in result["issues"]]
     issues += lint(result["notes"], categories)
@@ -378,6 +417,41 @@ def cmd_lint(root: Path, cfg: dict[str, str], paths: list[str]) -> int:
     errors = sum(i.severity == "error" for i in issues)
     print(f"{errors} error(s), {len(issues) - errors} warning(s)" if issues else "OK")
     return 1 if errors else 0
+
+
+def cmd_category_add(root: Path, cfg: dict[str, str], value: str, description: str, apply: bool) -> int:
+    """Preview or add one category entry to the configured JSON dictionary."""
+    path = root / cfg["categoryDictionary"]
+    if path.suffix == ".md":
+        raise ConfigError('category add requires a JSON dictionary; run "tow migrate"')
+    if path.suffix != ".json":
+        raise ConfigError(f"unsupported category dictionary format: {path}")
+    if CATEGORY_NAME.fullmatch(value) is None:
+        raise ConfigError(f"invalid category value: {value!r}")
+    try:
+        entries = category_entries(path.read_text(encoding="utf-8"))
+    except OSError as e:
+        raise ConfigError(f"can't read the category dictionary: {path}; {INIT_HINT}") from e
+    if value in entries:
+        raise ConfigError(f"category already registered: {value}")
+    entries[value] = {"description": description}
+    if not apply:
+        print(f"would add {json.dumps(value, ensure_ascii=False)}: {description}")
+        return 0
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=path.parent, prefix=f".{path.name}.", delete=False
+        ) as file:
+            temporary = file.name
+            file.write(serialize_entries(entries))
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None and os.path.exists(temporary):
+            os.unlink(temporary)
+    print(f"added {json.dumps(value, ensure_ascii=False)}")
+    return 0
 
 
 def cmd_find(
@@ -417,8 +491,13 @@ def cmd_init(root: Path, cfg: dict[str, str], apply: bool, dictionaries: bool = 
                 raise ConfigError(f"init expected a parent folder: {parent}")
         if any(resolved == f or resolved.is_relative_to(f) for f in resolved_files if is_folder or resolved != f):
             raise ConfigError(f"init file/folder paths conflict: {target}")
+    category_starter = (
+        LEGACY_STARTER_CATEGORIES.format(today=date.today().isoformat())
+        if Path(cfg["categoryDictionary"]).suffix == ".md"
+        else STARTER_CATEGORIES
+    )
     starters = {
-        cfg["categoryDictionary"]: STARTER_CATEGORIES.format(today=date.today().isoformat()),
+        cfg["categoryDictionary"]: category_starter,
         cfg["tagDictionary"]: "{}\n",
     }
     missing = missing_paths(root, cfg, dictionaries)
@@ -459,6 +538,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--dictionaries", action="store_true", help="include starter dictionaries in a free-form vault")
     p = sub.add_parser("lint", help="check classification fields and tag counts")
     p.add_argument("paths", nargs="*")
+    p = sub.add_parser("category", help="manage registered categories")
+    category_sub = p.add_subparsers(dest="category_command", required=True)
+    p = category_sub.add_parser("add", help="add a category value after approval")
+    p.add_argument("value")
+    p.add_argument("description")
+    p.add_argument("--apply", action="store_true", help="write the category dictionary")
     p = sub.add_parser("verify-body", help="compare exact body bytes after a metadata-only edit (read-only)")
     p.add_argument("before", type=Path, help="independent snapshot inside the vault")
     p.add_argument("after", type=Path, help="candidate note inside the vault")
@@ -492,10 +577,14 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "init":
             return cmd_init(root, cfg, args.apply, args.dictionaries)
+        if args.command == "category":
+            return cmd_category_add(root, cfg, args.value, args.description, args.apply)
         named: list[str] = args.paths if args.command == "lint" else []
         if args.command == "ontology" and args.cli_command in PATH_COMMANDS:
             named = args.cli_args
-        if (args.command in ("lint", "find") or args.cli_command in NOTE_COMMANDS) and not _named_roots(root, named):
+        if (
+            args.command in ("lint", "find") or (args.command == "ontology" and args.cli_command in NOTE_COMMANDS)
+        ) and not _named_roots(root, named):
             warn_if_scope_is_empty(root, cfg)
         if args.command == "lint":
             return cmd_lint(root, cfg, args.paths)

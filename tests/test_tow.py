@@ -124,6 +124,39 @@ def test_category_values_reads_bullets_and_h3_headers() -> None:
     assert tow.category_values(text) == {"ai", "ai/rag"}
 
 
+def test_category_entries_reads_descriptions() -> None:
+    assert tow.category_entries('{"ai": {"description": "Artificial intelligence"}}') == {
+        "ai": {"description": "Artificial intelligence"}
+    }
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "[]",
+        '"ai"',
+        '{"ai": "description"}',
+        '{"ai": {"description": 1}}',
+        '{"ai": {"description": "x", "other": "y"}}',
+        '{"ai": {"description": "x", "0": "y"}}',
+        "not json",
+    ],
+)
+def test_category_entries_rejects_invalid_shapes(text: str) -> None:
+    with pytest.raises(tow.ConfigError):
+        tow.category_entries(text)
+
+
+def test_load_categories_supports_json_and_markdown(tmp_path: Path) -> None:
+    json_path = tmp_path / "categories.json"
+    json_path.write_text('{"ai/rag": {"description": "RAG"}}\n')
+    markdown_path = tmp_path / "categories.md"
+    markdown_path.write_text("### `ai` — artificial intelligence\n")
+
+    assert tow.load_categories(tmp_path, {"categoryDictionary": "categories.json"}) == {"ai/rag"}
+    assert tow.load_categories(tmp_path, {"categoryDictionary": "categories.md"}) == {"ai"}
+
+
 # find
 
 
@@ -320,6 +353,15 @@ def test_vault_scan_keeps_an_explicitly_selected_nested_category_dictionary(tmp_
     assert tow.scope_excludes(tmp_path, cfg, [str(tmp_path / "meta/categories.md")]) == []
 
 
+def test_vault_scope_does_not_exclude_a_json_category_dictionary(tmp_path: Path) -> None:
+    dictionary = tmp_path / ".tow/category-dictionary.json"
+    dictionary.parent.mkdir()
+    dictionary.write_text("{}\n")
+    cfg = {**tow.DEFAULTS, "scope": "vault", "categoryDictionary": ".tow/category-dictionary.json"}
+
+    assert tow.scope_excludes(tmp_path, cfg, []) == []
+
+
 def test_ontology_args_for_show_add_settings_and_skip_project_archives() -> None:
     args = tow.ontology_args("show", ["rag", "--notes"], "/v", tow.DEFAULTS, ["--exclude", "00_Inbox"])
     assert args == [
@@ -388,6 +430,32 @@ def test_main_lint_exits_1_and_prints_errors(
     assert "unknown-category" in out
     assert "03_Resources/a.md" in out
     assert json.loads((fake / "args.json").read_text())[:4] == ["scan", "--json", "--root", str(root)]
+
+
+def test_lint_reads_a_json_category_dictionary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = tmp_path / "vault"
+    (root / ".tow").mkdir(parents=True)
+    (root / ".tow/config.json").write_text('{"kind": "vault"}')
+    (root / ".tow/category-dictionary.json").write_text(
+        '{"ai": {"description": "Artificial intelligence"}, "ai/rag": {"description": "RAG"}}\n'
+    )
+    (root / ".tow/tag-dictionary.json").write_text("{}\n")
+    fake_cli(tmp_path, monkeypatch, scan_of(note("a.md", {"type": "resource", "category": ["ai/rag"]})))
+
+    assert tow.main(["--root", str(root), "lint"]) == 0
+    assert capsys.readouterr().out.strip() == "OK"
+
+
+def test_lint_still_reads_a_markdown_category_dictionary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = vault(tmp_path)
+    fake_cli(tmp_path, monkeypatch, scan_of(note("03_Resources/a.md", {"type": "resource", "category": ["ai/rag"]})))
+
+    assert tow.main(["--root", str(root), "lint"]) == 0
+    assert capsys.readouterr().out.strip() == "OK"
 
 
 def test_main_lint_prints_ok_for_a_clean_vault(
@@ -460,6 +528,51 @@ def test_main_reports_a_cli_that_prints_no_json(
     monkeypatch.setenv("TOW_TAG_ONTOLOGY", f"{sys.executable} {script}")
     assert tow.main(["--root", str(root), "lint"]) == 2
     assert "npm error 404" in capsys.readouterr().err
+
+
+def test_category_add_previews_then_writes_one_entry_per_line(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = tmp_path / "vault"
+    dictionary = root / ".tow/category-dictionary.json"
+    dictionary.parent.mkdir(parents=True)
+    dictionary.write_text('{"ai": {"description": "Artificial intelligence"}}\n')
+    (root / ".tow/config.json").write_text('{"kind": "vault"}')
+
+    assert tow.main(["--root", str(root), "category", "add", "ai/rag", "Retrieval-augmented generation"]) == 0
+    assert capsys.readouterr().out == 'would add "ai/rag": Retrieval-augmented generation\n'
+    assert json.loads(dictionary.read_text()) == {"ai": {"description": "Artificial intelligence"}}
+
+    assert (
+        tow.main(["--root", str(root), "category", "add", "ai/rag", "Retrieval-augmented generation", "--apply"]) == 0
+    )
+    assert capsys.readouterr().out == 'added "ai/rag"\n'
+    assert dictionary.read_text() == (
+        '{\n"ai": {"description": "Artificial intelligence"},\n'
+        '"ai/rag": {"description": "Retrieval-augmented generation"}\n}\n'
+    )
+
+
+def test_category_add_refuses_duplicates_invalid_values_and_markdown_dictionaries(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = tmp_path / "vault"
+    root.mkdir()
+    json_path = root / ".tow/category-dictionary.json"
+    json_path.parent.mkdir()
+    json_path.write_text('{"ai": {"description": "Artificial intelligence"}}\n')
+    (root / ".tow/config.json").write_text('{"kind": "vault"}')
+
+    assert tow.main(["--root", str(root), "category", "add", "ai", "Duplicate"]) == 2
+    assert "already registered" in capsys.readouterr().err
+    assert tow.main(["--root", str(root), "category", "add", "ai/with space", "Invalid"]) == 2
+    assert "invalid category" in capsys.readouterr().err
+
+    (root / ".tow/config.json").unlink()
+    (root / "tow.json").write_text('{"categoryDictionary": "Category-Dictionary.md"}')
+    (root / "Category-Dictionary.md").write_text("- `ai` : AI\n")
+    assert tow.main(["--root", str(root), "category", "add", "web", "Web"]) == 2
+    assert 'run "tow migrate"' in capsys.readouterr().err
 
 
 def test_main_config_prints_the_merged_settings(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -545,6 +658,17 @@ def test_init_reports_filesystem_errors(
     monkeypatch.setattr(Path, "mkdir", denied)
     assert tow.main(["--root", str(tmp_path), "init", "--apply"]) == 2
     assert "fixture permission denied" in capsys.readouterr().err
+
+
+def test_init_creates_a_json_category_dictionary_for_tow_vaults(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / ".tow").mkdir()
+    (tmp_path / ".tow/config.json").write_text('{"kind": "vault"}')
+
+    assert tow.main(["--root", str(tmp_path), "init", "--dictionaries", "--apply"]) == 0
+    capsys.readouterr()
+    assert json.loads((tmp_path / ".tow/category-dictionary.json").read_text()) == {}
 
 
 def test_init_lists_missing_paths_and_creates_them_only_with_apply(
