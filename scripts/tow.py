@@ -16,6 +16,9 @@
                                              initialize project metadata
   tow.py [--root DIR] project tag CHANGES [--apply]
                                              attach approved tags to project documents and refresh the subset
+  tow.py project status|files              report project metadata or list Markdown files by Git status
+  tow.py [--root DIR] project concepts PROJECT
+                                             print additions for project-only concepts (from inside the vault)
 
 Note metadata is parsed through `tag-ontology scan --json`. `verify-body` only separates a leading frontmatter block.
 Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.2.0).
@@ -47,7 +50,10 @@ from tow_core import serialize_entries as serialize_entries
 from tow_core import tow_kind as tow_kind
 from tow_core import write_text_atomic as write_text_atomic
 from tow_core import write_user_config as write_user_config
+from tow_project import cmd_project_concepts as cmd_project_concepts
+from tow_project import cmd_project_files as cmd_project_files
 from tow_project import cmd_project_init as cmd_project_init
+from tow_project import cmd_project_status as cmd_project_status
 from tow_project import cmd_project_tag as cmd_project_tag
 from tow_project import cmd_send as cmd_send
 
@@ -783,6 +789,10 @@ def main(argv: list[str] | None = None) -> int:
     p = project_sub.add_parser("tag", help="attach approved tags to project documents; --apply writes .tow/")
     p.add_argument("changes", type=Path, help='{"documents": {path: [tag, ...]}, "concepts": {tag: {...}}}')
     p.add_argument("--apply", action="store_true", help="write project .tow/ files")
+    project_sub.add_parser("status", help="report stale documents and unknown tags")
+    project_sub.add_parser("files", help="list Markdown files with Git status")
+    p = project_sub.add_parser("concepts", help="print project-only concept additions for a vault")
+    p.add_argument("project_path", type=Path, help="project directory")
     p = sub.add_parser("send", help="create a new vault note from a project draft")
     p.add_argument("draft", type=Path, help="draft note containing frontmatter and body")
     p.add_argument("dest", help="new vault-relative note path under a configured note folder")
@@ -810,6 +820,30 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "connect":
             return cmd_connect(args.vault, args.apply)
+        if args.command == "project" and args.project_command == "files":
+            project = resolve_project(Path.cwd(), None)
+            if project is None:
+                raise ConfigError("project files must run outside the vault")
+            return cmd_project_files(project)
+        if args.command == "project" and args.project_command == "status":
+            try:
+                vault_ref = resolve_vault(Path.cwd(), args.root, os.environ)
+            except ConfigError as e:
+                if args.root is None and str(e).startswith("no vault found"):
+                    project = resolve_project(Path.cwd(), None)
+                    if project is None:
+                        raise ConfigError("project status must run outside the vault") from e
+                    return cmd_project_status(project)
+                raise
+            project = resolve_project(Path.cwd(), vault_ref.root)
+            if project is None:
+                raise ConfigError("project status must run outside the vault")
+            return cmd_project_status(project, vault_ref.root, read_config(vault_ref.root))
+        if args.command == "project" and args.project_command == "concepts":
+            vault = resolve_vault(Path.cwd(), args.root, os.environ).root
+            if not Path.cwd().resolve().is_relative_to(vault.resolve()):
+                raise ConfigError(f"project concepts must run inside the vault: {vault}")
+            return cmd_project_concepts(args.project_path, vault, read_config(vault))
         vault_ref = resolve_vault(Path.cwd(), args.root, os.environ)
         root = vault_ref.root
         if args.command == "verify-body":

@@ -6,13 +6,22 @@ import contextlib
 import hashlib
 import json
 import os
+import re
 import subprocess
 import tempfile
 from collections.abc import Mapping
 from pathlib import Path, PurePosixPath
 from typing import Any, Literal, cast
 
-from tow_core import CliError, ConfigError, body_bytes, run_cli, serialize_entries, tow_kind, write_text_atomic
+from tow_core import (
+    CliError,
+    ConfigError,
+    body_bytes,
+    run_cli,
+    serialize_entries,
+    tow_kind,
+    write_text_atomic,
+)
 
 NOTE_FOLDERS = ("projects", "areas", "resources", "inbox")
 DOCUMENTS = ".tow/documents.json"
@@ -264,16 +273,30 @@ def cmd_project_init(
     return 0
 
 
+def _project_root(project: Path) -> Path:
+    root = project.resolve()
+    if tow_kind(root) != "project":
+        raise ConfigError(f"not a TOW project; run tow project init first: {root}")
+    if (root / ".tow").resolve() != root / ".tow":
+        raise ConfigError(f"project .tow must be a folder inside the project: {root}")
+    if not (root / ".tow").is_dir():
+        raise ConfigError(f"project .tow must be a folder: {root}")
+    return root
+
+
+def _document_sha256(path: Path, key: str) -> str:
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError as e:
+        raise ConfigError(f"can't read project document {key}: {e}") from e
+
+
 def cmd_project_tag(project: Path, vault: Path, vault_cfg: Mapping[str, str], changes: Path, apply: bool) -> int:
     """Preview or apply an approved change set to project document metadata and the project dictionary.
 
     Writes only project .tow/ files; project documents and the vault dictionary are never written.
     """
-    project_root = project.resolve()
-    if tow_kind(project_root) != "project":
-        raise ConfigError(f"not a TOW project; run tow project init first: {project_root}")
-    if (project_root / ".tow").resolve() != project_root / ".tow":
-        raise ConfigError(f"project .tow must be a folder inside the project: {project_root}")
+    project_root = _project_root(project)
     documents, concepts = _read_changes(changes)
     vault_tags = _read_object(vault / vault_cfg["tagDictionary"])
     old = {name: _read_object(project_root / name, missing_ok=True) for name in (DOCUMENTS, LOCAL_DOCUMENTS)}
@@ -301,10 +324,7 @@ def cmd_project_tag(project: Path, vault: Path, vault_cfg: Mapping[str, str], ch
             continue
         if not _exists_exactly(project_root, key):
             raise ConfigError(f"project document not found with this exact path and case: {key}")
-        try:
-            digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        except OSError as e:
-            raise ConfigError(f"can't read project document {key}: {e}") from e
+        digest = _document_sha256(path, key)
         local = mode == "shared" and not _tracked(project_root, key)
         new[LOCAL_DOCUMENTS if local else DOCUMENTS][key] = {"tags": tags, "sha256": digest}
     if (
@@ -363,6 +383,163 @@ def cmd_project_tag(project: Path, vault: Path, vault_cfg: Mapping[str, str], ch
     for name in (PROJECT_DICTIONARY, DOCUMENTS, LOCAL_DOCUMENTS):
         if new[name] != old[name]:
             print(f"updated {name}")
+    return 0
+
+
+def cmd_project_status(project: Path, vault: Path | None = None, cfg: Mapping[str, str] | None = None) -> int:
+    """Report stale project document metadata and tags absent from the project dictionary."""
+    root = _project_root(project)
+    dictionaries = _read_object(root / PROJECT_DICTIONARY, missing_ok=True)
+    vault_dictionaries: set[str] = set()
+    if vault is not None and cfg is not None:
+        vault_dictionaries = set(_read_object(vault / cfg["tagDictionary"]))
+    else:
+        print("vault dictionary not checked")
+    overlays = [
+        _read_object(root / name, missing_ok=True) for name in (DOCUMENTS, LOCAL_DOCUMENTS) if (root / name).is_file()
+    ]
+    missing: list[tuple[str, str, list[str]]] = []
+    reports: list[tuple[str, list[str]]] = []
+    for entries in overlays:
+        for key, raw_entry in entries.items():
+            if not isinstance(raw_entry, dict):
+                continue
+            entry = cast(dict[str, Any], raw_entry)
+            recorded = entry.get("sha256")
+            if not isinstance(recorded, str):
+                continue
+            try:
+                path = _document_path(root, key)
+            except ConfigError:
+                continue
+            findings: list[str] = []
+            if _exists_exactly(root, key):
+                digest = _document_sha256(path, key)
+                if digest != recorded:
+                    findings.append(f"stale {key}")
+            else:
+                findings.append(f"missing {key}")
+                missing.append((key, recorded, findings))
+            for tag in _strings(entry, "tags"):
+                if tag not in dictionaries and tag not in vault_dictionaries:
+                    findings.append(f"unknown-tag {key} {tag}")
+            reports.append((key, findings))
+    if missing:
+        candidates: dict[str, list[str]] = {}
+        for path in root.rglob("*.md"):
+            relative = path.relative_to(root)
+            if not path.is_file() or path.is_symlink() or any(part.startswith(".") for part in relative.parts):
+                continue
+            key = relative.as_posix()
+            candidates.setdefault(_document_sha256(path, key), []).append(key)
+        for old_key, recorded, findings in missing:
+            findings.extend(f"  moved? {key}" for key in candidates.get(recorded, []) if key != old_key)
+    lines = [line for _, findings in sorted(reports) for line in findings]
+    for line in lines:
+        print(line)
+    if not lines:
+        print("OK")
+    return 0
+
+
+def _project_excluded(key: str, pattern: str) -> bool:
+    """Match a project document against a glob or any containing directory."""
+    parts = PurePosixPath(key).parts
+    pattern = pattern.removeprefix("./").rstrip("/")
+    regex = re.escape(pattern)
+    regex = regex.replace(r"\*\*/", "(?:.*/)?")
+    regex = regex.replace(r"\*\*", ".*")
+    regex = regex.replace(r"\*", "[^/]*")
+    regex = regex.replace(r"\?", "[^/]")
+    matcher = re.compile(f"^{regex}$")
+    return any(matcher.fullmatch("/".join(parts[:index])) for index in range(1, len(parts) + 1))
+
+
+def project_files(project: Path) -> list[tuple[Literal["tracked", "untracked", "ignored"], str]]:
+    """List visible Markdown documents by Git status without opening their contents."""
+    root = _project_root(project)
+    config = _read_object(root / ".tow" / "config.json")
+    docs = config.get("docs", [])
+    excludes = config.get("exclude", [])
+    if not _is_strings(docs) or not _is_strings(excludes):
+        raise ConfigError("project config docs and exclude must be lists of strings")
+    files = {
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*.md")
+        if path.is_file()
+        and not path.is_symlink()
+        and path.suffix == ".md"
+        and not any(part.startswith(".") for part in path.relative_to(root).parts)
+    }
+    if docs:
+        files = {
+            key for key in files if any(key == doc.rstrip("/") or key.startswith(doc.rstrip("/") + "/") for doc in docs)
+        }
+    files = {key for key in files if not any(_project_excluded(key, pattern) for pattern in excludes)}
+    tracked_out = git(root, "ls-files")
+    visible_out = git(root, "ls-files", "--others", "--exclude-standard")
+    ignored_out = git(root, "ls-files", "--others", "--ignored", "--exclude-standard")
+    if tracked_out is None or visible_out is None or ignored_out is None:
+        raise ConfigError("can't determine project file Git status")
+    tracked = set(tracked_out.splitlines())
+    untracked = set(visible_out.splitlines())
+    ignored = set(ignored_out.splitlines())
+    status_order = {"tracked": 0, "untracked": 1, "ignored": 2}
+    return sorted(
+        (
+            ("tracked" if key in tracked else "ignored" if key in ignored else "untracked", key)
+            for key in files
+            if key in tracked or key in ignored or key in untracked
+        ),
+        key=lambda item: (status_order[item[0]], item[1]),
+    )
+
+
+def cmd_project_files(project: Path) -> int:
+    for status, key in project_files(project):
+        print(f"{status} {key}")
+    return 0
+
+
+def cmd_project_concepts(project: Path, vault: Path, cfg: Mapping[str, str]) -> int:
+    """Print additions for project concepts that do not exist in the connected vault."""
+    project_dictionary = _read_object(_project_root(project) / PROJECT_DICTIONARY, missing_ok=True)
+    vault_dictionary = _read_object(vault.resolve() / cfg["tagDictionary"])
+    project_only: dict[str, dict[str, Any]] = {
+        tag: cast(dict[str, Any], entry)
+        for tag, entry in project_dictionary.items()
+        if tag not in vault_dictionary and isinstance(entry, dict)
+    }
+    children_by_parent: dict[str, list[str]] = {}
+    related_by_tag: dict[str, set[str]] = {}
+    for child, entry in project_only.items():
+        for parent in _strings(entry, "broader"):
+            if parent in project_only:
+                children_by_parent.setdefault(parent, []).append(child)
+        for target in _strings(entry, "related"):
+            if target in project_only:
+                related_by_tag.setdefault(child, set()).add(target)
+                related_by_tag.setdefault(target, set()).add(child)
+
+    additions: list[dict[str, Any]] = []
+    for tag in sorted(project_only):
+        entry = project_only[tag]
+        related = {target for target in _strings(entry, "related") if target in vault_dictionary}
+        related.update(target for target in related_by_tag.get(tag, set()) if target < tag)
+        additions.append(
+            {
+                "kind": "add",
+                "draft": {
+                    "name": tag,
+                    "description": entry.get("description", ""),
+                    "aliases": _strings(entry, "aliases"),
+                    "parents": _strings(entry, "broader"),
+                    "children": sorted(children_by_parent.get(tag, [])),
+                    "related": sorted(related),
+                },
+            }
+        )
+    print(json.dumps({"changes": additions}, ensure_ascii=False, indent=2))
     return 0
 
 

@@ -615,3 +615,224 @@ def test_project_tag_writes_a_moved_entry_to_its_new_file_first(
 
     files = [project / ".tow" / name for name in ("documents.json", "documents.local.json")]
     assert any("draft.md" in read_json(path) for path in files if path.exists())
+
+
+def test_project_status_reports_stale_entries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project, _ = tag_setup(tmp_path, monkeypatch)
+    document = project / "note.md"
+    document.write_text("before\n", encoding="utf-8")
+    git(project, "add", "note.md")
+    (project / ".tow" / "documents.json").write_text(
+        json.dumps({"note.md": {"tags": ["used"], "sha256": sha256(document)}}), encoding="utf-8"
+    )
+    (project / ".tow" / "tag-dictionary.json").write_text(json.dumps({"used": VAULT_TAGS["used"]}), encoding="utf-8")
+    document.write_text("after\n", encoding="utf-8")
+    capsys.readouterr()
+
+    assert tow_project.cmd_project_status(project, tmp_path / "vault", TAG_CFG) == 0
+
+    assert capsys.readouterr().out.splitlines() == ["stale note.md"]
+
+
+def test_project_status_suggests_a_renamed_file_by_hash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch)
+    document = project / "renamed.md"
+    document.write_bytes(b"identical bytes\n")
+    (project / ".tow" / "documents.json").write_text(
+        json.dumps({"old.md": {"tags": ["used"], "sha256": sha256(document)}}), encoding="utf-8"
+    )
+    (project / ".tow" / "tag-dictionary.json").write_text(json.dumps({"used": VAULT_TAGS["used"]}), encoding="utf-8")
+    capsys.readouterr()
+
+    assert tow_project.cmd_project_status(project, vault, TAG_CFG) == 0
+
+    assert capsys.readouterr().out.splitlines() == ["missing old.md", "  moved? renamed.md"]
+
+
+def test_project_status_reports_tags_missing_from_the_project_dictionary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch)
+    document = project / "note.md"
+    document.write_text("note\n", encoding="utf-8")
+    entry = {"tags": ["vault-known", "missing"], "sha256": sha256(document)}
+    (project / ".tow" / "documents.json").write_text(json.dumps({"note.md": entry}), encoding="utf-8")
+    (project / ".tow" / "tag-dictionary.json").write_text("{}\n", encoding="utf-8")
+    (vault / ".tow" / "tag-dictionary.json").write_text(
+        json.dumps({"vault-known": VAULT_TAGS["used"]}), encoding="utf-8"
+    )
+    capsys.readouterr()
+
+    assert tow_project.cmd_project_status(project, vault, TAG_CFG) == 0
+
+    assert capsys.readouterr().out.splitlines() == ["unknown-tag note.md missing"]
+
+
+def test_project_status_is_read_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch)
+    (project / "note.md").write_text("note\n", encoding="utf-8")
+    before = snapshot(project)
+    vault_before = snapshot(vault)
+    capsys.readouterr()
+
+    assert tow_project.cmd_project_status(project, vault, TAG_CFG) == 0
+
+    assert snapshot(project) == before
+    assert snapshot(vault) == vault_before
+    assert capsys.readouterr().out.splitlines() == ["OK"]
+
+
+def test_project_files_lists_tracked_untracked_and_ignored_names(
+    tmp_path: Path,
+) -> None:
+    project = init_repo(tmp_path / "project")
+    for name in ("tracked.md", "draft.md", "private.md"):
+        (project / name).write_text(f"{name}\n", encoding="utf-8")
+    (project / ".gitignore").write_text("private.md\n", encoding="utf-8")
+    git(project, "add", "tracked.md", ".gitignore")
+    (project / ".tow").mkdir()
+    (project / ".tow" / "config.json").write_text('{"kind": "project"}\n', encoding="utf-8")
+
+    assert tow_project.project_files(project) == [
+        ("tracked", "tracked.md"),
+        ("untracked", "draft.md"),
+        ("ignored", "private.md"),
+    ]
+
+
+def test_project_files_applies_docs_and_exclude(tmp_path: Path) -> None:
+    project = init_repo(tmp_path / "project")
+    for name in ("docs/keep.md", "docs/vendor/drop.md", "other.md", ".hidden/secret.md"):
+        path = project / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("content\n", encoding="utf-8")
+    (project / ".tow").mkdir()
+    (project / ".tow" / "config.json").write_text(
+        json.dumps({"kind": "project", "docs": ["docs"], "exclude": ["**/vendor"]}) + "\n", encoding="utf-8"
+    )
+
+    assert tow_project.project_files(project) == [("untracked", "docs/keep.md")]
+
+
+def test_project_files_cli_lists_document_names(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project = init_repo(tmp_path / "project")
+    (project / "note.md").write_text("note\n", encoding="utf-8")
+    (project / ".tow").mkdir()
+    (project / ".tow" / "config.json").write_text('{"kind": "project"}\n', encoding="utf-8")
+    vault = make_vault(tmp_path / "vault")
+    monkeypatch.chdir(project)
+
+    assert tow.main(["--root", str(vault), "project", "files"]) == 0
+    assert capsys.readouterr().out.splitlines() == ["untracked note.md"]
+
+
+def test_project_files_lists_names_without_reading_markdown(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    project = init_repo(tmp_path / "project")
+    document = project / "note.md"
+    document.write_text("must not be read", encoding="utf-8")
+    (project / ".tow").mkdir()
+    (project / ".tow" / "config.json").write_text('{"kind": "project"}\n', encoding="utf-8")
+    original_read_bytes = Path.read_bytes
+    original_read_text = Path.read_text
+
+    def reject_markdown_reads(path: Path, *args: Any, **kwargs: Any) -> Any:
+        if path.suffix == ".md":
+            raise AssertionError(f"read Markdown contents: {path}")
+        return original_read_bytes(path, *args, **kwargs)
+
+    def reject_markdown_text_reads(path: Path, *args: Any, **kwargs: Any) -> Any:
+        if path.suffix == ".md":
+            raise AssertionError(f"read Markdown contents: {path}")
+        return original_read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_bytes", reject_markdown_reads)
+    monkeypatch.setattr(Path, "read_text", reject_markdown_text_reads)
+
+    assert tow_project.project_files(project) == [("untracked", "note.md")]
+
+
+def test_project_concepts_cli_emits_import_data(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project = tmp_path / "project"
+    (project / ".tow").mkdir(parents=True)
+    (project / ".tow" / "config.json").write_text('{"kind": "project"}\n', encoding="utf-8")
+    (project / ".tow" / "tag-dictionary.json").write_text("{}\n", encoding="utf-8")
+    vault = make_vault(tmp_path / "vault")
+    (vault / ".tow" / "config.json").write_text('{"kind": "vault"}\n', encoding="utf-8")
+    (vault / ".tow" / "tag-dictionary.json").write_text("{}\n", encoding="utf-8")
+    monkeypatch.chdir(vault)
+
+    assert tow.main(["--root", str(vault), "project", "concepts", str(project)]) == 0
+    assert json.loads(capsys.readouterr().out) == {"changes": []}
+
+
+def test_project_concepts_emits_additions_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project = tmp_path / "project"
+    (project / ".tow").mkdir(parents=True)
+    (project / ".tow" / "config.json").write_text('{"kind": "project"}\n', encoding="utf-8")
+    vault = make_vault(tmp_path / "vault")
+    monkeypatch.chdir(vault)
+    vault_entry = {
+        "description": "Vault concept",
+        "aliases": ["v"],
+        "broader": [],
+        "related": ["project-only"],
+    }
+    project_entry = {
+        "description": "Vault concept",
+        "aliases": ["v"],
+        "broader": [],
+    }  # project subset prunes the vault's related link
+    project_only = {"description": "Project concept", "aliases": ["pc"], "broader": ["vault-tag"]}
+    project_child = {"description": "Project child", "broader": ["project-only"], "related": []}
+    (vault / ".tow" / "tag-dictionary.json").write_text(json.dumps({"vault-tag": vault_entry}), encoding="utf-8")
+    (project / ".tow" / "tag-dictionary.json").write_text(
+        json.dumps({"vault-tag": project_entry, "project-only": project_only, "project-child": project_child}),
+        encoding="utf-8",
+    )
+
+    before = snapshot(project)
+    vault_before = snapshot(vault)
+
+    assert tow_project.cmd_project_concepts(project, vault, TAG_CFG) == 0
+
+    assert snapshot(project) == before
+    assert snapshot(vault) == vault_before
+    output = json.loads(capsys.readouterr().out)
+    assert output == {
+        "changes": [
+            {
+                "kind": "add",
+                "draft": {
+                    "name": "project-child",
+                    "description": "Project child",
+                    "aliases": [],
+                    "parents": ["project-only"],
+                    "children": [],
+                    "related": [],
+                },
+            },
+            {
+                "kind": "add",
+                "draft": {
+                    "name": "project-only",
+                    "description": "Project concept",
+                    "aliases": ["pc"],
+                    "parents": ["vault-tag"],
+                    "children": ["project-child"],
+                    "related": [],
+                },
+            },
+        ]
+    }
