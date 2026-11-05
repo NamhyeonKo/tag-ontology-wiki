@@ -14,6 +14,8 @@
   tow.py [--root DIR] ontology CMD [ARG...]  run the tag-ontology CLI with the vault's settings
   tow.py [--root DIR] project init --mode {local,shared} [--exclude GLOB] [--apply]
                                              initialize project metadata
+  tow.py [--root DIR] project tag CHANGES [--apply]
+                                             attach approved tags to project documents and refresh the subset
 
 Note metadata is parsed through `tag-ontology scan --json`. `verify-body` only separates a leading frontmatter block.
 Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.2.0).
@@ -46,6 +48,7 @@ from tow_core import tow_kind as tow_kind
 from tow_core import write_text_atomic as write_text_atomic
 from tow_core import write_user_config as write_user_config
 from tow_project import cmd_project_init as cmd_project_init
+from tow_project import cmd_project_tag as cmd_project_tag
 from tow_project import cmd_send as cmd_send
 
 DEFAULTS: Final[dict[str, str]] = {
@@ -777,6 +780,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--mode", choices=("local", "shared"), required=True)
     p.add_argument("--exclude", action="append", default=[], metavar="GLOB", help="exclude a project document glob")
     p.add_argument("--apply", action="store_true", help="create project metadata")
+    p = project_sub.add_parser("tag", help="attach approved tags to project documents; --apply writes .tow/")
+    p.add_argument("changes", type=Path, help='{"documents": {path: [tag, ...]}, "concepts": {tag: {...}}}')
+    p.add_argument("--apply", action="store_true", help="write project .tow/ files")
     p = sub.add_parser("send", help="create a new vault note from a project draft")
     p.add_argument("draft", type=Path, help="draft note containing frontmatter and body")
     p.add_argument("dest", help="new vault-relative note path under a configured note folder")
@@ -814,7 +820,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "project":
             project = resolve_project(Path.cwd(), root)
             if project is None:
-                raise ConfigError("project init must run outside the vault")
+                raise ConfigError(f"project {args.project_command} must run outside the vault")
+            if args.project_command == "tag":
+                return cmd_project_tag(project, root, cfg, args.changes, args.apply)
             return cmd_project_init(project, root, cfg, args.mode, args.exclude, args.apply)
         if args.command == "config":
             print(json.dumps(cfg, ensure_ascii=False, indent=2))

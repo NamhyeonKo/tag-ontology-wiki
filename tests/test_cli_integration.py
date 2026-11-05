@@ -176,3 +176,38 @@ def test_real_cli_plan_apply_and_stale_base_preserve_write_boundaries(
     conflict = json.loads(run(real_vault, "ontology", "apply", str(changes), "--base", plan["base"], "--json", code=3))
     assert conflict["conflict"]["current"] == applied["hash"]
     assert snapshot(real_vault) == after
+
+
+def test_real_cli_project_tag_refreshes_the_subset_and_validates_it(
+    real_vault: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "gitconfig").write_text("")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(tmp_path / "gitconfig"))
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    project = tmp_path / "project"
+    project.mkdir()
+    subprocess.run(["git", "-C", str(project), "init", "-q"], check=True)
+    (project / "notes.md").write_text("# Notes\n")
+    subprocess.run(["git", "-C", str(project), "add", "notes.md"], check=True)
+    monkeypatch.chdir(project)
+    run(real_vault, "project", "init", "--mode", "shared", "--apply")
+    vault_before = snapshot(real_vault)
+    concept = {"description": "Our ranking experiments.", "broader": ["bm25"]}
+    changes = tmp_path / "changes.json"
+    changes.write_text(
+        json.dumps({"documents": {"notes.md": ["rag", "ranking-lab"]}, "concepts": {"ranking-lab": concept}})
+    )
+
+    assert "would add notes.md to .tow/documents.json" in run(real_vault, "project", "tag", str(changes))
+    run(real_vault, "project", "tag", str(changes), "--apply")
+
+    dictionary = json.loads((project / ".tow" / "tag-dictionary.json").read_text())
+    assert set(dictionary) == {"bm25", "information-retrieval", "rag", "ranking-lab"}
+    assert dictionary["ranking-lab"] == concept
+    assert json.loads((project / ".tow" / "documents.json").read_text())["notes.md"]["tags"] == ["rag", "ranking-lab"]
+    project_before = snapshot(project / ".tow")
+    concept["broader"] = ["nowhere"]
+    changes.write_text(json.dumps({"documents": {}, "concepts": {"ranking-lab": concept}}))
+    run(real_vault, "project", "tag", str(changes), "--apply", code=2)
+    assert snapshot(project / ".tow") == project_before
+    assert snapshot(real_vault) == vault_before

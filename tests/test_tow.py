@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from conftest import fake_cli
 
 import tow
 import tow_core
@@ -545,20 +546,6 @@ def test_read_commands_work_from_another_project(
 
 
 # command line, against a stand-in for the tag-ontology CLI
-
-
-def fake_cli(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scan: dict[str, Any]) -> Path:
-    """Point TOW_TAG_ONTOLOGY at a script that records its arguments and prints `scan`."""
-    (tmp_path / "scan.json").write_text(json.dumps(scan))
-    script = tmp_path / "fake_cli.py"
-    script.write_text(
-        "import json, pathlib, sys\n"
-        f"d = pathlib.Path({str(tmp_path)!r})\n"
-        "(d / 'args.json').write_text(json.dumps(sys.argv[1:]))\n"
-        "print((d / 'scan.json').read_text())\n"
-    )
-    monkeypatch.setenv("TOW_TAG_ONTOLOGY", f"{sys.executable} {script}")
-    return tmp_path
 
 
 def vault(tmp_path: Path) -> Path:

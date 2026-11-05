@@ -1,9 +1,11 @@
+import hashlib
 import json
 import subprocess
 from pathlib import Path
 from typing import Any, cast
 
 import pytest
+from conftest import fake_cli
 
 import tow
 import tow_project
@@ -262,3 +264,267 @@ def test_project_mode_reports_none_outside_git(tmp_path: Path) -> None:
     project.mkdir()
 
     assert tow_project.project_mode(project) == "none"
+
+
+# project tag
+
+VAULT_TAGS: dict[str, dict[str, Any]] = {
+    "other": {"description": "Other", "aliases": [], "broader": []},
+    "parent": {"description": "Parent", "aliases": [], "broader": []},
+    "root": {"description": "Root", "aliases": [], "broader": []},
+    "used": {"description": "Used", "aliases": ["in-use"], "broader": ["parent"]},
+}
+TAG_CFG = {"tagDictionary": ".tow/tag-dictionary.json"}
+
+
+def envelope(command: str, **fields: Any) -> str:
+    return json.dumps({"schemaVersion": 1, "command": command, "ok": True, "issues": [], **fields})
+
+
+def tag_setup(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    subset: dict[str, Any] | None = None,
+    check: str | None = None,
+) -> tuple[Path, Path]:
+    """A shared-mode project and a vault holding VAULT_TAGS; the fake CLI answers `subset` with `subset`."""
+    vault = make_vault(tmp_path / "vault")
+    (vault / ".tow" / "config.json").write_text('{"kind": "vault"}\n', encoding="utf-8")
+    (vault / ".tow" / "tag-dictionary.json").write_text(json.dumps(VAULT_TAGS), encoding="utf-8")
+    project = init_repo(tmp_path / "project")
+    assert tow_project.cmd_project_init(project, vault, TAG_CFG, "shared", [], True) == 0
+    outputs = {"subset": envelope("subset", dictionary=VAULT_TAGS if subset is None else subset)}
+    outputs["check"] = check or envelope("check")
+    fake_cli(tmp_path, monkeypatch, {}, outputs)
+    return project, vault
+
+
+def write_changes(
+    tmp_path: Path, documents: dict[str, list[str]], concepts: dict[str, dict[str, Any]] | None = None
+) -> Path:
+    changes = tmp_path / "changes.json"
+    changes.write_text(json.dumps({"documents": documents, "concepts": concepts or {}}), encoding="utf-8")
+    return changes
+
+
+def project_tag(project: Path, vault: Path, changes: Path, apply: bool = True) -> int:
+    return tow_project.cmd_project_tag(project, vault, TAG_CFG, changes, apply)
+
+
+def read_json(path: Path) -> Any:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def snapshot(root: Path) -> dict[str, bytes]:
+    return {
+        p.relative_to(root).as_posix(): p.read_bytes() for p in root.rglob("*") if p.is_file() and ".git" not in p.parts
+    }
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_project_tag_writes_tracked_entries_to_documents_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    subset = {key: VAULT_TAGS[key] for key in ("parent", "used")}
+    project, vault = tag_setup(tmp_path, monkeypatch, subset)
+    document = project / "proposal.md"
+    document.write_bytes(b"# Proposal\r\n\r\nText.\r\n")
+    git(project, "add", "proposal.md")
+    changes = write_changes(tmp_path, {"proposal.md": ["used"]})
+    monkeypatch.chdir(project)
+    before = snapshot(project)
+    capsys.readouterr()
+
+    assert tow.main(["--root", str(vault), "project", "tag", str(changes)]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "would add proposal.md to .tow/documents.json",
+        "would add parent to .tow/tag-dictionary.json",
+        "would add used to .tow/tag-dictionary.json",
+    ]
+    assert snapshot(project) == before
+
+    assert tow.main(["--root", str(vault), "project", "tag", str(changes), "--apply"]) == 0
+    assert capsys.readouterr().out.splitlines() == ["updated .tow/tag-dictionary.json", "updated .tow/documents.json"]
+    bundle = project / ".tow"
+    assert read_json(bundle / "documents.json") == {"proposal.md": {"tags": ["used"], "sha256": sha256(document)}}
+    assert (bundle / "documents.json").read_text(encoding="utf-8").count("\n") == 3
+    assert read_json(bundle / "tag-dictionary.json") == subset
+    assert not (bundle / "documents.local.json").exists()
+
+    assert tow.main(["--root", str(vault), "project", "tag", str(changes), "--apply"]) == 0
+    assert capsys.readouterr().out.splitlines() == ["no changes"]
+
+
+def test_project_tag_routes_untracked_files_to_the_local_file_in_shared_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch, {key: VAULT_TAGS[key] for key in ("parent", "used")})
+    for name in ("tracked.md", "draft.md", "private.md"):
+        (project / name).write_text(f"{name}\n", encoding="utf-8")
+    (project / ".gitignore").write_text("private.md\n", encoding="utf-8")
+    git(project, "add", "tracked.md")
+    bundle = project / ".tow"
+    stale = {"tags": ["used"], "sha256": "0"}
+    (bundle / "documents.json").write_text(json.dumps({"draft.md": stale, "gone.md": stale}), encoding="utf-8")
+    documents = {"tracked.md": ["used"], "draft.md": ["used"], "private.md": ["parent"], "gone.md": []}
+
+    assert project_tag(project, vault, write_changes(tmp_path, documents)) == 0
+
+    assert read_json(bundle / "documents.json") == {
+        "tracked.md": {"tags": ["used"], "sha256": sha256(project / "tracked.md")}
+    }
+    assert read_json(bundle / "documents.local.json") == {
+        "draft.md": {"tags": ["used"], "sha256": sha256(project / "draft.md")},
+        "private.md": {"tags": ["parent"], "sha256": sha256(project / "private.md")},
+    }
+    assert git(project, "check-ignore", ".tow/documents.local.json") == ".tow/documents.local.json"
+
+
+def test_project_tag_refuses_a_local_file_that_git_does_not_ignore(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch)
+    exclude = git_path(project, "rev-parse", "--git-path", "info/exclude")
+    exclude.write_text("", encoding="utf-8")  # a fresh clone of a shared project has no exclude entry
+    (project / "draft.md").write_text("draft\n", encoding="utf-8")
+    before = snapshot(project)
+
+    with pytest.raises(tow.ConfigError, match="not ignored by Git"):
+        project_tag(project, vault, write_changes(tmp_path, {"draft.md": ["used"]}))
+
+    assert snapshot(project) == before
+
+
+def test_project_tag_keeps_project_only_concepts_across_a_refresh(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    subset = {key: VAULT_TAGS[key] for key in ("parent", "used")}
+    project, vault = tag_setup(tmp_path, monkeypatch, subset)
+    (project / "note.md").write_text("note\n", encoding="utf-8")
+    git(project, "add", "note.md")
+    project_only = {"description": "Project concept", "aliases": ["po"], "broader": ["parent"], "facet": "x"}
+    old: dict[str, Any] = {
+        "project-only": project_only,
+        "used": {"description": "Stale copy", "broader": []},
+        "other": VAULT_TAGS["other"],
+    }
+    (project / ".tow" / "tag-dictionary.json").write_text(json.dumps(old, indent=2), encoding="utf-8")
+    capsys.readouterr()
+
+    assert project_tag(project, vault, write_changes(tmp_path, {"note.md": ["used"]}), apply=False) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "would add note.md to .tow/documents.json",
+        "would remove other from .tow/tag-dictionary.json",
+        "would add parent to .tow/tag-dictionary.json",
+        "would update used in .tow/tag-dictionary.json",
+    ]
+    assert project_tag(project, vault, write_changes(tmp_path, {"note.md": ["used"]})) == 0
+
+    assert read_json(project / ".tow" / "tag-dictionary.json") == {**subset, "project-only": project_only}
+
+
+def test_project_tag_asks_subset_for_vault_tags_and_project_broader_targets(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch)
+    (project / "note.md").write_text("note\n", encoding="utf-8")
+    git(project, "add", "note.md")
+    bundle = project / ".tow"
+    (bundle / "tag-dictionary.json").write_text(
+        json.dumps({"project-only": {"description": "P", "broader": ["root"]}}), encoding="utf-8"
+    )
+    (bundle / "documents.json").write_text(
+        json.dumps({"old.md": {"tags": ["other", "project-only"], "sha256": "0"}}), encoding="utf-8"
+    )
+    concept = {"description": "New", "broader": ["parent", "project-only"]}
+    changes = write_changes(tmp_path, {"note.md": ["used", "new-concept"]}, {"new-concept": concept})
+
+    assert project_tag(project, vault, changes) == 0
+
+    subset_call, check_call = read_json(tmp_path / "calls.json")
+    assert subset_call == [
+        "subset", "other", "parent", "root", "used",
+        "--root", str(vault), "--dictionary", ".tow/tag-dictionary.json", "--names", "kebab", "--json",
+    ]  # fmt: skip
+    assert check_call[:3] == ["check", "--root", str(project)]
+    assert check_call[3] == "--dictionary" and check_call[5:] == ["--json"]
+    assert Path(check_call[4]).is_absolute() and not Path(check_call[4]).exists()
+    assert read_json(bundle / "tag-dictionary.json") == {
+        **VAULT_TAGS,
+        "project-only": {"description": "P", "broader": ["root"]},
+        "new-concept": concept,
+    }
+
+
+@pytest.mark.parametrize(
+    ("documents", "concepts", "message"),
+    [
+        ({"note.md": ["missing"]}, {}, "unknown tag 'missing'"),
+        ({"../outside.md": ["used"]}, {}, "inside the project"),
+        ({"link.md": ["used"]}, {}, "inside the project"),
+        ({"./note.md": ["used"]}, {}, "inside the project"),
+        ({"notes.txt": ["used"]}, {}, r"\.md"),
+        ({"absent.md": ["used"]}, {}, "not found"),
+        ({"note.md": ["used"]}, {"used": {"description": "Mine", "broader": []}}, "already in the vault"),
+        ({"note.md": ["used"]}, {"In-Use": {"description": "Alias", "broader": []}}, "already in the vault"),
+        ({"note.md": "used"}, {}, "changes file"),
+    ],
+)
+def test_project_tag_rejects_unknown_tags_and_paths_outside_the_project(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    documents: dict[str, list[str]],
+    concepts: dict[str, dict[str, Any]],
+    message: str,
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch)
+    (project / "note.md").write_text("note\n", encoding="utf-8")
+    (project / "notes.txt").write_text("text\n", encoding="utf-8")
+    (tmp_path / "outside.md").write_text("outside\n", encoding="utf-8")
+    (project / "link.md").symlink_to(tmp_path / "outside.md")
+    before = snapshot(project)
+
+    with pytest.raises(tow.ConfigError, match=message):
+        project_tag(project, vault, write_changes(tmp_path, documents, concepts))
+
+    assert snapshot(project) == before
+    assert not (tmp_path / "calls.json").exists()
+
+
+def test_project_tag_validates_the_new_dictionary_before_replacing_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    issue = {"code": "unknown-reference", "severity": "error", "message": "new-concept.broader: unknown tag nowhere"}
+    check = json.dumps({"schemaVersion": 1, "command": "check", "ok": False, "issues": [issue]})
+    project, vault = tag_setup(tmp_path, monkeypatch, {}, check)
+    (project / "note.md").write_text("note\n", encoding="utf-8")
+    git(project, "add", "note.md")
+    changes = write_changes(
+        tmp_path, {"note.md": ["new-concept"]}, {"new-concept": {"description": "N", "broader": ["nowhere"]}}
+    )
+    before = snapshot(project)
+
+    with pytest.raises(tow.ConfigError, match="unknown tag nowhere"):
+        project_tag(project, vault, changes)
+
+    assert snapshot(project) == before
+
+
+def test_project_tag_never_edits_project_documents(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch, {key: VAULT_TAGS[key] for key in ("parent", "used")})
+    (project / "note.md").write_bytes(b"\xef\xbb\xbf---\r\ntags: [old]\r\n---\r\n# Before\r\nContent")
+    (project / "docs").mkdir()
+    (project / "docs" / "plain.md").write_bytes(b"No frontmatter, no newline")
+    git(project, "add", "note.md", "docs/plain.md")
+    documents_before = {path: path.read_bytes() for path in project.rglob("*.md")}
+    vault_before = snapshot(vault)
+    changes = write_changes(tmp_path, {"note.md": ["used"], "docs/plain.md": ["parent"]})
+
+    assert project_tag(project, vault, changes) == 0
+
+    assert {path: path.read_bytes() for path in project.rglob("*.md")} == documents_before
+    assert snapshot(vault) == vault_before
+    assert set(read_json(project / ".tow" / "documents.json")) == {"docs/plain.md", "note.md"}

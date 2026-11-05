@@ -3,16 +3,21 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
 import os
 import subprocess
+import tempfile
 from collections.abc import Mapping
-from pathlib import Path
-from typing import Literal
+from pathlib import Path, PurePosixPath
+from typing import Any, Literal, cast
 
-from tow_core import ConfigError, body_bytes, serialize_entries, write_text_atomic
+from tow_core import CliError, ConfigError, body_bytes, run_cli, serialize_entries, tow_kind, write_text_atomic
 
 NOTE_FOLDERS = ("projects", "areas", "resources", "inbox")
+DOCUMENTS = ".tow/documents.json"
+LOCAL_DOCUMENTS = ".tow/documents.local.json"
+PROJECT_DICTIONARY = ".tow/tag-dictionary.json"
 
 
 def cmd_send(
@@ -257,6 +262,210 @@ def cmd_project_init(
                 write_text_atomic(target[0], exclude_original)
             raise
     return 0
+
+
+def cmd_project_tag(project: Path, vault: Path, vault_cfg: Mapping[str, str], changes: Path, apply: bool) -> int:
+    """Preview or apply an approved change set to project document metadata and the project dictionary.
+
+    Writes only project .tow/ files; project documents and the vault dictionary are never written.
+    """
+    project_root = project.resolve()
+    if tow_kind(project_root) != "project":
+        raise ConfigError(f"not a TOW project; run tow project init first: {project_root}")
+    if (project_root / ".tow").resolve() != project_root / ".tow":
+        raise ConfigError(f"project .tow must be a folder inside the project: {project_root}")
+    documents, concepts = _read_changes(changes)
+    vault_tags = _read_object(vault / vault_cfg["tagDictionary"])
+    old = {name: _read_object(project_root / name, missing_ok=True) for name in (DOCUMENTS, LOCAL_DOCUMENTS)}
+    old_dictionary = _read_object(project_root / PROJECT_DICTIONARY, missing_ok=True)
+
+    project_only = {key: value for key, value in old_dictionary.items() if key not in vault_tags}
+    # subset resolves names ignoring case and through aliases, so the vault already has those concepts.
+    vault_names = {name.lower() for key, entry in vault_tags.items() for name in [key, *_strings(entry, "aliases")]}
+    for tag, concept in concepts.items():
+        if tag.lower() in vault_names:
+            raise ConfigError(f"concept already in the vault dictionary: {tag}; attach the vault concept instead")
+        existing = project_only.get(tag)
+        project_only[tag] = {**(cast(dict[str, Any], existing) if isinstance(existing, dict) else {}), **concept}
+
+    mode = project_mode(project_root)
+    new = {name: dict(entries) for name, entries in old.items()}
+    for key, tags in documents.items():
+        path = _document_path(project_root, key)
+        for tag in tags:
+            if tag not in vault_tags and tag not in project_only:
+                raise ConfigError(f"unknown tag {tag!r} for {key}: not in the vault or project dictionary")
+        for entries in new.values():
+            entries.pop(key, None)
+        if not tags:
+            continue
+        try:
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        except FileNotFoundError:
+            raise ConfigError(f"project document not found: {key}") from None
+        except OSError as e:
+            raise ConfigError(f"can't read project document {key}: {e}") from e
+        local = mode == "shared" and not _tracked(project_root, key)
+        new[LOCAL_DOCUMENTS if local else DOCUMENTS][key] = {"tags": tags, "sha256": digest}
+    if (
+        mode == "shared"
+        and new[LOCAL_DOCUMENTS] != old[LOCAL_DOCUMENTS]
+        and git(project_root, "check-ignore", "-q", LOCAL_DOCUMENTS) is None
+    ):
+        raise ConfigError(
+            f"{LOCAL_DOCUMENTS} is not ignored by Git; add it to the Git exclude file "
+            "(git rev-parse --git-path info/exclude) before tagging untracked or ignored files"
+        )
+
+    used = {tag for entries in new.values() for entry in entries.values() for tag in _strings(entry, "tags")}
+    broader = {tag for entry in project_only.values() for tag in _strings(entry, "broader")}
+    request = sorted(tag for tag in used | broader if tag in vault_tags)
+    dictionary = _subset(vault, vault_cfg, request) if request else {}
+    dictionary.update(project_only)
+    if dictionary != old_dictionary:
+        _check(project_root, serialize_entries(dictionary))
+
+    new[PROJECT_DICTIONARY] = dictionary
+    old[PROJECT_DICTIONARY] = old_dictionary
+    lines = [
+        line for name in (DOCUMENTS, LOCAL_DOCUMENTS, PROJECT_DICTIONARY) for line in _diff(name, old[name], new[name])
+    ]
+    if not lines:
+        print("no changes")
+        return 0
+    if not apply:
+        for line in lines:
+            print(f"would {line}")
+        return 0
+    # ponytail: three independent atomic replaces, not one transaction; rerunning the same changes file
+    # converges because each documents value is the complete tag list. Dictionary first, so a partial
+    # write never leaves document tags missing from it.
+    for name in (PROJECT_DICTIONARY, DOCUMENTS, LOCAL_DOCUMENTS):
+        if new[name] != old[name]:
+            write_text_atomic(project_root / name, serialize_entries(new[name]))
+            print(f"updated {name}")
+    return 0
+
+
+def _read_object(path: Path, missing_ok: bool = False) -> dict[str, Any]:
+    try:
+        raw: object = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        if missing_ok:
+            return {}
+        raise ConfigError(f"can't find {path}") from None
+    except (OSError, ValueError) as e:
+        raise ConfigError(f"can't read {path}: {e}") from e
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{path} must hold a JSON object")
+    return cast(dict[str, Any], raw)
+
+
+def _read_changes(path: Path) -> tuple[dict[str, list[str]], dict[str, dict[str, Any]]]:
+    raw = _read_object(path)
+    documents: object = raw.get("documents")
+    concepts: object = raw.get("concepts", {})
+    if (
+        set(raw) - {"documents", "concepts"}
+        or not isinstance(documents, dict)
+        or not isinstance(concepts, dict)
+        or not all(_is_strings(tags) for tags in cast(dict[str, object], documents).values())
+        or not all(
+            isinstance(concept, dict)
+            and set(cast(dict[str, object], concept)) == {"description", "broader"}
+            and isinstance(cast(dict[str, object], concept)["description"], str)
+            and _is_strings(cast(dict[str, object], concept)["broader"])
+            for concept in cast(dict[str, object], concepts).values()
+        )
+    ):
+        raise ConfigError(
+            f"invalid changes file {path}: expected "
+            '{"documents": {path: [tag, ...]}, "concepts": {tag: {"description": str, "broader": [tag, ...]}}}'
+        )
+    return cast(dict[str, list[str]], documents), cast(dict[str, dict[str, Any]], concepts)
+
+
+def _is_strings(value: object) -> bool:
+    return isinstance(value, list) and all(isinstance(item, str) for item in cast(list[object], value))
+
+
+def _strings(entry: object, field: str) -> list[str]:
+    """A string-list field of a stored entry; malformed entries give nothing (check reports them)."""
+    value = cast(dict[str, object], entry).get(field) if isinstance(entry, dict) else None
+    return cast(list[str], value) if _is_strings(value) else []
+
+
+def _document_path(project_root: Path, key: str) -> Path:
+    posix = PurePosixPath(key)
+    path = project_root / key
+    if (
+        "\\" in key
+        or posix.as_posix() != key
+        or posix.is_absolute()
+        or ".." in posix.parts
+        or not path.resolve().is_relative_to(project_root)
+    ):
+        raise ConfigError(f"project document must be a normalized relative path inside the project: {key}")
+    if posix.suffix != ".md":
+        raise ConfigError(f"project document must be a .md file: {key}")
+    return path
+
+
+def _tracked(project_root: Path, key: str) -> bool:
+    listed = git(project_root, "--literal-pathspecs", "ls-files", "--", key)
+    if listed is None:
+        raise ConfigError(f"can't determine whether {key} is tracked by Git")
+    return bool(listed)
+
+
+def _cli_json(args: list[str]) -> tuple[bool, dict[str, Any]]:
+    """Run the tag-ontology CLI with --json; return whether it succeeded and its result document."""
+    result = run_cli(args, capture=True)
+    failure = result.stderr.strip() or f"tag-ontology {args[0]} exited with code {result.returncode} without JSON"
+    if result.returncode not in (0, 1):
+        raise CliError(failure)
+    try:
+        data: object = json.loads(result.stdout)
+    except ValueError:
+        raise CliError(failure) from None
+    if not isinstance(data, dict):
+        raise CliError(failure)
+    return result.returncode == 0, cast(dict[str, Any], data)
+
+
+def _errors(data: Mapping[str, Any]) -> str:
+    return "; ".join(str(issue["message"]) for issue in data.get("issues", []) if issue.get("severity") == "error")
+
+
+def _subset(vault: Path, vault_cfg: Mapping[str, str], tags: list[str]) -> dict[str, Any]:
+    args = ["subset", *tags, "--root", str(vault), "--dictionary", vault_cfg["tagDictionary"], "--names", "kebab"]
+    ok, data = _cli_json([*args, "--json"])
+    dictionary: object = data.get("dictionary")
+    if not ok or not isinstance(dictionary, dict):
+        raise ConfigError(f"tag-ontology subset of the vault dictionary failed: {_errors(data)}")
+    return cast(dict[str, Any], dictionary)
+
+
+def _check(project_root: Path, text: str) -> None:
+    """Validate a candidate project dictionary from a temporary file before it replaces the real one."""
+    with tempfile.TemporaryDirectory() as folder:
+        candidate = Path(folder) / "tag-dictionary.json"
+        candidate.write_text(text, encoding="utf-8")
+        ok, data = _cli_json(["check", "--root", str(project_root), "--dictionary", str(candidate), "--json"])
+    if not ok:
+        raise ConfigError(f"the new project dictionary fails tag-ontology check: {_errors(data)}")
+
+
+def _diff(name: str, before: Mapping[str, object], after: Mapping[str, object]) -> list[str]:
+    lines: list[str] = []
+    for key in sorted(before.keys() | after.keys()):
+        if key not in after:
+            lines.append(f"remove {key} from {name}")
+        elif key not in before:
+            lines.append(f"add {key} to {name}")
+        elif before[key] != after[key]:
+            lines.append(f"update {key} in {name}")
+    return lines
 
 
 def _remove_empty_dirs(paths: list[Path]) -> None:
