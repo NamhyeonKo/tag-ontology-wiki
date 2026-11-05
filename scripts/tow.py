@@ -86,6 +86,10 @@ TOW_BUNDLE: Final = (
     ".tow/categories.md",
     ".tow/category-dictionary.json",
 )
+TOW_BUNDLE_STARTER_FILES: Final = {
+    ".tow/tags.md": "tags.md",
+    ".tow/categories.md": "categories.md",
+}
 
 NOTE_COMMANDS: Final = frozenset({"scan", "usage", "show"})
 PATH_COMMANDS: Final = frozenset({"scan", "usage"})
@@ -384,6 +388,13 @@ def read_config(root: Path) -> dict[str, str]:
         raise ConfigError(f"{path.relative_to(root)}: {e}") from e
 
 
+def require_inside(root: Path, cwd: Path, command: str) -> None:
+    """Require vault maintenance writes to run from inside the vault."""
+    resolved_root = root.resolve()
+    if not cwd.resolve().is_relative_to(resolved_root):
+        raise ConfigError(f"{command} changes the vault; run it inside {resolved_root}")
+
+
 def plugin_dictionary_warning(root: Path, cfg: Mapping[str, str]) -> str | None:
     """Compare the Tag Ontology plugin's effective dictionary path with TOW's setting."""
     path = root / ".obsidian" / "plugins" / "tag-ontology" / "data.json"
@@ -399,7 +410,10 @@ def plugin_dictionary_warning(root: Path, cfg: Mapping[str, str]) -> str | None:
     dictionary = settings.get("dictionaryPath", "Tag-Dictionary.json")
     if not isinstance(dictionary, str):
         return "plugin settings not checked (invalid dictionaryPath in .obsidian/plugins/tag-ontology/data.json)"
-    if settings.get("dictionaryPathExplicit", False) is not True and (root / ".tow" / "tag-dictionary.json").is_file():
+    explicit = settings.get("dictionaryPathExplicit")
+    if explicit is not True and explicit is not False:
+        explicit = dictionary != "Tag-Dictionary.json"
+    if not explicit and (root / ".tow" / "tag-dictionary.json").is_file():
         dictionary = ".tow/tag-dictionary.json"
     tow_dictionary = cfg["tagDictionary"]
     if dictionary == tow_dictionary:
@@ -677,12 +691,16 @@ def cmd_init(
             init_cfg["tagDictionary"]: serialize_entries({}),
         }
     else:
+        bundle_dictionaries = {".tow/tag-dictionary.json", ".tow/category-dictionary.json"}
         starters = {
-            ".tow/config.json": '{"kind": "vault"}\n',
-            ".tow/tags.md": (Path(__file__).parent / "starters/tags.md").read_text(encoding="utf-8"),
-            ".tow/tag-dictionary.json": serialize_entries({}),
-            ".tow/categories.md": (Path(__file__).parent / "starters/categories.md").read_text(encoding="utf-8"),
-            ".tow/category-dictionary.json": serialize_entries({}),
+            path: (
+                '{"kind": "vault"}\n'
+                if path == ".tow/config.json"
+                else serialize_entries({})
+                if path in bundle_dictionaries
+                else (Path(__file__).parent / "starters" / TOW_BUNDLE_STARTER_FILES[path]).read_text(encoding="utf-8")
+            )
+            for path in TOW_BUNDLE
         }
     missing = missing_paths(root, init_cfg, dictionaries)
     for path in missing:
@@ -792,10 +810,16 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"tow: warning: {warning}", file=sys.stderr)
             return 0
         if args.command == "init":
+            if args.apply:
+                require_inside(root, Path.cwd(), "init --apply")
             return cmd_init(root, cfg, args.apply, args.dictionaries, vault_ref.layout)
         if args.command == "migrate":
+            if args.apply:
+                require_inside(root, Path.cwd(), "migrate --apply")
             return cmd_migrate(root, args.apply, args.remove_legacy)
         if args.command == "category":
+            if args.apply:
+                require_inside(root, Path.cwd(), "category add --apply")
             return cmd_category_add(root, cfg, args.value, args.description, args.apply)
         named: list[str] = args.paths if args.command == "lint" else []
         if args.command == "ontology" and args.cli_command in PATH_COMMANDS:
@@ -808,6 +832,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_lint(root, cfg, args.paths)
         if args.command == "find":
             return cmd_find(root, cfg, args.prefix, filters, args.all)
+        if args.command == "ontology" and args.cli_command == "apply":
+            require_inside(root, Path.cwd(), "ontology apply")
         dictionary = root / cfg["tagDictionary"]
         if args.cli_command not in ("scan", "--help", "--version") and not dictionary.exists():
             raise ConfigError(f"can't find the tag dictionary: {dictionary}; {INIT_HINT}")
