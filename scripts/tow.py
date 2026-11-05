@@ -78,7 +78,7 @@ NOTE_COMMANDS: Final = frozenset({"scan", "usage", "show"})
 PATH_COMMANDS: Final = frozenset({"scan", "usage"})
 VALUE_OPTIONS: Final = frozenset({"--root", "--dictionary", "--exclude", "--names", "--base"})
 INIT_HINT: Final = 'run "tow init --dictionaries" to preview missing starter files'
-STARTER_CATEGORIES: Final = "{}\n"
+STARTER_CATEGORIES: Final = serialize_entries({})
 LEGACY_STARTER_CATEGORIES: Final = """---
 updated: {today}
 ---

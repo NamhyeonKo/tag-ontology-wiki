@@ -668,7 +668,7 @@ def test_init_creates_a_json_category_dictionary_for_tow_vaults(
 
     assert tow.main(["--root", str(tmp_path), "init", "--dictionaries", "--apply"]) == 0
     capsys.readouterr()
-    assert json.loads((tmp_path / ".tow/category-dictionary.json").read_text()) == {}
+    assert (tmp_path / ".tow/category-dictionary.json").read_text() == "{\n}\n"
 
 
 def test_init_lists_missing_paths_and_creates_them_only_with_apply(
