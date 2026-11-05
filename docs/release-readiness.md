@@ -12,10 +12,11 @@
 - Keep the exact `tag-ontology@0.2.0` pin and advance all host manifests, the Python project, lockfile and README editions to 0.5.0 so native plugin updates can fetch this package.
 - Preserve the existing skill names, paths, approval gates and content-preservation contract. Project tagging writes `.tow/` metadata without editing project documents.
 
-## Candidate verification (0.5.0)
+## Candidate verification (0.5.0) — pending
 
-- Record the final local test, lint, format, type-check, lockfile and documentation-link results here after running the candidate checks.
-- Model-backed skill application, installed-host checks, post-merge CI and publication are separate release gates; do not infer those results from local checks.
+The maintainer runs the release-candidate checks at release time and records their actual results here. **Status: pending; no 0.5.0 release-candidate results are recorded in this section.** Record the final local test, lint, format, type-check, lockfile and documentation-link results after running those checks.
+
+Model-backed skill application, installed-host checks, post-merge CI and publication are separate release gates; do not infer those results from local checks.
 
 ---
 

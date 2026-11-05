@@ -54,6 +54,7 @@ TOW="<plugin-root>/scripts/tow.py"
 | --- | --- |
 | `tow connect [<vault>] [--apply]` | Show the personal connection, preview a connection, or save it after approval in `~/.tow/config.json` |
 | `tow config` | Print effective vault settings and their source; warn if the Tag Ontology plugin dictionary path differs |
+| `tow category add <value> <description> [--apply]` | Preview/register a category dictionary entry; `--apply` writes it after approval |
 | `tow init [--dictionaries] [--apply]` | Preview/create missing vault `.tow/` files; in a free-form vault, `--dictionaries` opts into starter dictionaries. `--apply` never overwrites |
 | `tow migrate [--apply] [--remove-legacy]` | Preview/migrate a legacy 0.4.x vault into `.tow/`; removing verified originals is a separate approved operation |
 | `tow project init --mode {local,shared} [--exclude GLOB] [--apply]` | Preview/register project `.tow/` metadata; local mode uses Git's repository-local exclude file; shared mode leaves metadata commit-able |
@@ -67,7 +68,7 @@ TOW="<plugin-root>/scripts/tow.py"
 | `tow find [<prefix>] [--type …] [--status …] [--kind …] [--tag …] [--all]` | Find vault notes matching every condition: category prefix, frontmatter fields and/or tag |
 | `tow ontology <command> [arg…]` | Run the [`tag-ontology` CLI](https://github.com/NamhyeonKo/obsidian-tag-ontology) with the vault's settings |
 
-The helper resolves the vault from `--root`, `$TOW_VAULT`, `~/.tow/config.json`, or a recognized vault ancestor; it never guesses from Obsidian's active vault. Vault-maintenance write commands remain vault-only; `tow lookup` and project workflows can run from a project. `tow ontology` adds the configured dictionary, `--root`, and `--names kebab`, and limits note scans to the vault search scope. In PARA scope, `show` also skips project archive folders; `--all` keeps them. `scan` requires no dictionary and exposes parsed custom frontmatter, separate frontmatter `tags` and `bodyTags`, and headings. `usage` and `show` count both tag representations; `find` and convention lint use frontmatter tags only. Dictionary `apply` never edits note tags or bodies.
+The helper resolves the vault in this order: `--root` → `$TOW_VAULT` → `~/.tow/config.json` → the nearest ancestor with `.tow/config.json` and `"kind": "vault"` → the nearest ancestor with a 0.4.x marker (`tow.json`, `Tag-Dictionary.json`, or `Category-Dictionary.md`). If none is found, it errors with `no vault found; run tow-setup`. Upward searches stop below the home folder. There is no current-folder fallback and no inference from `.obsidian`; it never guesses from Obsidian's active vault. Vault-maintenance write commands remain vault-only; `tow lookup` and project workflows can run from a project. `tow ontology` adds the configured dictionary, `--root`, and `--names kebab`, and limits note scans to the vault search scope. In PARA scope, `show` also skips project archive folders; `--all` keeps them. `scan` requires no dictionary and exposes parsed custom frontmatter, separate frontmatter `tags` and `bodyTags`, and headings. `usage` and `show` count both tag representations; `find` and convention lint use frontmatter tags only. Dictionary `apply` never edits note tags or bodies.
 
 ### Scope before reading note contents
 
