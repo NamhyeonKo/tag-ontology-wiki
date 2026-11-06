@@ -46,11 +46,11 @@ Run the relevant command in your terminal:
 | Codex | `codex plugin list --json` | Use `$` or `/skills` and select `tow-query` |
 | Antigravity | `agy plugin list --json` | `/tow-query` |
 
-Confirm `tow`, version `0.5.2`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-send-vault`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (twelve total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
+Confirm `tow`, version `0.5.3`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-send-vault`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (twelve total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
 
 ## Configure the vault
 
-TOW 0.5.2 reads `<vault>/tow/config.json` with `"kind": "vault"`. Existing `<vault>/.tow/config.json` and legacy vaults remain readable until migrated. Without a config file, the effective legacy-compatible defaults are:
+TOW 0.5.3 reads `<vault>/tow/config.json` with `"kind": "vault"`. Existing `<vault>/.tow/config.json` and legacy vaults remain readable until migrated. Without a config file, the effective legacy-compatible defaults are:
 
 ```json
 {
@@ -144,11 +144,11 @@ Skills and TOW do not provide an OS-level access boundary. Their guarantees cove
 
 ## Move vault files to `tow/`
 
-Vaults using `.tow/` or legacy 0.4.x root files remain readable without moving. Before migrating, update the Tag Ontology Obsidian plugin to **0.10.1 on every device** so it finds `tow/tag-dictionary.json`. Preview with `tow --root <vault> migrate`; after reviewing the complete plan, apply with `tow --root <vault> migrate --apply`. Migration copies/converts files into visible `tow/` and keeps the old files. Only after the user confirms the plugin is 0.10.1 on every device, removal is a separate approved operation: preview `migrate --remove-legacy`, then apply only after verifying the copies. This includes `.tow/` originals and any legacy root files.
+Vaults using `.tow/` or legacy 0.4.x root files remain readable without moving. Before migrating, update the Tag Ontology Obsidian plugin to **0.10.1 on every device** so it finds `tow/tag-dictionary.json`. Preview with `tow --root <vault> migrate`; after reviewing the complete plan, apply with `tow --root <vault> migrate --apply`. Migration copies/converts files into visible `tow/`, appends root `Tag-Dictionary.md` and Markdown category rule-document text into `tow/tags.md` and `tow/categories.md`, and keeps the old files. After removal, update notes that link to those original Markdown files. Only after the user confirms the plugin is 0.10.1 on every device, removal is a separate approved operation: preview `migrate --remove-legacy`, then apply only after verifying the copies. This includes `.tow/` originals and any legacy root files.
 
 ## Check the setup
 
-TOW 0.5.2 and `tag-ontology` 0.2.0 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
+TOW 0.5.3 and `tag-ontology` 0.2.0 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
 
 **1. Runtime versions — terminal (Node/npm only for ontology/parsing):**
 
