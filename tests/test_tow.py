@@ -1237,6 +1237,216 @@ def test_init_creates_the_tow_starter_bundle_once(
     assert capsys.readouterr().out.strip() == "nothing to create"
 
 
+def test_migrate_carries_category_rules_and_removes_verified_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text("{}\n")
+    (tmp_path / "Tag-Dictionary.json").write_text("{}\n")
+    source = tmp_path / "Category-Dictionary.md"
+    source.write_text(
+        "---\r\ntitle: Categories\r\n---\r\n\r\n"
+        "# Category Dictionary\r\n\r\n"
+        "### `ai` — artificial intelligence\r\nExtra description line\r\n\r\n"
+        "- Free-text rule line\r\n\r\n"
+        "```mermaid\r\ngraph TD\r\n  A --> B\r\n```\r\n"
+    )
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["migrate", "--apply"]) == 0
+
+    manual = (tmp_path / "tow/categories.md").read_text()
+    for text in (
+        "## Moved from Category-Dictionary.md\n\n",
+        "### `ai` — artificial intelligence\nExtra description line",
+        "- Free-text rule line",
+        "```mermaid\ngraph TD\n  A --> B\n```",
+    ):
+        assert text in manual
+    assert "title: Categories" not in manual
+    capsys.readouterr()
+
+    assert tow.main(["migrate", "--remove-legacy", "--apply"]) == 0
+
+    output = capsys.readouterr().out
+    assert not source.exists()
+    assert (
+        "notes that link to Category-Dictionary.md need their links updated; its text now lives in tow/categories.md"
+        in output
+    )
+
+
+def test_migrate_carries_tag_rules_without_frontmatter(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / "tow.json").write_text("{}\n")
+    (tmp_path / "Tag-Dictionary.json").write_text("{}\n")
+    (tmp_path / "Tag-Dictionary.md").write_text("---\ntitle: Tag Rules\n---\n\nWrite useful tags.\n")
+    (tmp_path / "Category-Dictionary.md").write_text("- `ai` : AI\n")
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["migrate", "--apply"]) == 0
+
+    manual = (tmp_path / "tow/tags.md").read_text()
+    assert "## Moved from Tag-Dictionary.md\n\nWrite useful tags.\n" in manual
+    assert "title: Tag Rules" not in manual
+
+
+def test_migrate_rule_documents_are_idempotent_after_tow_migration(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text("{}\n")
+    (tmp_path / "Tag-Dictionary.json").write_text("{}\n")
+    source = tmp_path / "Category-Dictionary.md"
+    source.write_text("- `ai` : AI\n\nKeep the hierarchy coherent.\n")
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["migrate", "--apply"]) == 0
+    capsys.readouterr()
+    assert tow.main(["migrate", "--apply"]) == 0
+
+    manual = (tmp_path / "tow/categories.md").read_text()
+    assert manual.count("## Moved from Category-Dictionary.md") == 1
+    assert capsys.readouterr().out.strip() == "already in tow/"
+
+
+def test_migrate_from_tow_appends_remaining_category_rules(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow").mkdir()
+    (tmp_path / "tow/config.json").write_text('{"kind": "vault"}\n')
+    (tmp_path / "tow/categories.md").write_text("starter manual\n")
+    (tmp_path / "Category-Dictionary.md").write_text("# Rules\n\nPrefer durable categories.\n")
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["migrate", "--apply"]) == 0
+
+    assert (
+        "## Moved from Category-Dictionary.md\n\n# Rules\n\nPrefer durable categories.\n"
+        in (tmp_path / "tow/categories.md").read_text()
+    )
+    assert "appended Category-Dictionary.md to tow/categories.md" in capsys.readouterr().out
+
+
+def test_migrate_remove_legacy_keeps_markdown_source_without_contained_body(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text("{}\n")
+    (tmp_path / "Tag-Dictionary.json").write_text("{}\n")
+    source = tmp_path / "Category-Dictionary.md"
+    source.write_text("# Rules\n\nKeep this guidance verbatim.\n")
+    (tmp_path / "tow").mkdir()
+    (tmp_path / "tow/config.json").write_text('{"kind": "vault"}\n')
+    (tmp_path / "tow/tags.md").write_text("tags manual\n")
+    (tmp_path / "tow/tag-dictionary.json").write_text("{}\n")
+    (tmp_path / "tow/categories.md").write_text("different manual text\n")
+    (tmp_path / "tow/category-dictionary.json").write_text("{}\n")
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["migrate", "--remove-legacy", "--apply"]) == 0
+
+    output = capsys.readouterr().out
+    assert source.exists()
+    assert (
+        'kept Category-Dictionary.md: its text is not in tow/categories.md yet; run "tow migrate --apply" first'
+        in output
+    )
+
+
+def test_migrate_keeps_existing_target_when_legacy_dictionary_is_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text("{}\n")
+    (tmp_path / "Category-Dictionary.md").write_text("- `ai` : AI\n")
+    target = tmp_path / "tow/tag-dictionary.json"
+    target.parent.mkdir()
+    target.write_bytes(b'{"keep": {"description": "unchanged"}}\r\n')
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["migrate", "--apply"]) == 0
+
+    assert target.read_bytes() == b'{"keep": {"description": "unchanged"}}\r\n'
+    assert "kept existing tow/tag-dictionary.json (no Tag-Dictionary.json to copy)" in capsys.readouterr().out
+
+
+def test_migrate_from_dot_also_carries_root_rule_documents(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / ".tow").mkdir()
+    (tmp_path / ".tow/config.json").write_text('{"kind": "vault"}\n')
+    (tmp_path / ".tow/tags.md").write_text("dot manual\n")
+    (tmp_path / "Tag-Dictionary.md").write_text("# Tag Rules\n\nPrefer specific terms.\n")
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["migrate", "--apply"]) == 0
+
+    manual = (tmp_path / "tow/tags.md").read_text()
+    assert manual.startswith("dot manual\n\n## Moved from Tag-Dictionary.md\n\n")
+    assert "Prefer specific terms." in manual
+    assert "appended Tag-Dictionary.md to tow/tags.md" in capsys.readouterr().out
+
+
+def test_migrate_remove_legacy_from_dot_previews_rule_document_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / ".tow").mkdir()
+    (tmp_path / ".tow/config.json").write_text('{"kind": "vault"}\n')
+    (tmp_path / ".tow/tags.md").write_text("dot manual\n")
+    source = tmp_path / "Tag-Dictionary.md"
+    source.write_text("# Tag Rules\n\nPrefer specific terms.\n")
+    monkeypatch.chdir(tmp_path)
+    assert tow.main(["migrate", "--apply"]) == 0
+    capsys.readouterr()
+
+    assert tow.main(["migrate", "--remove-legacy"]) == 0
+
+    output = capsys.readouterr().out
+    assert output.count("would delete Tag-Dictionary.md") == 1
+    assert "deleted Tag-Dictionary.md" not in output
+    assert source.exists()
+
+
+def test_migrate_remove_legacy_from_dot_reports_each_rule_document_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / ".tow").mkdir()
+    (tmp_path / ".tow/config.json").write_text('{"kind": "vault"}\n')
+    (tmp_path / ".tow/tags.md").write_text("dot manual\n")
+    source = tmp_path / "Tag-Dictionary.md"
+    source.write_text("# Tag Rules\n\nPrefer specific terms.\n")
+    monkeypatch.chdir(tmp_path)
+    assert tow.main(["migrate", "--apply"]) == 0
+    capsys.readouterr()
+
+    assert tow.main(["migrate", "--remove-legacy", "--apply"]) == 0
+
+    output = capsys.readouterr().out
+    assert output.count("deleted Tag-Dictionary.md") == 1
+    assert "would delete Tag-Dictionary.md" not in output
+    assert output.count("notes that link to Tag-Dictionary.md need their links updated") == 1
+    assert not source.exists()
+
+
+def test_migrate_remove_legacy_keeps_rule_document_until_config_verifies(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text('{"areas": "Expected"}\n')
+    (tmp_path / "Tag-Dictionary.json").write_text("{}\n")
+    source = tmp_path / "Category-Dictionary.md"
+    source.write_text("# Category Rules\n\nKeep this guidance.\n")
+    (tmp_path / "tow").mkdir()
+    (tmp_path / "tow/config.json").write_text('{"kind": "vault", "areas": "Wrong"}\n')
+    (tmp_path / "tow/tags.md").write_text("tag manual\n")
+    (tmp_path / "tow/tag-dictionary.json").write_text("{}\n")
+    (tmp_path / "tow/categories.md").write_text(
+        "## Moved from Category-Dictionary.md\n\n# Category Rules\n\nKeep this guidance.\n"
+    )
+    (tmp_path / "tow/category-dictionary.json").write_text("{}\n")
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["migrate", "--remove-legacy", "--apply"]) == 2
+
+    assert source.exists()
+    assert "verification failed" in capsys.readouterr().err
+
+
 def test_migrate_from_dot_copies_files_and_rewrites_dot_paths(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -1263,22 +1473,41 @@ def test_migrate_from_dot_copies_files_and_rewrites_dot_paths(
     assert "migration complete" in capsys.readouterr().out
 
 
-def test_migrate_from_dot_refuses_a_different_target_without_changing_source(
+def test_migrate_from_dot_appends_rule_document_to_existing_manual_target(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     (tmp_path / ".tow").mkdir()
     (tmp_path / ".tow/config.json").write_text('{"kind": "vault"}')
-    (tmp_path / ".tow/tags.md").write_text("source\n")
+    (tmp_path / "Category-Dictionary.md").write_text("Root rule text.\n")
     (tmp_path / "tow").mkdir()
-    (tmp_path / "tow/tags.md").write_text("target\n")
+    (tmp_path / "tow/categories.md").write_text("existing target manual\n")
     monkeypatch.chdir(tmp_path)
 
-    assert tow.main(["migrate", "--apply"]) == 2
+    assert tow.main(["migrate", "--apply"]) == 0
 
-    assert "tow/tags.md" in capsys.readouterr().err
-    assert (tmp_path / ".tow/tags.md").read_text() == "source\n"
-    assert (tmp_path / "tow/tags.md").read_text() == "target\n"
-    assert not (tmp_path / "tow/config.json").exists()
+    manual = (tmp_path / "tow/categories.md").read_text()
+    assert manual == "existing target manual\n\n## Moved from Category-Dictionary.md\n\nRoot rule text.\n"
+    assert (tmp_path / "tow/config.json").is_file()
+    assert "appended Category-Dictionary.md to tow/categories.md" in capsys.readouterr().out
+
+
+def test_migrate_remove_legacy_rejects_rule_document_symlink_outside_vault(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    outside = tmp_path.parent / f"{tmp_path.name}-outside.md"
+    outside.write_text("Outside rules.\n")
+    (tmp_path / "tow").mkdir()
+    (tmp_path / "tow/config.json").write_text('{"kind": "vault"}\n')
+    (tmp_path / "tow/tags.md").write_text("Outside rules.\n")
+    source = tmp_path / "Tag-Dictionary.md"
+    source.symlink_to(outside)
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["migrate", "--remove-legacy", "--apply"]) == 2
+
+    assert source.is_symlink()
+    assert outside.read_text() == "Outside rules.\n"
+    assert "migration source must stay inside the vault" in capsys.readouterr().err
 
 
 def test_migrate_from_tow_layout_is_a_noop(
@@ -1314,6 +1543,55 @@ def test_migrate_remove_legacy_from_dot_warns_then_removes_verified_files_and_fo
     assert not (tmp_path / ".tow").exists()
     assert (tmp_path / "tow/config.json").exists()
     assert (tmp_path / "tow/tag-dictionary.json").read_bytes() == b'{"alpha": {}}\r\n'
+
+
+def test_migrate_remove_legacy_from_dot_preserves_dot_files_when_rule_source_is_outside_vault(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    outside = tmp_path.parent / f"{tmp_path.name}-outside.md"
+    outside.write_text("Outside rules.\n")
+    (tmp_path / ".tow").mkdir()
+    dot_config = tmp_path / ".tow/config.json"
+    dot_config.write_text('{"kind": "vault"}\n')
+    dot_manual = tmp_path / ".tow/tags.md"
+    dot_manual.write_text("Outside rules.\n")
+    (tmp_path / "Tag-Dictionary.md").symlink_to(outside)
+    (tmp_path / "tow").mkdir()
+    (tmp_path / "tow/config.json").write_text('{"kind": "vault"}\n')
+    (tmp_path / "tow/tags.md").write_text("Outside rules.\n")
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["migrate", "--remove-legacy", "--apply"]) == 2
+
+    assert dot_config.exists()
+    assert dot_manual.exists()
+    assert outside.read_text() == "Outside rules.\n"
+    assert "migration source must stay inside the vault" in capsys.readouterr().err
+
+
+def test_migrate_remove_legacy_from_dot_keeps_modified_manual_even_if_root_rules_are_contained(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / ".tow").mkdir()
+    (tmp_path / ".tow/config.json").write_text('{"kind": "vault"}\n')
+    dot_manual = tmp_path / ".tow/tags.md"
+    dot_manual.write_text("dot manual\n")
+    root_rules = tmp_path / "Tag-Dictionary.md"
+    root_rules.write_text("Root rule text.\n")
+    (tmp_path / "tow").mkdir()
+    (tmp_path / "tow/config.json").write_text('{"kind": "vault"}\n')
+    (tmp_path / "tow/tags.md").write_text("edited manual\nRoot rule text.\n")
+    (tmp_path / "tow/categories.md").write_text("starter manual\n")
+    (tmp_path / "tow/tag-dictionary.json").write_text("{}\n")
+    (tmp_path / "tow/category-dictionary.json").write_text("{}\n")
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["migrate", "--remove-legacy", "--apply"]) == 0
+
+    output = capsys.readouterr().out
+    assert dot_manual.exists()
+    assert "changed tow/tags.md; kept legacy original .tow/tags.md because it differs" in output
+    assert not root_rules.exists()
 
 
 def test_migrate_remove_legacy_from_dot_keeps_a_changed_copy(
@@ -1487,7 +1765,7 @@ def test_migrate_previews_then_copies_and_converts(
     assert (tmp_path / "Category-Dictionary.md").exists()
 
 
-def test_migrate_refuses_when_existing_target_bytes_differ(
+def test_migrate_appends_category_rules_to_existing_manual_target(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     (tmp_path / "tow.json").write_text("{}")
@@ -1497,8 +1775,8 @@ def test_migrate_refuses_when_existing_target_bytes_differ(
     (tmp_path / "tow/config.json").write_text('{"kind": "vault"}')
     monkeypatch.chdir(tmp_path)
     assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 0
-    assert capsys.readouterr().out.strip() == "already in tow/"
-    assert list((tmp_path / "tow").iterdir()) == [tmp_path / "tow/config.json"]
+    assert "appended Category-Dictionary.md to tow/categories.md" in capsys.readouterr().out
+    assert (tmp_path / "tow/categories.md").is_file()
 
 
 def test_migrate_resumes_after_a_later_target_write_fails(
@@ -1628,7 +1906,7 @@ def test_migrate_remove_legacy_succeeds_when_tow_json_is_absent(
     assert (tmp_path / "tow/config.json").exists()
 
 
-def test_migrate_remove_legacy_keeps_customized_default_category_markdown_dictionary(
+def test_migrate_remove_legacy_deletes_category_markdown_when_manual_contains_its_body(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     (tmp_path / "tow.json").write_text("{}\n", encoding="utf-8")
@@ -1642,8 +1920,8 @@ def test_migrate_remove_legacy_keeps_customized_default_category_markdown_dictio
     assert tow.main(["--root", str(tmp_path), "migrate", "--remove-legacy", "--apply"]) == 0
     output = capsys.readouterr().out
 
-    assert (tmp_path / "Category-Dictionary.md").is_file()
-    assert "deleted Category-Dictionary.md" not in output
+    assert not (tmp_path / "Category-Dictionary.md").is_file()
+    assert "deleted Category-Dictionary.md" in output
 
 
 def test_migrate_remove_legacy_keeps_custom_category_markdown_dictionary(
