@@ -41,3 +41,10 @@ def test_tag_skills_cite_the_broader_narrower_rule_in_the_conventions() -> None:
     assert f"**{rule}**" in (ROOT / "docs/methodology.md").read_text()
     for skill in ("tow-tag-sync", "tow-tag-suggest"):
         assert f'"{rule}"' in (ROOT / "skills" / skill / "SKILL.md").read_text(), skill
+
+
+def test_starter_manuals_do_not_create_obsidian_tagged_notes() -> None:
+    for name in ("tags.md", "categories.md"):
+        content = (ROOT / "scripts/starters" / name).read_text()
+        assert not content.startswith("---\n"), name
+        assert not re.search(r"(?m)^tags\s*:", content), name

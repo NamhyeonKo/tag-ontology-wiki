@@ -1,10 +1,16 @@
-# TOW — Tag Ontology for Wiki
+<h1 align="center">TOW — Tag Ontology for Wiki</h1>
+
+<p align="center">
+  <a href="https://github.com/NamhyeonKo/tag-ontology-wiki/stargazers"><img alt="stars" src="https://img.shields.io/github/stars/NamhyeonKo/tag-ontology-wiki?label=stars"></a>
+  <a href="https://github.com/NamhyeonKo/tag-ontology-wiki/releases/latest"><img alt="release" src="https://img.shields.io/github/v/release/NamhyeonKo/tag-ontology-wiki?label=release"></a>
+  <a href="../LICENSE"><img alt="license" src="https://img.shields.io/github/license/NamhyeonKo/tag-ontology-wiki?label=license"></a>
+</p>
+
+<p align="center"><a href="../README.md">English</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a></p>
 
 Un plugin de compétences pour agents qui relie un coffre Obsidian à un projet de développement : recherche par concept dans les deux, étiquette les documents du projet au moyen des métadonnées `.tow/` et envoie le contenu sélectionné dans le coffre sous forme de nouvelle note. Il ne modifie pas les documents du projet et préserve le contenu lors de la maintenance du coffre. Il fonctionne dans Claude Code, Codex et Google Antigravity.
 
-[English](../README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md)
-
-> **Version :** 0.5.1.
+> **Version :** 0.5.2.
 
 ## Présentation
 
@@ -126,7 +132,7 @@ Confirmez la version installée avec la commande de liste ou de détails des plu
 
 ## Première utilisation
 
-Pour la maintenance du coffre uniquement, ouvrez-le comme espace de travail de votre environnement. Pour utiliser TOW depuis un projet, ouvrez le projet et sélectionnez `tow-setup` afin de connecter le coffre et d'enregistrer les métadonnées `.tow/` du projet. Dans une nouvelle session du projet, sélectionnez `tow-query` et envoyez :
+Pour la maintenance du coffre uniquement, ouvrez-le comme espace de travail de votre environnement. Les fichiers TOW du coffre sont dans le dossier visible `tow/` ; les métadonnées des projets externes restent dans leur `.tow/`. Pour utiliser TOW depuis un projet, ouvrez le projet et sélectionnez `tow-setup` afin de connecter le coffre et d'enregistrer les métadonnées du projet. Dans une nouvelle session du projet, sélectionnez `tow-query` et envoyez :
 
 ```text
 Mon coffre se trouve dans /absolute/path/to/vault. Trouve les notes de projet sur RAG par catégorie
@@ -135,13 +141,13 @@ coffre connecté, lis les notes correspondantes avant de les résumer, et indiqu
 chemins, les raisons des correspondances et le nombre de résultats. Ne modifie aucun fichier.
 ```
 
-La recherche est possible sans enregistrer le projet ni disposer de dictionnaires ; l'étiquetage du projet nécessite des métadonnées `.tow/`. La connexion personnelle est enregistrée dans `$TOW_VAULT` ou `~/.tow/config.json`, jamais dans les fichiers du projet. Si le répertoire courant se trouve dans un coffre, celui-ci est prioritaire sur la connexion personnelle ; utilisez `--root` pour choisir explicitement. Depuis un coffre, les requêtes ne recherchent que dans ce coffre. Pour organiser le coffre, sélectionnez `tow-setup` ; il vous demandera si vous souhaitez PARA et préservera la structure et le schéma existants. La nouvelle configuration du coffre se trouve dans `.tow/config.json` ; les coffres 0.4.x avec un `tow.json` à la racine restent lisibles avant migration. Consultez le [guide de configuration](../docs/installation.md#configure-the-vault) et les [instructions de connexion d'un projet](../docs/installation.md#connect-a-vault-to-a-project).
+La recherche est possible sans enregistrer le projet ni disposer de dictionnaires ; l'étiquetage du projet nécessite des métadonnées `.tow/`. La connexion personnelle est enregistrée dans `$TOW_VAULT` ou `~/.tow/config.json`, jamais dans les fichiers du projet. Si le répertoire courant se trouve dans un coffre, celui-ci est prioritaire sur la connexion personnelle ; utilisez `--root` pour choisir explicitement. Depuis un coffre, les requêtes ne recherchent que dans ce coffre. Pour organiser le coffre, sélectionnez `tow-setup` ; il vous demandera si vous souhaitez PARA et préservera la structure et le schéma existants. La nouvelle configuration du coffre se trouve dans `tow/config.json` ; les anciens coffres `.tow/` et 0.4.x restent lisibles avant leur migration vers `tow/`. Consultez le [guide de configuration](../docs/installation.md#configure-the-vault) et les [instructions de connexion d'un projet](../docs/installation.md#connect-a-vault-to-a-project).
 
 ## CLI et vérifications de configuration
 
 L'utilitaire utilise `npx --yes tag-ontology@0.2.0` ; npm récupère cette version exacte lorsque c'est nécessaire. Les commandes manuelles de l'utilitaire utilisent le chemin du fichier `scripts/tow.py` installé. Dans les conventions, le nom `tow` est une abréviation de ce chemin.
 
-Ni TOW 0.5.1 ni `tag-ontology` 0.2.0 ne possèdent de commande `doctor`. Commencez par :
+Ni TOW 0.5.2 ni `tag-ontology` 0.2.0 ne possèdent de commande `doctor`. Commencez par :
 
 ```bash
 python3 --version
