@@ -13,11 +13,11 @@ This skill works only inside the vault. From another project, stop and use `tow-
 
 Before any write, run `tow config` and verify the vault root it prints contains the current working directory and every file being edited; otherwise stop and route the request as above.
 
-Checks the concept tags on notes against the dictionary and registers or merges approved concepts. Choosing a note's `tags:` is the user's call; note metadata changes only for an approved merge, rename, alias replacement, format fix, or dropped broader tag the note doesn't explain directly. The tag dictionary lives at `.tow/tag-dictionary.json` by default (or the configured `tagDictionary` path); rules are in `.tow/tags.md`.
+Checks the concept tags on notes against the dictionary and registers or merges approved concepts. Choosing a note's `tags:` is the user's call; note metadata changes only for an approved merge, rename, alias replacement, format fix, or dropped broader tag the note doesn't explain directly. The vault tag dictionary lives at `tow/tag-dictionary.json` by default (or the configured `tagDictionary` path); vault rules are in `tow/tags.md`. Project dictionaries and manuals remain in project `.tow/`.
 
-Before starting, read the [TOW conventions](../../docs/methodology.md), `.tow/tags.md`, and the dictionary model/rules in §6. If the tag dictionary is absent, propose the prerequisite and exact path for approval; don't initialize it without approval. No category dictionary, inbox or PARA folders are required. If ontology adoption is declined, keep notes unchanged and offer `tow-tag-suggest` or ordinary tag search. The CLI's `usage` and `show` include frontmatter and body tags; scoped `scan` separates their origins. Dictionary `apply` changes neither representation on notes. Keep note edits in frontmatter; body-tag changes need a separate explicit body-edit plan.
+Before starting, read the [TOW conventions](../../docs/methodology.md), the vault's `tow/tags.md` manual when present, and the dictionary model/rules in §6. If the tag dictionary is absent, propose the prerequisite and exact path for approval; don't initialize it without approval. No category dictionary, inbox or PARA folders are required. If ontology adoption is declined, keep notes unchanged and offer `tow-tag-suggest` or ordinary tag search. The CLI's `usage` and `show` include frontmatter and body tags; scoped `scan` separates their origins. Dictionary `apply` changes neither representation on notes. Keep note edits in frontmatter; body-tag changes need a separate explicit body-edit plan.
 
-For this workflow, read the configured tag dictionary JSON and the `.tow/tags.md` manual before planning ontology changes.
+For this workflow, read the configured tag dictionary JSON and the vault's `tow/tags.md` manual before planning ontology changes.
 
 Changes files contain an ordered `changes` array. For example, registering a concept:
 

@@ -144,7 +144,7 @@ Every proposal left all files unchanged, and command traces show only name listi
 The automated suite covers the cross-project helper contracts with temporary vaults and projects; these tests do not establish model-backed skill reliability or host permission enforcement.
 
 - `tests/test_places.py` checks personal connection resolution, `$TOW_VAULT` precedence, and preview-before-write behavior for `tow connect`.
-- `tests/test_project.py` covers local/shared project initialization, `.tow/`-only tagging, names-only file discovery, project status, and vault/project concept lookup. The tests verify that project-tagging workflows do not edit project documents.
+- `tests/test_project.py` covers local/shared project initialization, project `.tow/`-only tagging, names-only file discovery, project status, and vault/project concept lookup. The tests verify that project-tagging workflows do not edit project documents.
 - `tests/test_send.py` checks preview/apply behavior, no-overwrite, destination containment, body equality with the selected source unless `--transformed` is explicit, and verification after writing.
 - `tests/test_tow.py` covers legacy-vault reading and migration preview/apply, including separate verified legacy-file removal.
 

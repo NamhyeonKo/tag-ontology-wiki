@@ -46,11 +46,11 @@ Run the relevant command in your terminal:
 | Codex | `codex plugin list --json` | Use `$` or `/skills` and select `tow-query` |
 | Antigravity | `agy plugin list --json` | `/tow-query` |
 
-Confirm `tow`, version `0.5.1`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-send-vault`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (twelve total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
+Confirm `tow`, version `0.5.2`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-send-vault`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (twelve total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
 
 ## Configure the vault
 
-TOW reads `<vault>/.tow/config.json` with `"kind": "vault"`. Without a config file, the effective legacy-compatible defaults are:
+TOW 0.5.2 reads `<vault>/tow/config.json` with `"kind": "vault"`. Existing `<vault>/.tow/config.json` and legacy vaults remain readable until migrated. Without a config file, the effective legacy-compatible defaults are:
 
 ```json
 {
@@ -69,7 +69,7 @@ TOW reads `<vault>/.tow/config.json` with `"kind": "vault"`. Without a config fi
 }
 ```
 
-A legacy `tow.json` is merged over these same defaults. `tow config` prints effective settings without a `kind` field. A `.tow/config.json` vault uses `.tow/tag-dictionary.json` and `.tow/category-dictionary.json` defaults; legacy 0.4.x vaults remain readable from root `tow.json` and their root dictionaries until migrated. Only override values that differ in your vault. For example, a vault with `Projects`, `Areas`, `Resources`, `Archives`, project history in `superseded`, and dictionaries in `meta/` can use:
+A legacy `tow.json` is merged over these same defaults. `tow config` prints effective settings without a `kind` field. A `tow/config.json` vault uses `tow/tag-dictionary.json` and `tow/category-dictionary.json` defaults; older `.tow/config.json` vaults use `.tow/tag-dictionary.json` and `.tow/category-dictionary.json`. Legacy 0.4.x vaults remain readable from root `tow.json` and their root dictionaries until migrated. Only override values that differ in your vault. For example, a vault with `Projects`, `Areas`, `Resources`, `Archives`, project history in `superseded`, and dictionaries in `meta/` can use:
 
 ```json
 {
@@ -94,7 +94,7 @@ The four PARA folder names identify direct children of the vault root. `projectA
 
 `scope` sets what pathless searches and checks read. `para` (the default) reads only the four PARA folders. `vault` reads every note folder, including inbox/support/history. Use it for your own layout; this does not adopt the TOW schema. Private/ignored scope must still be filtered before scans.
 
-Obsidian Sync skips dot-folders other than `.obsidian`, so a vault's `.tow/` folder (settings, rules and dictionaries) does not reach your other devices. If the vault syncs with Obsidian Sync, keep a 0.4.x vault as it is and do not run `tow migrate` yet; a later release moves vault files to a visible folder. The Tag Ontology Obsidian plugin has a separate “Dictionary path” setting; align it with `tagDictionary`. Plugin version 0.10.0 detects `.tow/tag-dictionary.json` by default, but a custom path must be configured in both places.
+Vault files in visible `tow/` sync with Obsidian Sync and appear in Obsidian's file browser. If you prefer to hide TOW manuals and dictionaries from search and graph, optionally add `tow/` to Obsidian's “Excluded files” setting. Existing `.tow/` and legacy vaults remain usable; update the Tag Ontology plugin to 0.10.1 on every device before running `tow migrate` to move them to `tow/`. The plugin has its own “Dictionary path” setting; align it with TOW's configured `tagDictionary`. Plugin 0.10.1 automatically detects `tow/tag-dictionary.json` and older defaults, but a custom path must be configured in both places.
 
 ### Start a new or existing vault
 
@@ -142,13 +142,13 @@ These are permission hints for users to apply; TOW does not edit host configurat
 
 Skills and TOW do not provide an OS-level access boundary. Their guarantees cover TOW's own workflows and commands, not arbitrary shell commands; shell can bypass file-tool rules. Only host sandboxing or OS permissions can constrain processes. Do not bypass an access denial; report the applicable host hint and stop.
 
-## Migrate a legacy vault
+## Move vault files to `tow/`
 
-Legacy 0.4.x vaults remain readable without migration. Before migrating, update the Tag Ontology Obsidian plugin to **0.10.0** so it recognizes `.tow/tag-dictionary.json`. Preview with `tow --root <vault> migrate`; after reviewing the complete plan, apply with `tow --root <vault> migrate --apply`. Migration copies/converts into `.tow/` and leaves legacy files in place. Removal is a separate approved operation: first preview `migrate --remove-legacy`, then apply only after verifying the copies.
+Vaults using `.tow/` or legacy 0.4.x root files remain readable without moving. Before migrating, update the Tag Ontology Obsidian plugin to **0.10.1 on every device** so it finds `tow/tag-dictionary.json`. Preview with `tow --root <vault> migrate`; after reviewing the complete plan, apply with `tow --root <vault> migrate --apply`. Migration copies/converts files into visible `tow/` and keeps the old files. Only after the user confirms the plugin is 0.10.1 on every device, removal is a separate approved operation: preview `migrate --remove-legacy`, then apply only after verifying the copies. This includes `.tow/` originals and any legacy root files.
 
 ## Check the setup
 
-TOW 0.5.1 and `tag-ontology` 0.2.0 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
+TOW 0.5.2 and `tag-ontology` 0.2.0 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
 
 **1. Runtime versions — terminal (Node/npm only for ontology/parsing):**
 

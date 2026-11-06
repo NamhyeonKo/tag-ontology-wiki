@@ -1,6 +1,6 @@
 {
   "name": "tow",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "icon": "./assets/icon.png",
   "description": "Search a connected Obsidian vault and project, tag project documents in .tow/, send selected content to the vault, and manage vault notes with content-preserving workflows.",
   "author": {

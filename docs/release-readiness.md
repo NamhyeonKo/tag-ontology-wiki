@@ -1,4 +1,25 @@
-# Release readiness: TOW 0.5.1
+# Release readiness: TOW 0.5.2
+
+## Release scope (0.5.2)
+
+- Move vault configuration, dictionaries and rule manuals to visible `tow/`; retain project `.tow/` metadata and user `~/.tow/` connections.
+- Keep older `.tow/` and legacy vaults readable; provide preview-first migration and verified, separately approved removal.
+- Update Obsidian Sync guidance and require Tag Ontology plugin 0.10.1 on every device before migration/removal.
+- Center the title, badges and language links in all README editions; update manifests, Python metadata and lockfile to 0.5.2. Keep `tag-ontology@0.2.0` pinned.
+
+## Release order (0.5.2)
+
+1. Release Tag Ontology plugin 0.10.1 from its engine repository first.
+2. Verify and release TOW 0.5.2 only after plugin 0.10.1 is available.
+3. Users update the plugin on every device before migrating vault files; legacy removal remains separately opt-in.
+
+## Candidate verification (0.5.2) — pending
+
+Run the full local checks, CLI integration tests, and final-commit archive validation before recording candidate results. Model-backed skill application, installed-host checks, post-merge CI, and publication remain separate gates. No 0.5.2 release, tag, or publication is made by these candidate checks.
+
+---
+
+## Historical release readiness: TOW 0.5.1
 
 ## Release scope (0.5.1)
 

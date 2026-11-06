@@ -17,10 +17,10 @@ from tow_core import (
     CliError,
     ConfigError,
     body_bytes,
-    is_legacy_vault,
     run_cli,
     serialize_entries,
     tow_kind,
+    vault_layout,
     write_text_atomic,
 )
 
@@ -199,7 +199,7 @@ def cmd_project_init(
     """Preview or create the project metadata bundle without overwriting existing files."""
     del vault_cfg  # Project metadata never stores personal vault configuration.
     project_root = project.resolve()
-    if tow_kind(project_root) == "vault" or is_legacy_vault(project_root):
+    if vault_layout(project_root) != "plain":
         raise ConfigError(f"project root is a vault; refusing project init: {project_root}")
     if project_root == Path.home().resolve():
         raise ConfigError("project root must not be the home directory")
@@ -209,9 +209,11 @@ def cmd_project_init(
     if excludes:
         config["exclude"] = excludes
     config_text = json.dumps(config, ensure_ascii=False, indent=2) + "\n"
-    manual = vault / ".tow" / "tags.md"
+    layout = vault_layout(vault)
+    manual_folder = "tow" if layout == "tow" else ".tow" if layout == "dot" else None
+    manual = vault / manual_folder / "tags.md" if manual_folder is not None else None
     try:
-        manual_text = manual.read_bytes().decode("utf-8")
+        manual_text = manual.read_bytes().decode("utf-8") if manual is not None else None
     except FileNotFoundError:
         manual_text = None
     except (OSError, UnicodeError) as e:
@@ -269,7 +271,7 @@ def cmd_project_init(
         for path in outputs:
             print(f"would create {path.relative_to(project_root)}")
         if manual_text is None:
-            print("vault has no .tow/tags.md (run tow migrate)")
+            print("vault has no tow/tags.md (run tow migrate)")
         if target is None:
             print("not in a Git repository; no exclude change")
         elif exclude_append:
@@ -290,7 +292,7 @@ def cmd_project_init(
             (project_root / ".tow").rmdir()
         raise
     if manual_text is None:
-        print("vault has no .tow/tags.md (run tow migrate)")
+        print("vault has no tow/tags.md (run tow migrate)")
     if target is None:
         print("not in a Git repository; no exclude change")
     else:
