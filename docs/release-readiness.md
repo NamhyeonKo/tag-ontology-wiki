@@ -4,7 +4,8 @@
 
 - Fix vault resolution so the nearest vault wins over personal connections, and treat the plugin's empty root dictionary starter as a non-legacy marker.
 - Correct initialization, migration reporting/removal, lookup, atomic-write fallback, and project Git/status edge cases; restore Markdown dictionary synonym guidance.
-- Advance the host manifests, Python project, lockfile, and README editions to 0.5.1. Keep the pinned `tag-ontology@0.2.0`; do not tag, publish, or release as part of this change.
+- Advance the host manifests, Python project, lockfile, and README editions to 0.5.1. Keep the pinned `tag-ontology@0.2.0`.
+- Obsidian Sync users: do not run `tow migrate` yet; Sync does not carry a vault's `.tow/` folder to other devices.
 
 ## Candidate verification (0.5.1) — 2026-11-06
 

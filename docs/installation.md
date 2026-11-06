@@ -94,7 +94,7 @@ The four PARA folder names identify direct children of the vault root. `projectA
 
 `scope` sets what pathless searches and checks read. `para` (the default) reads only the four PARA folders. `vault` reads every note folder, including inbox/support/history. Use it for your own layout; this does not adopt the TOW schema. Private/ignored scope must still be filtered before scans.
 
-Obsidian Sync skips dot-folders other than `.obsidian`. If you rely on Sync, store dictionaries outside `.tow/` and set `tagDictionary` and `categoryDictionary` to those vault-relative paths in `.tow/config.json`. The Tag Ontology Obsidian plugin has a separate “Dictionary path” setting; align it with `tagDictionary`. Plugin version 0.10.0 detects `.tow/tag-dictionary.json` by default, but a custom path must be configured in both places.
+Obsidian Sync skips dot-folders other than `.obsidian`, so a vault's `.tow/` folder (settings, rules and dictionaries) does not reach your other devices. If the vault syncs with Obsidian Sync, keep a 0.4.x vault as it is and do not run `tow migrate` yet; a later release moves vault files to a visible folder. The Tag Ontology Obsidian plugin has a separate “Dictionary path” setting; align it with `tagDictionary`. Plugin version 0.10.0 detects `.tow/tag-dictionary.json` by default, but a custom path must be configured in both places.
 
 ### Start a new or existing vault
 
