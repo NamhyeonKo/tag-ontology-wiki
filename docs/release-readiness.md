@@ -1,19 +1,34 @@
-# Release readiness: TOW 0.5.2
+# Release readiness: TOW 0.5.3
 
-## Release scope (0.5.2)
+## Release scope (0.5.3)
+
+- Carry legacy Markdown rule-document bodies into `tow/tags.md` and `tow/categories.md` across legacy, dot and existing tow layouts.
+- Verify Markdown body containment before `--remove-legacy` deletes originals, and explain old-note link updates.
+- Keep an existing `tow/` dictionary when its legacy source is missing instead of conflicting with an empty replacement.
+- Update host manifests, Python metadata, lockfile and README editions to 0.5.3.
+
+## Candidate verification (0.5.3) — pending
+
+Run all required local checks and CLI integration tests before recording candidate results. No tag, release or publication is made by these candidate checks.
+
+---
+
+## Historical release readiness: TOW 0.5.2
+
+### Release scope (0.5.2)
 
 - Move vault configuration, dictionaries and rule manuals to visible `tow/`; retain project `.tow/` metadata and user `~/.tow/` connections.
 - Keep older `.tow/` and legacy vaults readable; provide preview-first migration and verified, separately approved removal.
 - Update Obsidian Sync guidance and require Tag Ontology plugin 0.10.1 on every device before migration/removal.
 - Center the title, badges and language links in all README editions; update manifests, Python metadata and lockfile to 0.5.2. Keep `tag-ontology@0.2.0` pinned.
 
-## Release order (0.5.2)
+### Release order (0.5.2)
 
 1. Release Tag Ontology plugin 0.10.1 from its engine repository first.
 2. Verify and release TOW 0.5.2 only after plugin 0.10.1 is available.
 3. Users update the plugin on every device before migrating vault files; legacy removal remains separately opt-in.
 
-## Candidate verification (0.5.2) — pending
+### Candidate verification (0.5.2) — pending
 
 Run the full local checks, CLI integration tests, and final-commit archive validation before recording candidate results. Model-backed skill application, installed-host checks, post-merge CI, and publication remain separate gates. No 0.5.2 release, tag, or publication is made by these candidate checks.
 
@@ -21,14 +36,14 @@ Run the full local checks, CLI integration tests, and final-commit archive valid
 
 ## Historical release readiness: TOW 0.5.1
 
-## Release scope (0.5.1)
+### Release scope (0.5.1)
 
 - Fix vault resolution so the nearest vault wins over personal connections, and treat the plugin's empty root dictionary starter as a non-legacy marker.
 - Correct initialization, migration reporting/removal, lookup, atomic-write fallback, and project Git/status edge cases; restore Markdown dictionary synonym guidance.
 - Advance the host manifests, Python project, lockfile, and README editions to 0.5.1. Keep the pinned `tag-ontology@0.2.0`.
 - Obsidian Sync users: do not run `tow migrate` yet; Sync does not carry a vault's `.tow/` folder to other devices.
 
-## Candidate verification (0.5.1) — 2026-11-06
+### Candidate verification (0.5.1) — 2026-11-06
 
 - Final committed candidate checks: `uv run ruff check` passed; `uv run ruff format --check` reported 62 files already formatted; `uv run pyright` reported 0 errors, warnings, or informations.
 - `uv run pytest`: 284 passed, 9 skipped. The exact local-engine integration command passed all 9 tests. `uv lock --check` and committed-diff whitespace checks passed; documentation parity/link checks passed in the full suite.
@@ -44,7 +59,7 @@ Run the full local checks, CLI integration tests, and final-commit archive valid
 2. Promote and release TOW 0.5.0 only after the dependency is published and the candidate checks pass. This documentation task does not run the release workflow, create tags, publish a marketplace package, or push changes.
 3. Users migrating a legacy vault must update the Tag Ontology Obsidian plugin to 0.10.0 before running `tow migrate`, so the plugin recognizes `.tow/tag-dictionary.json`.
 
-## Release scope (0.5.0)
+### Release scope (0.5.0)
 
 - Add cross-project query, project metadata, personal vault connections, and approved send-to-vault workflows; move vault config and dictionaries into `.tow/` while retaining legacy compatibility.
 - Keep the exact `tag-ontology@0.2.0` pin and advance all host manifests, the Python project, lockfile and README editions to 0.5.0 so native plugin updates can fetch this package.
