@@ -10,7 +10,7 @@
 
 An agent skill plugin for working across an Obsidian vault and a coding project: search both by concept, tag project documents in `.tow/` metadata without editing them, and send selected content to the vault as a new note. Vault-maintenance workflows preserve note content. Runs in Claude Code, Codex, and Google Antigravity.
 
-> **Version:** 0.5.2.
+> **Version:** 0.5.3.
 
 ## Overview
 
@@ -141,13 +141,13 @@ connected vault, read matching notes before summarizing them, and return their
 source, paths, match reasons, and count. Do not modify files.
 ```
 
-Search works without project registration or dictionaries; project tagging requires project `.tow/` metadata. The personal connection lives in `$TOW_VAULT` or `~/.tow/config.json`, never in project files. A vault containing the current directory takes precedence over either personal connection; use `--root` to select explicitly. Inside a vault, queries remain vault-only. For optional vault organization, `tow-setup` asks whether you want PARA and preserves your existing layout/schema. New vault settings live in `tow/config.json`; older `.tow/` and legacy 0.4.x vaults remain readable until migrated to `tow/`. See the [setup guide](docs/installation.md#configure-the-vault) and [project connection instructions](docs/installation.md#connect-a-vault-to-a-project).
+Search works without project registration or dictionaries; project tagging requires project `.tow/` metadata. The personal connection lives in `$TOW_VAULT` or `~/.tow/config.json`, never in project files. A vault containing the current directory takes precedence over either personal connection; use `--root` to select explicitly. Inside a vault, queries remain vault-only. For optional vault organization, `tow-setup` asks whether you want PARA and preserves your existing layout/schema. New vault settings live in `tow/config.json`; older `.tow/` and legacy 0.4.x vaults remain readable until migrated to `tow/`; migration carries legacy Markdown rule documents into `tow/tags.md` / `tow/categories.md`, so update links to the old files if they are removed. See the [setup guide](docs/installation.md#configure-the-vault) and [project connection instructions](docs/installation.md#connect-a-vault-to-a-project).
 
 ## CLI and setup checks
 
 The helper uses `npx --yes tag-ontology@0.2.0`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path. For project commands, run it from the project; vault-targeted commands may use `--root <vault>`.
 
-Neither TOW 0.5.2 nor `tag-ontology` 0.2.0 has a `doctor` command. Start with:
+Neither TOW 0.5.3 nor `tag-ontology` 0.2.0 has a `doctor` command. Start with:
 
 ```bash
 python3 --version

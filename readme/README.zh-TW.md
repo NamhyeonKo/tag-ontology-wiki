@@ -10,7 +10,7 @@
 
 用於連接 Obsidian vault 與程式專案的代理技能外掛程式：依概念搜尋兩處內容，在專案 `.tow/` 中繼資料為文件加上標籤，並將選取內容傳送為新的 vault 筆記。專案文件不會被修改；vault 維護工作會保留內容。可在 Claude Code、Codex 和 Google Antigravity 中執行。
 
-> **版本：** 0.5.2。
+> **版本：** 0.5.3。
 
 ## 概覽
 
@@ -140,13 +140,13 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 閱讀符合的筆記後再摘要，並傳回來源、路徑、符合原因及數量。不要修改檔案。
 ```
 
-不必註冊專案或字典即可搜尋；專案標籤功能需要 `.tow/` 中繼資料。個人連接儲存於 `$TOW_VAULT` 或 `~/.tow/config.json`，不會寫入專案檔案。若目前目錄位於某個 vault 內，該 vault 優先於個人連接；若要明確選擇，請使用 `--root`。在 vault 內查詢時只搜尋該 vault。設定 vault 時，`tow-setup` 會詢問是否採用 PARA，並保留現有結構／結構描述。新 vault 設定位於 `tow/config.json`；舊版 `.tow/` 和 0.4.x vault 在遷移至 `tow/` 前仍可讀取。詳見[設定指南](../docs/installation.md#configure-the-vault)與[專案連接說明](../docs/installation.md#connect-a-vault-to-a-project)。
+不必註冊專案或字典即可搜尋；專案標籤功能需要 `.tow/` 中繼資料。個人連接儲存於 `$TOW_VAULT` 或 `~/.tow/config.json`，不會寫入專案檔案。若目前目錄位於某個 vault 內，該 vault 優先於個人連接；若要明確選擇，請使用 `--root`。在 vault 內查詢時只搜尋該 vault。設定 vault 時，`tow-setup` 會詢問是否採用 PARA，並保留現有結構／結構描述。新 vault 設定位於 `tow/config.json`；舊版 `.tow/` 和 0.4.x vault 在遷移至 `tow/` 前仍可讀取。遷移會將舊版 Markdown 規則文件帶入 `tow/tags.md` / `tow/categories.md`；若刪除舊文件，請更新指向它們的筆記連結。詳見[設定指南](../docs/installation.md#configure-the-vault)與[專案連接說明](../docs/installation.md#connect-a-vault-to-a-project)。
 
 ## CLI 與設定檢查
 
 輔助程式使用 `npx --yes tag-ontology@0.2.0`；npm 會在需要時取得該確切版本。手動執行輔助程式指令時，請使用已安裝的 `scripts/tow.py` 路徑。慣例中的名稱 `tow` 是該路徑的簡寫。
 
-TOW 0.5.2 和 `tag-ontology` 0.2.0 都沒有 `doctor` 指令。請先執行：
+TOW 0.5.3 和 `tag-ontology` 0.2.0 都沒有 `doctor` 指令。請先執行：
 
 ```bash
 python3 --version

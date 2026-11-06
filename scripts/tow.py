@@ -515,21 +515,124 @@ def cmd_category_add(root: Path, cfg: dict[str, str], value: str, description: s
     return 0
 
 
+def _rule_document_sources(root: Path, category_dictionary: str) -> list[tuple[Path, Path]]:
+    category_source = category_dictionary if Path(category_dictionary).suffix == ".md" else "Category-Dictionary.md"
+    return [
+        (root / "Tag-Dictionary.md", root / "tow/tags.md"),
+        (root / category_source, root / "tow/categories.md"),
+    ]
+
+
+def _rule_document_body(source: Path) -> str:
+    body = body_bytes(source.read_bytes()).decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    lines = body.split("\n")
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    while lines and not lines[-1].strip():
+        lines.pop()
+    return "\n".join(lines)
+
+
+def _manual_append_plan(
+    root: Path,
+    category_dictionary: str,
+    bases: dict[Path, str] | None = None,
+) -> tuple[dict[Path, str], list[tuple[Path, Path]]]:
+    starters = Path(__file__).parent / "starters"
+    bases = bases or {}
+    updates: dict[Path, str] = {}
+    appended: list[tuple[Path, Path]] = []
+    for source, target in _rule_document_sources(root, category_dictionary):
+        if not source.is_file():
+            continue
+        if not source.resolve().is_relative_to(root.resolve()):
+            raise ConfigError(f"migration source must stay inside the vault: {source}")
+        if not target.resolve().is_relative_to(root.resolve()):
+            raise ConfigError(f"migration target must stay inside the vault: {target}")
+        body = _rule_document_body(source)
+        if target.is_file():
+            current = target.read_text(encoding="utf-8")
+        elif target in bases:
+            current = bases[target]
+        else:
+            current = (starters / target.name).read_text(encoding="utf-8")
+        updates[target] = current
+        if body in current:
+            continue
+        prefix = current.rstrip("\n")
+        separator = "\n\n" if prefix else ""
+        updated = f"{prefix}{separator}## Moved from {source.name}\n\n{body}\n"
+        updates[target] = updated
+        appended.append((source, target))
+    return updates, appended
+
+
+def _report_manual_appends(root: Path, appended: list[tuple[Path, Path]], apply: bool) -> None:
+    for source, target in appended:
+        action = "appended" if apply else "would append"
+        print(f"{action} {source.name} to {target.relative_to(root)}")
+
+
+def _remove_rule_documents(root: Path, category_dictionary: str, apply: bool, *, report: bool = True) -> bool:
+    candidates: list[tuple[Path, Path]] = []
+    kept: list[tuple[Path, Path]] = []
+    custom_category = root / category_dictionary
+    for source, target in _rule_document_sources(root, category_dictionary):
+        if not source.is_file() or (source == custom_category and source != root / "Category-Dictionary.md"):
+            continue
+        if not source.resolve().is_relative_to(root.resolve()):
+            raise ConfigError(f"migration source must stay inside the vault: {source}")
+        if not target.resolve().is_relative_to(root.resolve()):
+            raise ConfigError(f"migration target must stay inside the vault: {target}")
+        body = _rule_document_body(source)
+        manual = target.read_text(encoding="utf-8") if target.is_file() else ""
+        (candidates if body in manual else kept).append((source, target))
+    if report:
+        for source, target in kept:
+            print(
+                f"kept {source.name}: its text is not in {target.relative_to(root)} yet; "
+                'run "tow migrate --apply" first'
+            )
+    for source, target in candidates:
+        if report and not apply:
+            print(f"would delete {source.relative_to(root)}")
+            continue
+        if not apply:
+            continue
+        source.unlink()
+        if report:
+            print(f"deleted {source.relative_to(root)}")
+            print(
+                f"notes that link to {source.name} need their links updated; "
+                f"its text now lives in {target.relative_to(root)}"
+            )
+    return bool(candidates and apply)
+
+
 def cmd_migrate(root: Path, apply: bool, remove_legacy: bool) -> int:
     """Move legacy or dot-layout vault files into tow/, or separately remove verified originals."""
     layout = vault_layout(root)
     if layout == "tow":
+        raw = json.loads((root / "tow/config.json").read_text(encoding="utf-8"))
+        cfg = load_config(raw, TOW_DEFAULTS)
+        category_dictionary = str(cast(dict[str, object], raw).get("categoryDictionary", cfg["categoryDictionary"]))
         if remove_legacy:
-            found_legacy = False
             if (root / ".tow" / "config.json").is_file():
-                cmd_migrate_dot(root, apply, True)
-                found_legacy = True
+                return cmd_migrate_dot(root, apply, True)
             if is_legacy_vault(root):
-                cmd_migrate_legacy(root, apply, True)
-                found_legacy = True
-            if found_legacy:
-                return 0
-        print("already in tow/")
+                return cmd_migrate_legacy(root, apply, True)
+            _remove_rule_documents(root, category_dictionary, apply)
+            return 0
+        updates, appended = _manual_append_plan(root, category_dictionary)
+        _report_manual_appends(root, appended, apply)
+        if not apply:
+            if not appended:
+                print("already in tow/")
+            return 0
+        for target, text in updates.items():
+            write_text_atomic(target, text)
+        if not appended:
+            print("already in tow/")
         return 0
     if layout == "dot":
         return cmd_migrate_dot(root, apply, remove_legacy)
@@ -569,12 +672,32 @@ def cmd_migrate_dot(root: Path, apply: bool, remove_legacy: bool) -> int:
         if not target.resolve().is_relative_to(root.resolve()):
             raise ConfigError(f"migration target must stay inside the vault: {target}")
         expected[target] = expected_config.encode("utf-8") if source == config_source else source.read_bytes()
-    for target, content in expected.items():
+    category_dictionary = str(dot_config.get("categoryDictionary", TOW_DEFAULTS["categoryDictionary"]))
+    manual_bases = {
+        target: content.decode("utf-8")
+        for target, content in expected.items()
+        if target.name in {"tags.md", "categories.md"}
+    }
+    copied = expected.copy()
+    if remove_legacy:
+        manual_updates, appended = {}, []
+    else:
+        manual_bases.update({target: target.read_text(encoding="utf-8") for target in manual_bases if target.is_file()})
+        manual_updates, appended = _manual_append_plan(root, category_dictionary, manual_bases)
+    appended_targets = {target for _, target in appended}
+    for target, text in manual_updates.items():
+        expected[target] = text.encode("utf-8")
+    _report_manual_appends(root, appended, apply)
+    for target, content in copied.items():
         differs = (target.exists() or target.is_symlink()) and (not target.is_file() or target.read_bytes() != content)
         if differs and not remove_legacy:
             raise ConfigError(f"migration target already exists with different contents: {target.relative_to(root)}")
 
     if remove_legacy:
+        try:
+            _remove_rule_documents(root, category_dictionary, False, report=False)
+        except (OSError, ConfigError) as e:
+            raise ConfigError(f"migration verification failed: {e}") from e
         verified: list[Path] = []
         changed: list[tuple[Path, Path]] = []
         try:
@@ -591,6 +714,10 @@ def cmd_migrate_dot(root: Path, apply: bool, remove_legacy: bool) -> int:
                 f"changed {target.relative_to(root)}; kept legacy original "
                 f"{source.relative_to(root)} because it differs"
             )
+        try:
+            _remove_rule_documents(root, category_dictionary, apply)
+        except (OSError, ConfigError) as e:
+            raise ConfigError(f"migration verification failed: {e}") from e
         if not apply:
             for source in verified:
                 print(f"would delete {source.relative_to(root)}")
@@ -626,6 +753,8 @@ def cmd_migrate_dot(root: Path, apply: bool, remove_legacy: bool) -> int:
             target.parent.mkdir(parents=True, exist_ok=True)
             write_text_atomic(target, content.decode("utf-8"), exclusive=True)
             print(f"created {target.relative_to(root)}")
+        elif target in appended_targets:
+            write_text_atomic(target, content.decode("utf-8"))
     if any(not target.is_file() or target.read_bytes() != content for target, content in expected.items()):
         raise ConfigError("migration verification failed; dot-layout files were kept")
     print("migration complete")
@@ -647,7 +776,6 @@ def cmd_migrate_legacy(root: Path, apply: bool, remove_legacy: bool) -> int:
     migrated_config = {key: value for key, value in original_config.items() if key != "kind"}
     legacy_tag_source = validated_config["tagDictionary"] == "Tag-Dictionary.json"
     category_source_is_markdown = Path(validated_config["categoryDictionary"]).suffix == ".md"
-    legacy_category_source = category_source_is_markdown
     if legacy_tag_source:
         migrated_config.pop("tagDictionary", None)
     if category_source_is_markdown:
@@ -714,14 +842,6 @@ def cmd_migrate_legacy(root: Path, apply: bool, remove_legacy: bool) -> int:
                 and tag_copy == tag_bytes
             ):
                 legacy_paths.append(tag_source)
-            if (
-                legacy_category_source
-                and category_source.resolve() == (root / "Category-Dictionary.md").resolve()
-                and category_source not in missing_sources
-                and category_source.is_file()
-                and category_copy == category_entries_to_write
-            ):
-                legacy_paths.append(category_source)
             legacy_paths = [path for path in legacy_paths if path.is_file()]
             for manual in (targets[1], targets[3]):
                 if not manual.is_file():
@@ -730,14 +850,17 @@ def cmd_migrate_legacy(root: Path, apply: bool, remove_legacy: bool) -> int:
             if isinstance(e, ConfigError) and str(e).startswith("migration verification failed"):
                 raise
             raise ConfigError(f"migration verification failed: {e}") from e
-        expected_keys = set(migrated_config)
-        expected_keys.remove("kind")
-        if (
-            new_config.get("kind") != "vault"
-            or set(new_config) - {"kind"} != expected_keys
-            or any(new_config.get(key) != value for key, value in migrated_config.items() if key != "kind")
-        ):
+        expected_values = {key: value for key, value in migrated_config.items() if key != "kind"}
+        expected_values.pop("categoryDictionary", None)
+        config_matches = new_config.get("kind") == "vault" and all(
+            new_config.get(key) == value for key, value in expected_values.items()
+        )
+        if not config_matches:
             raise ConfigError("migration verification failed; legacy files were kept")
+        try:
+            _remove_rule_documents(root, validated_config["categoryDictionary"], apply)
+        except (OSError, ConfigError) as e:
+            raise ConfigError(f"migration verification failed: {e}") from e
         if not apply:
             for path in legacy_paths:
                 print(f"would delete {path.relative_to(root)}")
@@ -761,9 +884,25 @@ def cmd_migrate_legacy(root: Path, apply: bool, remove_legacy: bool) -> int:
     config_target = targets[0]
     config_text = json.dumps(migrated_config, ensure_ascii=False, indent=2) + "\n"
     expected = {**output, config_target: config_text}
+    missing_dictionary_targets = {
+        targets[2] if source == tag_source else targets[4]
+        for source in missing_sources
+        if (targets[2] if source == tag_source else targets[4]).is_file()
+    }
+    expected = {target: text for target, text in expected.items() if target not in missing_dictionary_targets}
+    output = {target: text for target, text in output.items() if target not in missing_dictionary_targets}
+    for target in missing_dictionary_targets:
+        source = tag_source if target == targets[2] else category_source
+        print(f"kept existing {target.relative_to(root)} (no {source.name} to copy)")
+    updates, appended = _manual_append_plan(root, validated_config["categoryDictionary"], output)
+    output.update({target: text for target, text in updates.items() if target not in missing_dictionary_targets})
+    expected.update({target: text for target, text in updates.items() if target not in missing_dictionary_targets})
+    _report_manual_appends(root, appended, apply)
     for target, text in expected.items():
-        if (target.exists() or target.is_symlink()) and (
-            not target.is_file() or target.read_bytes() != text.encode("utf-8")
+        if (
+            (target.exists() or target.is_symlink())
+            and (not target.is_file() or target.read_bytes() != text.encode("utf-8"))
+            and target not in targets[1:4:2]
         ):
             raise ConfigError(f"migration target already exists with different contents: {target.relative_to(root)}")
 
@@ -782,6 +921,8 @@ def cmd_migrate_legacy(root: Path, apply: bool, remove_legacy: bool) -> int:
                 ):
                     print(f"missing; created empty dictionary {target.relative_to(root)}")
             print(f"{'created' if apply else 'would create'} {target.relative_to(root)}")
+        elif target in updates and apply and not (target.is_file() and target.read_text(encoding="utf-8") == text):
+            write_text_atomic(target, text)
 
     if apply:
         try:
