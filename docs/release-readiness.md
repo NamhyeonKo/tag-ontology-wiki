@@ -1,4 +1,20 @@
-# Release readiness: TOW 0.5.0
+# Release readiness: TOW 0.5.1
+
+## Release scope (0.5.1)
+
+- Fix vault resolution so the nearest vault wins over personal connections, and treat the plugin's empty root dictionary starter as a non-legacy marker.
+- Correct initialization, migration reporting/removal, lookup, atomic-write fallback, and project Git/status edge cases; restore Markdown dictionary synonym guidance.
+- Advance the host manifests, Python project, lockfile, and README editions to 0.5.1. Keep the pinned `tag-ontology@0.2.0`; do not tag, publish, or release as part of this change.
+
+## Candidate verification (0.5.1) — 2026-11-06
+
+- `uv run ruff check`: passed. `uv run ruff format --check`: 62 files already formatted. `uv run pyright`: 0 errors, warnings, or informations.
+- `uv run pytest`: 284 passed, 9 skipped. The exact local-engine integration command passed all 9 tests. `uv lock --check` and `git diff --check` passed; documentation parity/link checks passed in the full suite.
+- Model-backed skill application, installed-host checks, post-merge CI, and publication remain separate gates. The 0.5.1 release archive must be built from its committed candidate; no tag, release, or publication was made here.
+
+---
+
+## Historical release readiness: TOW 0.5.0
 
 ## Release order and hand-off
 
@@ -14,7 +30,7 @@
 
 ## Candidate verification (0.5.0) — pending
 
-The maintainer runs the release-candidate checks at release time and records their actual results here. **Status: pending; no 0.5.0 release-candidate results are recorded in this section.** Record the final local test, lint, format, type-check, lockfile and documentation-link results after running those checks.
+The maintainer runs the release-candidate checks at release time and records their actual results here. **Status: pending; no 0.5.0 release-candidate results are recorded in this historical section.** Record the final local test, lint, format, type-check, lockfile and documentation-link results after running those checks.
 
 Model-backed skill application, installed-host checks, post-merge CI and publication are separate release gates; do not infer those results from local checks.
 

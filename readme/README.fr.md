@@ -4,7 +4,7 @@ Un plugin de compétences pour agents qui relie un coffre Obsidian à un projet 
 
 [English](../README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-> **Version :** 0.5.0.
+> **Version :** 0.5.1.
 
 ## Présentation
 
@@ -135,13 +135,13 @@ coffre connecté, lis les notes correspondantes avant de les résumer, et indiqu
 chemins, les raisons des correspondances et le nombre de résultats. Ne modifie aucun fichier.
 ```
 
-La recherche est possible sans enregistrer le projet ni disposer de dictionnaires ; l'étiquetage du projet nécessite des métadonnées `.tow/`. La connexion personnelle est enregistrée dans `$TOW_VAULT` ou `~/.tow/config.json`, jamais dans les fichiers du projet. Depuis le coffre, les requêtes ne recherchent que dans ce coffre. Pour organiser le coffre, sélectionnez `tow-setup` ; il vous demandera si vous souhaitez PARA et préservera la structure et le schéma existants. La nouvelle configuration du coffre se trouve dans `.tow/config.json` ; les coffres 0.4.x avec un `tow.json` à la racine restent lisibles avant migration. Consultez le [guide de configuration](../docs/installation.md#configure-the-vault) et les [instructions de connexion d'un projet](../docs/installation.md#connect-a-vault-to-a-project).
+La recherche est possible sans enregistrer le projet ni disposer de dictionnaires ; l'étiquetage du projet nécessite des métadonnées `.tow/`. La connexion personnelle est enregistrée dans `$TOW_VAULT` ou `~/.tow/config.json`, jamais dans les fichiers du projet. Si le répertoire courant se trouve dans un coffre, celui-ci est prioritaire sur la connexion personnelle ; utilisez `--root` pour choisir explicitement. Depuis un coffre, les requêtes ne recherchent que dans ce coffre. Pour organiser le coffre, sélectionnez `tow-setup` ; il vous demandera si vous souhaitez PARA et préservera la structure et le schéma existants. La nouvelle configuration du coffre se trouve dans `.tow/config.json` ; les coffres 0.4.x avec un `tow.json` à la racine restent lisibles avant migration. Consultez le [guide de configuration](../docs/installation.md#configure-the-vault) et les [instructions de connexion d'un projet](../docs/installation.md#connect-a-vault-to-a-project).
 
 ## CLI et vérifications de configuration
 
 L'utilitaire utilise `npx --yes tag-ontology@0.2.0` ; npm récupère cette version exacte lorsque c'est nécessaire. Les commandes manuelles de l'utilitaire utilisent le chemin du fichier `scripts/tow.py` installé. Dans les conventions, le nom `tow` est une abréviation de ce chemin.
 
-Ni TOW 0.5.0 ni `tag-ontology` 0.2.0 ne possèdent de commande `doctor`. Commencez par :
+Ni TOW 0.5.1 ni `tag-ontology` 0.2.0 ne possèdent de commande `doctor`. Commencez par :
 
 ```bash
 python3 --version

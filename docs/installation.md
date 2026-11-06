@@ -46,7 +46,7 @@ Run the relevant command in your terminal:
 | Codex | `codex plugin list --json` | Use `$` or `/skills` and select `tow-query` |
 | Antigravity | `agy plugin list --json` | `/tow-query` |
 
-Confirm `tow`, version `0.5.0`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-send-vault`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (twelve total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
+Confirm `tow`, version `0.5.1`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-send-vault`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (twelve total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
 
 ## Configure the vault
 
@@ -119,7 +119,7 @@ Run `--apply` only after approving every previewed item. To create a smaller sub
 
 ## Connect a vault to a project
 
-Use a personal connection so project metadata can be shared without exposing your vault path. A project session can resolve the vault from `TOW_VAULT` or `~/.tow/config.json`; `TOW_VAULT` takes precedence. The personal config has the form `{"kind":"user","vault":"<absolute path>"}`. It is outside the project and must not be committed.
+Use a personal connection so project metadata can be shared without exposing your vault path. Outside any vault, a project session can resolve the vault from `TOW_VAULT` and then `~/.tow/config.json` (the environment variable takes precedence). Inside a vault, that nearest ancestor vault takes precedence over either personal connection; use `--root` when you want to choose explicitly. The personal config has the form `{"kind":"user","vault":"<absolute path>"}`. It is outside the project and must not be committed.
 
 From the project, select `tow-setup` and let it inspect names and configuration only. If no vault is connected, first select a vault you identify and set it up there. Then preview the connection and apply it only after approval:
 
@@ -148,7 +148,7 @@ Legacy 0.4.x vaults remain readable without migration. Before migrating, update 
 
 ## Check the setup
 
-TOW 0.5.0 and `tag-ontology` 0.2.0 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
+TOW 0.5.1 and `tag-ontology` 0.2.0 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
 
 **1. Runtime versions — terminal (Node/npm only for ontology/parsing):**
 

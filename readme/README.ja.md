@@ -4,7 +4,7 @@ Obsidian vault と開発プロジェクトを接続するエージェントス�
 
 [English](../README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-> **バージョン:** 0.5.0。
+> **バージョン:** 0.5.1。
 
 ## 概要
 
@@ -134,13 +134,13 @@ vault の保守だけを行う場合は、vault をホストのワークスペ�
 接続済み vault の両方を検索し、一致するノートを読んでから要約して、出典・パス・一致理由・件数を返してください。ファイルは変更しないでください。
 ```
 
-プロジェクト登録や辞書なしでも検索できます。プロジェクトへのタグ付けには `.tow/` メタデータが必要です。個人接続は `$TOW_VAULT` または `~/.tow/config.json` に保存され、プロジェクトファイルには記録されません。vault 内での検索はその vault のみを対象にします。vault を整理するには `tow-setup` を選択してください。PARA の採用を確認し、既存の構成・スキーマを保持します。新しい vault 設定は `.tow/config.json` に置かれ、従来の 0.4.x vault も移行するまではルートの `tow.json` から読み取れます。[セットアップガイド](../docs/installation.md#configure-the-vault)と[プロジェクト接続手順](../docs/installation.md#connect-a-vault-to-a-project)を参照してください。
+プロジェクト登録や辞書なしでも検索できます。プロジェクトへのタグ付けには `.tow/` メタデータが必要です。個人接続は `$TOW_VAULT` または `~/.tow/config.json` に保存され、プロジェクトファイルには記録されません。現在のディレクトリが vault 内にある場合、その vault が個人接続より優先されます。明示的に選ぶには `--root` を使います。vault 内での検索はその vault のみを対象にします。vault を整理するには `tow-setup` を選択してください。PARA の採用を確認し、既存の構成・スキーマを保持します。新しい vault 設定は `.tow/config.json` に置かれ、従来の 0.4.x vault も移行するまではルートの `tow.json` から読み取れます。[セットアップガイド](../docs/installation.md#configure-the-vault)と[プロジェクト接続手順](../docs/installation.md#connect-a-vault-to-a-project)を参照してください。
 
 ## CLI とセットアップの確認
 
 ヘルパーは `npx --yes tag-ontology@0.2.0` を使用します。必要に応じて npm がその正確なバージョンを取得します。ヘルパーを手動で実行するときは、インストールされた `scripts/tow.py` のパスを使います。規約中の `tow` は、そのパスの略記です。
 
-TOW 0.5.0 にも `tag-ontology` 0.2.0 にも、`doctor` コマンドはありません。まず次を実行してください。
+TOW 0.5.1 にも `tag-ontology` 0.2.0 にも、`doctor` コマンドはありません。まず次を実行してください。
 
 ```bash
 python3 --version
