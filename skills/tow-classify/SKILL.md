@@ -9,7 +9,11 @@ description: >-
 
 # tow-classify
 
-Manages classification fields and, when adopted, their category dictionary. Read the [conventions](../../docs/methodology.md) and run `tow config` first. Inspect the user's actual schema before proposing fields/values. For TOW categories, resolve the dictionary from `categoryDictionary` and read its rules/index when present. Concept-tag selection belongs to `tow-tag-suggest`, dictionary consistency to `tow-tag-sync`; clarify an ambiguous "tag" request.
+This skill works only inside the vault. From another project, stop and use `tow-query` to find vault content or `tow-send-vault` to bring content in.
+
+Before any write, run `tow config` and verify the vault root it prints contains the current working directory and every file being edited; otherwise stop and route the request as above.
+
+Manages classification fields and, when adopted, their category dictionary. Read the [conventions](../../docs/methodology.md) and run `tow config` first. Inspect the user's actual schema before proposing fields/values. For TOW categories, use `.tow/category-dictionary.json` by default (or the configured `categoryDictionary` path) and read `.tow/categories.md` for its rules when present. Concept-tag selection belongs to `tow-tag-suggest`, dictionary consistency to `tow-tag-sync`; clarify an ambiguous "tag" request.
 
 Use the adopted vault rules, category dictionary and this workflow as classification rules. A category needs no invented minimum number of notes. The conventions' fixed `type`, `status` and `kind` values apply only to TOW-schema notes. For a custom schema, preserve its field names/values, show evidence for changes and use the plan/apply/preservation steps below without TOW-specific dictionary or legacy conversion requirements. No PARA move is implied. If the user selects TOW classification and its dictionary is missing, propose that prerequisite's path/content for approval before registering values; a dictionary does not imply adopting PARA or a tag ontology.
 
@@ -17,7 +21,7 @@ For every selected note-metadata edit, follow the [preservation contract](../../
 
 ## A. Register a category
 
-1. **Reuse first.** Read the category index and search semantic equivalents, synonyms, abbreviations, and other-language spellings. If the same meaning exists, report reuse of that value and stop registration.
+1. **Reuse first.** Read the configured category dictionary and `.tow/categories.md` rules; search semantic equivalents, synonyms, abbreviations, and other-language spellings. If the same meaning exists, report reuse of that value and stop registration.
 2. **Name and place.** Choose its parent, name, depth, and primary/secondary use. Default depth is two levels; justify a third only when two levels plus a secondary category cannot express it. Resource categories identify knowledge domains; project categories identify projects; area categories identify sources such as books, papers, or certifications.
 3. **Propose and obtain approval.** Batch related entries in this table. Include planned dictionary/diagram changes.
 
@@ -25,9 +29,9 @@ For every selected note-metadata edit, follow the [preservation contract](../../
    | --- | --- | --- | --- | --- | --- |
    | `ai/agent` | `ai` | Goal-directed agent workflows | secondary | 2 | Existing values cover models, not agent workflows |
 
-4. **Register the approved entries.** Update the dictionary section/index, its Mermaid classification graph when present, and `updated`. Include any proposed graph creation in the plan. Put common synonyms/abbreviations at the end of the one-line description so later reuse checks can find them. Preserve unrelated entries and graph nodes.
+4. **Register the approved entries.** If the configured `categoryDictionary` ends in `.md`, keep the 0.4.2 Markdown flow: update the selected category's dictionary entry and index/graph/date under the approved plan, preserving unrelated content. Offer `tow migrate` as an optional way to convert the legacy vault; migration is not a prerequisite to category registration. Otherwise, run `tow category add <value> <description>` to preview each JSON entry; after approval, run `tow category add <value> <description> --apply`. Follow `.tow/categories.md` and do not edit the JSON dictionary by hand.
 5. **Ask separately about retroactive classification.** Registration alone does not authorize editing existing notes. If approved, run B for that value across the vault unless the user selects a narrower scope; an already explicit selection or refusal settles this question.
-6. **Verify.** For TOW classification, lint affected TOW notes when applicable and confirm the new value is recognized. For custom fields, compare parsed values with adopted rules. Report the value, parent, approved diagram/date changes, and retroactive decision; dictionary-only registration does not authorize reading other notes.
+6. **Verify.** For TOW classification, lint affected TOW notes when applicable and confirm the new value is recognized in the configured category dictionary JSON. For custom fields, compare parsed values with adopted rules. Report the value, parent, approved diagram/date changes, and retroactive decision; dictionary-only registration does not authorize reading other notes.
 
 ## B. Review existing notes
 

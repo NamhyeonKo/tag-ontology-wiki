@@ -4,10 +4,14 @@ description: >-
   Use when inspecting organized notes against the user's own rules for ownership,
   duplication, missing navigation or project direction and proposing optional aftercare.
   Triggers: "review this domain", "any duplicate content?", "is there a hub note?",
-  "this note is too big", "clean up the project docs".
+  "this note is too big", "clean up my project notes in the vault".
 ---
 
 # tow-review
+
+This skill works only inside the vault. From another project, stop and use `tow-query` to find vault content or `tow-send-vault` to bring content in.
+
+Before any write, run `tow config` and verify the vault root it prints contains the current working directory and every file being edited; otherwise stop and route the request as above.
 
 Read-only review and post-curation planning by default. Read the [conventions](../../docs/methodology.md), [post-curation contract](../../docs/post-curation.md), `tow config` and [concept ownership](references/concept-ownership.md). A review/cleanup request never creates a hub, rewrites bodies, splits/merges notes or adds metadata automatically.
 

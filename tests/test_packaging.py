@@ -16,6 +16,7 @@ import tow
 ROOT = Path(__file__).parents[1]
 SKILLS = {
     "tow-query",
+    "tow-send-vault",
     "tow-check",
     "tow-tag-suggest",
     "tow-tag-sync",
@@ -36,6 +37,22 @@ def test_hosts_share_the_same_package_identity() -> None:
         for key in ("name", "version", "author", "repository", "license"):
             assert portable[key] == manifest[key]
     assert {path.parent.name for path in (ROOT / "skills").glob("*/SKILL.md")} == SKILLS
+
+
+def test_vault_only_skills_say_so() -> None:
+    statement = "This skill works only inside the vault."
+    for skill in (
+        "tow-check",
+        "tow-classify",
+        "tow-link",
+        "tow-edit",
+        "tow-merge",
+        "tow-review",
+        "tow-ingest",
+        "tow-tag-sync",
+    ):
+        text = (ROOT / "skills" / skill / "SKILL.md").read_text()
+        assert any(statement in line for line in text.splitlines()[:15]), skill
 
 
 def test_workflows_have_no_private_vault_dependencies() -> None:

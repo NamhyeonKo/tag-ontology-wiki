@@ -2,11 +2,11 @@
 
 [Overview](../README.md) · [Contributing](../CONTRIBUTING.md)
 
-TOW adds eleven skills to a local agent host for document management inside your Obsidian vault. Open that vault as the workspace; the agent uses the bundled Python helper and optional npm `tag-ontology` CLI within it. Installation uses this public repository; no official-directory submission is required.
+TOW adds twelve skills to Claude Code, Codex, and Google Antigravity. Vault-maintenance skills work inside an Obsidian vault; `tow-query`, project tagging, and `tow-send-vault` also support a separate project workspace connected to a personal vault. Installation uses this public repository; no official-directory submission is required.
 
 ## Install in your host
 
-Have Git and Python 3.10+ available to the host. Node.js 22.18+ and npm/npx are needed for optional `tag-ontology` parsing/ontology features; file search/body work can run without them. The first CLI run may download `tag-ontology@0.1.3` from npm. TOW uses the host's model, account, file permissions, and privacy settings; it has no separate service or API key.
+Have Git and Python 3.10+ available to the host. Node.js 22.18+ and npm/npx are needed for optional `tag-ontology` parsing/ontology features; file search/body work can run without them. The first CLI run may download `tag-ontology@0.2.0` from npm. TOW uses the host's model, account, file permissions, and privacy settings; it has no separate service or API key.
 
 **Claude Code — run inside a Claude Code session:**
 
@@ -34,7 +34,7 @@ codex plugin add tow@tag-ontology-wiki --json
 agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 ```
 
-Start a new host session after installation and open your Obsidian vault as the workspace. Keep searches, selected edits and filing destinations inside that vault.
+Start a new host session after installation. For vault maintenance, open the Obsidian vault as the workspace. For cross-project use, open the project as the workspace and connect the vault as described below. TOW never stores a personal vault path in project metadata. TOW's guarantees apply to its own workflows and commands, not arbitrary shell commands; shell can bypass file-tool rules. Host sandboxing or OS permissions are the process-level enforcement boundary.
 
 ## Confirm the plugin loaded
 
@@ -46,11 +46,11 @@ Run the relevant command in your terminal:
 | Codex | `codex plugin list --json` | Use `$` or `/skills` and select `tow-query` |
 | Antigravity | `agy plugin list --json` | `/tow-query` |
 
-Confirm `tow`, version `0.4.2`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (eleven total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
+Confirm `tow`, version `0.5.0`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-send-vault`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (twelve total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
 
 ## Configure the vault
 
-TOW reads `<vault>/tow.json`. Without it, the effective defaults are:
+TOW reads `<vault>/.tow/config.json` with `"kind": "vault"`. Without a config file, the effective legacy-compatible defaults are:
 
 ```json
 {
@@ -69,17 +69,18 @@ TOW reads `<vault>/tow.json`. Without it, the effective defaults are:
 }
 ```
 
-Only override values that differ in your vault. For example, a vault with `Projects`, `Areas`, `Resources`, `Archives`, project history in `superseded`, and dictionaries in `meta/` can use:
+A legacy `tow.json` is merged over these same defaults. `tow config` prints effective settings without a `kind` field. A `.tow/config.json` vault uses `.tow/tag-dictionary.json` and `.tow/category-dictionary.json` defaults; legacy 0.4.x vaults remain readable from root `tow.json` and their root dictionaries until migrated. Only override values that differ in your vault. For example, a vault with `Projects`, `Areas`, `Resources`, `Archives`, project history in `superseded`, and dictionaries in `meta/` can use:
 
 ```json
 {
+  "kind": "vault",
   "projects": "Projects",
   "areas": "Areas",
   "resources": "Resources",
   "archives": "Archives",
   "projectArchive": "superseded",
   "tagDictionary": "meta/Tag-Dictionary.json",
-  "categoryDictionary": "meta/Category-Dictionary.md",
+  "categoryDictionary": "meta/category-dictionary.json",
   "inbox": "Capture",
   "attachments": "Support/media",
   "dailyNotes": "Areas/journal",
@@ -87,11 +88,13 @@ Only override values that differ in your vault. For example, a vault with `Proje
 }
 ```
 
-The four PARA folder names identify direct children of the vault root. `projectArchive` names history folders inside projects, such as `Projects/Search/superseded/`; matching folders at any depth in the search scope count. Dictionary paths name files relative to the vault root; a trailing `/` is rejected. The tag dictionary is a JSON object of concept entries; the category dictionary is a Markdown index of registered classifications. Their formats are in the [conventions](methodology.md).
+The four PARA folder names identify direct children of the vault root. `projectArchive` names history folders inside projects, such as `Projects/Search/superseded/`; matching folders at any depth in the search scope count. Dictionary paths name files relative to the vault root; a trailing `/` is rejected. Both dictionaries are JSON; the tag dictionary stores concepts and the category dictionary stores registered classifications. Their formats are in the [conventions](methodology.md).
 
 `inbox` and `misc` also name direct-child folders. `attachments` and `dailyNotes` are nonempty paths inside the vault; absolute paths, `..`, and the vault root are rejected. Set them explicitly: changing another key does not rewrite them. They control intake, attachment moves, and link exclusions without widening default PARA searches.
 
-`scope` sets what pathless searches and checks read. `para` (the default) reads only the four PARA folders. `vault` reads every note folder, including inbox/support/history, excluding only the category dictionary unless explicitly selected. Use it for your own layout; this does not adopt the TOW schema. Private/ignored scope must still be filtered before scans.
+`scope` sets what pathless searches and checks read. `para` (the default) reads only the four PARA folders. `vault` reads every note folder, including inbox/support/history. Use it for your own layout; this does not adopt the TOW schema. Private/ignored scope must still be filtered before scans.
+
+Obsidian Sync skips dot-folders other than `.obsidian`. If you rely on Sync, store dictionaries outside `.tow/` and set `tagDictionary` and `categoryDictionary` to those vault-relative paths in `.tow/config.json`. The Tag Ontology Obsidian plugin has a separate “Dictionary path” setting; align it with `tagDictionary`. Plugin version 0.10.0 detects `.tow/tag-dictionary.json` by default, but a custom path must be configured in both places.
 
 ### Start a new or existing vault
 
@@ -114,19 +117,48 @@ The helper retains the PARA starter bundle for compatibility. In a free-form vau
 
 Run `--apply` only after approving every previewed item. To create a smaller subset, use the skill's exact approved file plan instead of initializing extra assets.
 
+## Connect a vault to a project
+
+Use a personal connection so project metadata can be shared without exposing your vault path. A project session can resolve the vault from `TOW_VAULT` or `~/.tow/config.json`; `TOW_VAULT` takes precedence. The personal config has the form `{"kind":"user","vault":"<absolute path>"}`. It is outside the project and must not be committed.
+
+From the project, select `tow-setup` and let it inspect names and configuration only. If no vault is connected, first select a vault you identify and set it up there. Then preview the connection and apply it only after approval:
+
+```bash
+TOW="/absolute/path/to/installed/tow/scripts/tow.py"
+"$TOW" connect /absolute/path/to/vault
+"$TOW" connect /absolute/path/to/vault --apply
+"$TOW" connect
+```
+
+Project metadata is separately registered with the user's choice of local or shared mode. Local mode stores `.tow/` in Git's repository-local `info/exclude`; shared mode leaves project metadata commit-able and excludes only `documents.local.json`. Setup proposes excludes only for dependency/build folders found in the project and never edits `.gitignore`, project documents, or host settings. From a project, `tow-query` searches both the connected vault and current project, and `tow-send-vault` can create a new vault note from selected content after approval. Inside a vault, queries remain vault-only.
+
+### Host access suggestions
+
+These are permission hints for users to apply; TOW does not edit host configuration. Grant read access only to the intended vault scope, and grant writes only to the configured note folder if sending is wanted. Substitute the actual vault root and note folder:
+
+- **Claude Code:** reads: `Read(//<vault>/**)` or `permissions.additionalDirectories`; sending: `Edit(//<vault>/<note folder>/**)` or per-call approval.
+- **Codex:** reads outside the workspace are not blocked by the default sandbox. Writes require the configured vault note folder in `sandbox_workspace_write.writable_roots` or approval. Permission profiles are beta and do not cover MCP.
+- **Antigravity:** `read_file(<vault>)`; only if sending is wanted, `write_file(<vault>/<note folder>)` permission rules.
+
+Skills and TOW do not provide an OS-level access boundary. Their guarantees cover TOW's own workflows and commands, not arbitrary shell commands; shell can bypass file-tool rules. Only host sandboxing or OS permissions can constrain processes. Do not bypass an access denial; report the applicable host hint and stop.
+
+## Migrate a legacy vault
+
+Legacy 0.4.x vaults remain readable without migration. Before migrating, update the Tag Ontology Obsidian plugin to **0.10.0** so it recognizes `.tow/tag-dictionary.json`. Preview with `tow --root <vault> migrate`; after reviewing the complete plan, apply with `tow --root <vault> migrate --apply`. Migration copies/converts into `.tow/` and leaves legacy files in place. Removal is a separate approved operation: first preview `migrate --remove-legacy`, then apply only after verifying the copies.
+
 ## Check the setup
 
-TOW 0.4.2 and `tag-ontology` 0.1.3 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
+TOW 0.5.0 and `tag-ontology` 0.2.0 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
 
 **1. Runtime versions — terminal (Node/npm only for ontology/parsing):**
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.1.3 --version
+npx --yes tag-ontology@0.2.0 --version
 ```
 
-The last command should print `0.1.3`. It checks that the npm CLI can launch; it does not check your vault.
+The last command should print `0.2.0`. It checks that the npm CLI can launch; it does not check your vault.
 
 **2. Installed helper — terminal:**
 
@@ -146,7 +178,7 @@ VAULT="/absolute/path/to/vault"
 
 | Check | Meaning |
 | --- | --- |
-| `--help` | The Python helper starts and lists `config`, `init`, `lint`, `verify-body`, `find`, and `ontology` |
+| `--help` | The Python helper starts and lists vault and project commands, including `connect`, `project`, `send`, `lookup`, and `migrate` |
 | `config` | Prints merged settings; compare them with actual folders/dictionaries. This command does not validate that those files exist. |
 | `lint` | Parses notes through the CLI and checks classification values, field scope, duplicate tags, and tag counts; prints `OK` when clean |
 | `ontology check --json` | Checks the tag dictionary; a clean result has `ok: true` and empty `issues` |
@@ -195,6 +227,7 @@ Explicitly select the skill, then supply the vault root and the files/folders to
 | `tow-merge` | “Compare these two notes. Show strategies, retained facts and losses; wait for my case-by-case choice.” |
 | `tow-review` | “Review this domain for ownership, duplicates, missing hubs and isolation. Propose fixes before changing files.” |
 | `tow-ingest` | “Plan intake of the configured inbox's top-level captures, including metadata, destinations, attachments and links.” |
+| `tow-send-vault` | “Send this selected project note to my connected vault as a new note. Preserve the selected body exactly and show the complete proposal before writing.” |
 
 A clear `tow-edit` request authorizes its selected body edit only when the user's rules/template/source and preservation boundary are already established. Missing rules produce a question, never a bundled-template fallback. A review remains read-only until a concrete follow-up operation is selected. Other modifying workflows propose first. Intake/review batch approval still preserves merge-by-merge selection, separate discard confirmation, and the separate retroactive-classification decision. Ignored/private captures need explicit selection, and the plan must disclose any move into tracked/public scope. Shared attachments stay in place unless separately approved.
 

@@ -1,8 +1,8 @@
 {
   "name": "tow",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "icon": "./assets/icon.png",
-  "description": "Manage documents inside an Obsidian vault with content-preserving formatting, frontmatter and optional user-guided post-curation.",
+  "description": "Search a connected Obsidian vault and project, tag project documents in .tow/, send selected content to the vault, and manage vault notes with content-preserving workflows.",
   "author": {
     "name": "NamhyeonKo",
     "url": "https://github.com/NamhyeonKo"

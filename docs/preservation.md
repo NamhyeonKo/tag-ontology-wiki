@@ -25,6 +25,12 @@ A literal replacement/diff check proves only where a change occurred. Separately
 
 Converting ambiguous plain text/code to LaTeX, changing a matrix into a different representation, simplifying an expression, repairing a code algorithm, filling an empty table cell or adding missing prose is content work. Report it; a separate explicit [post-curation](post-curation.md) request is required. A template alone does not authorize those changes.
 
+## Cross-project operations
+
+From a project, TOW's project workflows store tags and hashes in project `.tow/` metadata; they do not edit project document contents or frontmatter. `tow project tag` changes only those metadata files. `tow send` is the project workflow that writes to the connected vault: it creates a new note under a configured note folder and never overwrites. Unless the user explicitly selects a transformation, it checks that the draft body bytes match the selected source and refuses a mismatch.
+
+These guarantees cover TOW's own commands and skill workflows, not arbitrary shell commands. An agent can bypass file-tool rules by running shell commands; only the host sandbox or OS permissions can enforce a process-level access boundary. Host permission snippets are suggestions for users to apply, not changes TOW makes.
+
 ## `tow verify-body BEFORE AFTER`
 
 Read-only equality check for **metadata-only** edits. Both paths must be distinct, existing files inside the named vault; symlinks resolving outside it and hard-linked/self baselines are rejected. It needs neither Node/npm, a dictionary nor valid `tow.json`.
