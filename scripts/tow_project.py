@@ -17,6 +17,7 @@ from tow_core import (
     CliError,
     ConfigError,
     body_bytes,
+    is_legacy_vault,
     run_cli,
     serialize_entries,
     tow_kind,
@@ -47,6 +48,8 @@ def cmd_send(
         or relative.parts[0] not in {cfg[key] for key in NOTE_FOLDERS}
         or ".." in relative.parts
         or len(relative.parts) < 2
+        or relative.suffix != ".md"
+        or any(part.startswith(".") for part in relative.parts)
     ):
         raise ConfigError("send destination must be a vault-relative file under a configured note folder")
     target = root / relative
@@ -63,7 +66,7 @@ def cmd_send(
     try:
         content = draft.read_bytes()
         source_content = source.read_bytes()
-        if not transformed and body_bytes(content) != source_content:
+        if not transformed and body_bytes(content) != body_bytes(source_content):
             raise ConfigError("send draft body does not match the source")
     except OSError as e:
         raise ConfigError(f"send can't read its input: {e}") from e
@@ -114,22 +117,53 @@ def cmd_send(
     return 0
 
 
-def git(cwd: Path, *args: str) -> str | None:
-    """Run Git in cwd and return stripped stdout, or None when unavailable or unsuccessful."""
+def _git_run(cwd: Path, *args: str) -> subprocess.CompletedProcess[str] | None:
     try:
-        result = subprocess.run(["git", "-C", str(cwd), *args], capture_output=True, text=True, check=False)
+        return subprocess.run(["git", "-C", str(cwd), *args], capture_output=True, text=True, check=False)
     except OSError:
         return None
-    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def git(cwd: Path, *args: str) -> str | None:
+    """Run Git in cwd and return stripped stdout, or None when unavailable or unsuccessful."""
+    result = _git_run(cwd, *args)
+    return result.stdout.strip() if result is not None and result.returncode == 0 else None
+
+
+def _git_root(project: Path) -> Path | None:
+    """Resolve the Git root, distinguishing an ordinary folder from a broken Git checkout."""
+    root = project.resolve()
+    result = _git_run(root, "rev-parse", "--show-toplevel")
+    if result is not None and result.returncode == 0 and result.stdout.strip():
+        return Path(result.stdout.strip()).resolve()
+    marker = next((folder / ".git" for folder in (root, *root.parents) if (folder / ".git").exists()), None)
+    if marker is None:
+        return None
+    cause = result.stderr.strip() if result is not None else "git executable is unavailable"
+    if result is not None and not cause:
+        cause = f"git rev-parse exited with status {result.returncode}"
+    raise ConfigError(f"Git failed for project {root} ({cause}); repair Git access before continuing")
+
+
+def _git_files(cwd: Path, *args: str) -> list[str]:
+    """Return exact NUL-delimited Git paths or fail with Git's diagnostic."""
+    result = _git_run(cwd, *args)
+    if result is None:
+        raise ConfigError("Git executable is unavailable; can't determine project file Git status")
+    if result.returncode != 0:
+        cause = result.stderr.strip() or f"git exited with status {result.returncode}"
+        raise ConfigError(f"Git failed while determining project file status: {cause}")
+    return [path for path in result.stdout.split("\0") if path]
 
 
 def exclude_target(project: Path) -> tuple[Path, str] | None:
     """Return the repository-local exclude file and a root-relative pattern for this project's .tow folder."""
-    toplevel_text = git(project, "rev-parse", "--show-toplevel")
-    exclude_text = git(project, "rev-parse", "--git-path", "info/exclude")
-    if toplevel_text is None or exclude_text is None:
+    toplevel = _git_root(project)
+    if toplevel is None:
         return None
-    toplevel = Path(toplevel_text).resolve()
+    exclude_text = git(project, "rev-parse", "--git-path", "info/exclude")
+    if exclude_text is None:
+        raise ConfigError("Git failed while resolving the repository-local exclude file")
     project_root = project.resolve()
     try:
         relative = project_root.relative_to(toplevel)
@@ -144,9 +178,14 @@ def exclude_target(project: Path) -> tuple[Path, str] | None:
 
 def project_mode(project: Path) -> Literal["local", "shared", "none"]:
     """Return local when config is ignored, shared in Git otherwise, or none outside Git."""
-    if git(project, "rev-parse", "--show-toplevel") is None:
+    if _git_root(project) is None:
         return "none"
-    return "local" if git(project, "check-ignore", "-q", ".tow/config.json") is not None else "shared"
+    result = _git_run(project, "check-ignore", "-q", ".tow/config.json")
+    if result is None:
+        raise ConfigError("Git executable is unavailable; can't determine project mode")
+    if result.returncode not in (0, 1):
+        raise ConfigError(f"Git failed while determining project mode: {result.stderr.strip()}")
+    return "local" if result.returncode == 0 else "shared"
 
 
 def cmd_project_init(
@@ -160,6 +199,10 @@ def cmd_project_init(
     """Preview or create the project metadata bundle without overwriting existing files."""
     del vault_cfg  # Project metadata never stores personal vault configuration.
     project_root = project.resolve()
+    if tow_kind(project_root) == "vault" or is_legacy_vault(project_root):
+        raise ConfigError(f"project root is a vault; refusing project init: {project_root}")
+    if project_root == Path.home().resolve():
+        raise ConfigError("project root must not be the home directory")
     if mode not in ("local", "shared"):
         raise ConfigError(f"invalid project mode: {mode}")
     config: dict[str, object] = {"kind": "project"}
@@ -196,9 +239,7 @@ def cmd_project_init(
         if ignored:
             raise ConfigError("shared project metadata is ignored by Git; remove the conflicting ignore rule first")
     if mode == "local" and target is not None:
-        tracked = git(project_root, "ls-files", ".tow")
-        if tracked is None:
-            raise ConfigError("can't determine whether .tow contains tracked files; local mode is unavailable")
+        tracked = _git_files(project_root, "-c", "core.quotepath=false", "ls-files", "-z", ".tow")
         if tracked:
             raise ConfigError("local mode is unavailable while .tow contains tracked files")
     pattern: str | None = None
@@ -386,10 +427,15 @@ def cmd_project_tag(project: Path, vault: Path, vault_cfg: Mapping[str, str], ch
     return 0
 
 
-def cmd_lookup(vault: Path, cfg: Mapping[str, str], project: Path | None, tag: str, exact: bool) -> int:
+def cmd_lookup(
+    vault: Path,
+    cfg: Mapping[str, str],
+    project: Path | None,
+    tag: str,
+    exact: bool,
+    vault_args: list[str],
+) -> int:
     """Print one concept's matching notes from the connected vault and current project."""
-    from tow import ontology_args, scope_excludes
-
     vault_root = vault.resolve()
     vault_dictionary = _read_object(vault_root / cfg["tagDictionary"])
     results: list[dict[str, Any]] = []
@@ -471,36 +517,33 @@ def cmd_lookup(vault: Path, cfg: Mapping[str, str], project: Path | None, tag: s
         answered = True
 
     if known(vault_dictionary):
-        vault_args = [tag, "--notes", "--json"]
-        if exact:
-            vault_args.append("--exact")
-        excludes = scope_excludes(vault_root, dict(cfg), [])
-        lookup(
-            "vault",
-            ontology_args("show", vault_args, str(vault_root), dict(cfg), excludes),
-        )
+        lookup("vault", vault_args)
 
     if project is not None:
-        project_root = _project_root(project)
-        project_config = _read_object(project_root / ".tow" / "config.json")
-        docs, excludes = _project_scope(project_config)
-        project_dictionary = _read_object(project_root / PROJECT_DICTIONARY, missing_ok=True)
-        merged_dictionary = {**vault_dictionary, **project_dictionary}
-        if known(merged_dictionary):
-            with tempfile.TemporaryDirectory() as folder:
-                dictionary_path = Path(folder) / "tag-dictionary.json"
-                dictionary_path.write_text(serialize_entries(merged_dictionary), encoding="utf-8")
-                args = ["show", tag, "--notes", "--json"]
-                if exact:
-                    args.append("--exact")
-                args += ["--root", str(project_root), "--dictionary", str(dictionary_path), "--names", "kebab"]
-                for pattern in excludes:
-                    args += ["--exclude", pattern]
-                for name in (DOCUMENTS, LOCAL_DOCUMENTS):
-                    overlay = project_root / name
-                    if overlay.is_file():
-                        args += ["--tags-file", str(overlay)]
-                lookup("project", args, docs, excludes)
+        try:
+            project_root = _project_root(project)
+            project_config = _read_object(project_root / ".tow" / "config.json")
+            docs, excludes = _project_scope(project_config)
+            project_dictionary = _read_object(project_root / PROJECT_DICTIONARY, missing_ok=True)
+        except (CliError, ConfigError, OSError, ValueError) as e:
+            unavailable.append(f"project: {e}")
+        else:
+            merged_dictionary = {**project_dictionary, **vault_dictionary}
+            if known(merged_dictionary):
+                with tempfile.TemporaryDirectory() as folder:
+                    dictionary_path = Path(folder) / "tag-dictionary.json"
+                    dictionary_path.write_text(serialize_entries(merged_dictionary), encoding="utf-8")
+                    args = ["show", tag, "--notes", "--json"]
+                    if exact:
+                        args.append("--exact")
+                    args += ["--root", str(project_root), "--dictionary", str(dictionary_path), "--names", "kebab"]
+                    for pattern in excludes:
+                        args += ["--exclude", pattern]
+                    for name in (DOCUMENTS, LOCAL_DOCUMENTS):
+                        overlay = project_root / name
+                        if overlay.is_file():
+                            args += ["--tags-file", str(overlay)]
+                    lookup("project", args, docs, excludes)
 
     print(json.dumps({"tag": tag, "results": results, "unavailable": unavailable}, ensure_ascii=False, indent=2))
     return 0 if answered else 1
@@ -515,12 +558,15 @@ def cmd_project_status(project: Path, vault: Path | None = None, cfg: Mapping[st
         vault_dictionaries = set(_read_object(vault / cfg["tagDictionary"]))
     else:
         print("vault dictionary not checked")
+    mode = project_mode(root)
     overlays = [
-        _read_object(root / name, missing_ok=True) for name in (DOCUMENTS, LOCAL_DOCUMENTS) if (root / name).is_file()
+        (name, _read_object(root / name, missing_ok=True))
+        for name in (DOCUMENTS, LOCAL_DOCUMENTS)
+        if (root / name).is_file()
     ]
     missing: list[tuple[str, str, list[str]]] = []
     reports: list[tuple[str, list[str]]] = []
-    for entries in overlays:
+    for name, entries in overlays:
         for key, raw_entry in entries.items():
             if not isinstance(raw_entry, dict):
                 continue
@@ -533,6 +579,8 @@ def cmd_project_status(project: Path, vault: Path | None = None, cfg: Mapping[st
             except ConfigError:
                 continue
             findings: list[str] = []
+            if mode == "shared" and name == DOCUMENTS and not _tracked(root, key):
+                findings.append(f"local-entry-in-shared {key}")
             if _exists_exactly(root, key):
                 digest = _document_sha256(path, key)
                 if digest != recorded:
@@ -603,14 +651,23 @@ def project_files(project: Path) -> list[tuple[Literal["tracked", "untracked", "
         and not any(part.startswith(".") for part in path.relative_to(root).parts)
     }
     files = {key for key in files if _project_path_in_scope(key, docs, excludes)}
-    tracked_out = git(root, "ls-files")
-    visible_out = git(root, "ls-files", "--others", "--exclude-standard")
-    ignored_out = git(root, "ls-files", "--others", "--ignored", "--exclude-standard")
-    if tracked_out is None or visible_out is None or ignored_out is None:
-        raise ConfigError("can't determine project file Git status")
-    tracked = set(tracked_out.splitlines())
-    untracked = set(visible_out.splitlines())
-    ignored = set(ignored_out.splitlines())
+    git_root = _git_root(root)
+    if git_root is None:
+        return [("untracked", key) for key in sorted(files)]
+    root_for_git: Path = git_root
+    relative_root = root.relative_to(root_for_git).as_posix()
+    path_prefix = f"{relative_root}/" if relative_root != "." else ""
+
+    def relative_git_paths(*args: str) -> set[str]:
+        return {
+            path.removeprefix(path_prefix)
+            for path in _git_files(root_for_git, "-c", "core.quotepath=false", *args, "-z")
+            if path.startswith(path_prefix)
+        }
+
+    tracked = relative_git_paths("ls-files")
+    untracked = relative_git_paths("ls-files", "--others", "--exclude-standard")
+    ignored = relative_git_paths("ls-files", "--others", "--ignored", "--exclude-standard")
     status_order = {"tracked": 0, "untracked": 1, "ignored": 2}
     return sorted(
         (
@@ -637,12 +694,8 @@ def cmd_project_concepts(project: Path, vault: Path, cfg: Mapping[str, str]) -> 
         for tag, entry in project_dictionary.items()
         if tag not in vault_dictionary and isinstance(entry, dict)
     }
-    children_by_parent: dict[str, list[str]] = {}
     related_by_tag: dict[str, set[str]] = {}
     for child, entry in project_only.items():
-        for parent in _strings(entry, "broader"):
-            if parent in project_only:
-                children_by_parent.setdefault(parent, []).append(child)
         for target in _strings(entry, "related"):
             if target in project_only:
                 related_by_tag.setdefault(child, set()).add(target)
@@ -661,7 +714,7 @@ def cmd_project_concepts(project: Path, vault: Path, cfg: Mapping[str, str]) -> 
                     "description": entry.get("description", ""),
                     "aliases": _strings(entry, "aliases"),
                     "parents": _strings(entry, "broader"),
-                    "children": sorted(children_by_parent.get(tag, [])),
+                    "children": [],
                     "related": sorted(related),
                 },
             }
@@ -760,9 +813,7 @@ def _exists_exactly(project_root: Path, key: str) -> bool:
 
 
 def _tracked(project_root: Path, key: str) -> bool:
-    listed = git(project_root, "--literal-pathspecs", "ls-files", "--", key)
-    if listed is None:
-        raise ConfigError(f"can't determine whether {key} is tracked by Git")
+    listed = _git_files(project_root, "-c", "core.quotepath=false", "--literal-pathspecs", "ls-files", "-z", "--", key)
     return bool(listed)
 
 

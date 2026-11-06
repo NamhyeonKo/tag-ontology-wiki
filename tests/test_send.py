@@ -29,6 +29,22 @@ def test_send_previews_then_creates_a_new_note(
     assert target.read_bytes() == draft.read_bytes()
 
 
+def test_send_accepts_source_frontmatter_when_bodies_match(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    draft = tmp_path / "draft.md"
+    draft.write_bytes(b"---\ntype: resource\n---\n# Selected\nBody.\n")
+    source = tmp_path / "source.md"
+    source.write_bytes(b"---\ntags: [rag]\nprivate: note\n---\n# Selected\nBody.\n")
+    dest = "03_Resources/selected.md"
+
+    assert tow.main(["--root", str(vault), "send", str(draft), dest, "--source", str(source), "--apply"]) == 0
+
+    assert capsys.readouterr().out == f"created {dest}\n"
+    assert (vault / dest).read_bytes() == draft.read_bytes()
+    assert b"private: note" not in (vault / dest).read_bytes()
+
+
 def test_send_never_overwrites(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -50,6 +66,23 @@ def test_send_never_overwrites(
     )
     assert "File exists" in capsys.readouterr().err
     assert target.read_bytes() == b"original\n"
+
+
+@pytest.mark.parametrize("dest", ["01_Projects/note.txt", "01_Projects/.private/note.md", "01_Projects/.hidden.md"])
+def test_send_refuses_non_markdown_or_hidden_destination_segments(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], dest: str
+) -> None:
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    draft = tmp_path / "draft.md"
+    draft.write_bytes(b"---\ntype: resource\n---\nbody\n")
+    source = tmp_path / "source.txt"
+    source.write_bytes(b"body\n")
+
+    assert tow.main(["--root", str(vault), "send", str(draft), dest, "--source", str(source)]) == 2
+
+    assert "destination" in capsys.readouterr().err
+    assert not (vault / "01_Projects").exists()
 
 
 def test_send_refuses_a_destination_outside_the_note_folders(
@@ -147,7 +180,7 @@ def test_send_requires_the_body_to_equal_the_source_unless_transformed(
     draft = tmp_path / "draft.md"
     draft.write_bytes(b"---\ntype: resource\n---\ntransformed body\n")
     source = tmp_path / "source.txt"
-    source.write_bytes(b"original body\n")
+    source.write_bytes(b"---\ntags: [rag]\n---\noriginal body\n")
     dest = "03_Resources/note.md"
 
     assert tow.main(["--root", str(vault), "send", str(draft), dest, "--apply"]) == 2

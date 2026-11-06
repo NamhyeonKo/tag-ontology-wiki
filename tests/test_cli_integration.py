@@ -178,6 +178,41 @@ def test_real_cli_plan_apply_and_stale_base_preserve_write_boundaries(
     assert snapshot(real_vault) == after
 
 
+def test_real_cli_project_concepts_imports_each_broader_link_once(
+    real_vault: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = tmp_path / "project"
+    (project / ".tow").mkdir(parents=True)
+    (project / ".tow" / "config.json").write_text('{"kind": "project"}\n')
+    (project / ".tow" / "tag-dictionary.json").write_text(
+        json.dumps(
+            {
+                "project-parent": {"description": "Parent", "broader": []},
+                "project-child": {"description": "Child", "broader": ["project-parent"]},
+            }
+        )
+    )
+    monkeypatch.chdir(real_vault)
+    changes = json.loads(run(real_vault, "project", "concepts", str(project)))
+    change_file = real_vault / ".tow-tmp" / "changes.json"
+    change_file.parent.mkdir()
+    change_file.write_text(json.dumps({"schemaVersion": 1, "changes": changes["changes"]}))
+    before = snapshot(real_vault)
+
+    plan = json.loads(run(real_vault, "ontology", "plan", str(change_file), "--json"))
+    assert plan["ok"]
+    assert [item["tag"] for item in plan["diff"]] == ["project-child", "project-parent"]
+    applied = json.loads(run(real_vault, "ontology", "apply", str(change_file), "--base", plan["base"], "--json"))
+    assert applied["written"] is True
+    dictionary = json.loads((real_vault / "meta" / "Tag-Dictionary.json").read_text())
+    assert dictionary["project-child"]["broader"] == ["project-parent"]
+    assert dictionary["project-parent"]["broader"] == []
+    after = snapshot(real_vault)
+    assert {path for path in before.keys() | after.keys() if before.get(path) != after.get(path)} == {
+        "meta/Tag-Dictionary.json"
+    }
+
+
 def test_real_cli_project_tag_refreshes_the_subset_and_validates_it(
     real_vault: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

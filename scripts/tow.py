@@ -95,7 +95,7 @@ TAG_LIMIT: Final = 15
 OVERVIEW_TAG_LIMIT: Final = 20
 NUMBERED_SECTION: Final = re.compile(r"\d+\.\d+\. ")
 CATEGORY_VALUE: Final = re.compile(r"^(?:- |### )`([^`]+)`")
-CATEGORY_NAME: Final = re.compile(r"[A-Za-z0-9-]+(?:/[A-Za-z0-9-]+)*")
+CATEGORY_NAME: Final = re.compile(r"[^\s`/]+(?:/[^\s`/]+)*")
 TOW_BUNDLE: Final = (
     ".tow/config.json",
     ".tow/tags.md",
@@ -111,7 +111,7 @@ TOW_BUNDLE_STARTER_FILES: Final = {
 NOTE_COMMANDS: Final = frozenset({"scan", "usage", "show"})
 PATH_COMMANDS: Final = frozenset({"scan", "usage"})
 VALUE_OPTIONS: Final = frozenset({"--root", "--dictionary", "--exclude", "--tags-file", "--names", "--base"})
-INIT_HINT: Final = 'run "tow init --dictionaries" to preview missing starter files'
+INIT_HINT: Final = 'run "tow init" (add "--dictionaries" for free-form vaults) to preview missing starter files'
 STARTER_CATEGORIES: Final = serialize_entries({})
 LEGACY_STARTER_CATEGORIES: Final = """---
 updated: {today}
@@ -490,29 +490,26 @@ def cmd_migrate(root: Path, apply: bool, remove_legacy: bool) -> int:
         raise ConfigError(f"tow.json: {e}") from e
     original_config = cast(dict[str, object], raw_config)
     migrated_config = {key: value for key, value in original_config.items() if key != "kind"}
-    legacy_paths = {
-        "tagDictionary": "Tag-Dictionary.json",
-        "categoryDictionary": "Category-Dictionary.md",
-    }
-    dropped_keys = {key for key, path in legacy_paths.items() if migrated_config.get(key) == path}
-    legacy_dictionary_keys = {key for key, path in legacy_paths.items() if validated_config[key] == path}
-    for key in dropped_keys:
-        migrated_config.pop(key, None)
+    legacy_tag_source = validated_config["tagDictionary"] == "Tag-Dictionary.json"
+    category_source_is_markdown = Path(validated_config["categoryDictionary"]).suffix == ".md"
+    legacy_category_source = category_source_is_markdown
+    if legacy_tag_source:
+        migrated_config.pop("tagDictionary", None)
+    if category_source_is_markdown:
+        migrated_config["categoryDictionary"] = TOW_DEFAULTS["categoryDictionary"]
     migrated_config = {"kind": "vault", **migrated_config}
 
     tag_source = root / validated_config["tagDictionary"]
     category_source = root / validated_config["categoryDictionary"]
-    for source in (tag_source, category_source):
-        if not source.is_file():
-            raise ConfigError(f"migration source is missing or not a file: {source}")
+    missing_sources = [source for source in (tag_source, category_source) if not source.is_file()]
     for source in (tag_source, category_source):
         if not source.resolve().is_relative_to(root.resolve()):
             raise ConfigError(f"migration source must stay inside the vault: {source}")
     if Path(validated_config["categoryDictionary"]).suffix != ".md":
         raise ConfigError(f"migration requires a Markdown category dictionary: {category_source}")
     try:
-        tag_bytes = tag_source.read_bytes()
-        category_text = category_source.read_text(encoding="utf-8")
+        tag_bytes = b"{\n}\n" if tag_source in missing_sources else tag_source.read_bytes()
+        category_text = "" if category_source in missing_sources else category_source.read_text(encoding="utf-8")
     except OSError as e:
         raise ConfigError(f"can't read legacy dictionary: {e}") from e
 
@@ -535,19 +532,46 @@ def cmd_migrate(root: Path, apply: bool, remove_legacy: bool) -> int:
                 or remove_category_source.resolve() != category_source.resolve()
             ):
                 raise ConfigError("migration verification failed; legacy settings changed")
-            if "tagDictionary" not in legacy_dictionary_keys and not remove_tag_source.is_file():
-                raise ConfigError("migration verification failed; configured tag dictionary is missing")
-            if "categoryDictionary" not in legacy_dictionary_keys and not remove_category_source.is_file():
-                raise ConfigError("migration verification failed; configured category dictionary is missing")
             new_config_raw = json.loads(targets[0].read_text(encoding="utf-8"))
             new_config = cast(dict[str, object], new_config_raw) if isinstance(new_config_raw, dict) else {}
             tag_copy = targets[2].read_bytes()
             category_copy = category_entries(targets[4].read_text(encoding="utf-8"))
+            changed_copies = [
+                (copy, source)
+                for copy, source, matches in (
+                    (targets[2], tag_source, tag_copy == tag_bytes),
+                    (targets[4], category_source, category_copy == category_entries_to_write),
+                )
+                if not matches
+            ]
+            for copy, source in changed_copies:
+                message = (
+                    f"changed {copy.relative_to(root)}; kept legacy original {source.relative_to(root)} "
+                    "because it differs"
+                )
+                print(message)
+            legacy_paths = [config_path]
+            if (
+                legacy_tag_source
+                and tag_source not in missing_sources
+                and tag_source.is_file()
+                and tag_copy == tag_bytes
+            ):
+                legacy_paths.append(tag_source)
+            if (
+                legacy_category_source
+                and category_source not in missing_sources
+                and category_source.is_file()
+                and category_copy == category_entries_to_write
+            ):
+                legacy_paths.append(category_source)
+            legacy_paths = [path for path in legacy_paths if path.is_file()]
             for manual in (targets[1], targets[3]):
-                starter = (Path(__file__).parent / "starters" / manual.name).read_bytes()
-                if not manual.is_file() or manual.read_bytes() != starter:
-                    raise ConfigError(f"migration verification failed: changed {manual.relative_to(root)}")
+                if not manual.is_file():
+                    raise ConfigError(f"migration verification failed: missing {manual.relative_to(root)}")
         except (OSError, ValueError, ConfigError) as e:
+            if isinstance(e, ConfigError) and str(e).startswith("migration verification failed"):
+                raise
             raise ConfigError(f"migration verification failed: {e}") from e
         expected_keys = set(migrated_config)
         expected_keys.remove("kind")
@@ -555,16 +579,8 @@ def cmd_migrate(root: Path, apply: bool, remove_legacy: bool) -> int:
             new_config.get("kind") != "vault"
             or set(new_config) - {"kind"} != expected_keys
             or any(new_config.get(key) != value for key, value in migrated_config.items() if key != "kind")
-            or tag_copy != tag_bytes
-            or set(category_copy) != category_values(category_text)
         ):
             raise ConfigError("migration verification failed; legacy files were kept")
-        legacy_paths = [config_path]
-        if "tagDictionary" in legacy_dictionary_keys:
-            legacy_paths.append(remove_tag_source)
-        if "categoryDictionary" in legacy_dictionary_keys:
-            legacy_paths.append(remove_category_source)
-        legacy_paths = [path for path in legacy_paths if path.is_file()]
         if not apply:
             for path in legacy_paths:
                 print(f"would delete {path.relative_to(root)}")
@@ -595,6 +611,8 @@ def cmd_migrate(root: Path, apply: bool, remove_legacy: bool) -> int:
             raise ConfigError(f"migration target already exists with different contents: {target.relative_to(root)}")
 
     complete_before = all(target.is_file() for target in expected)
+    for source in missing_sources:
+        print(f"missing; {'created' if apply else 'would create'} empty dictionary {source.relative_to(root)}")
     for target, text in output.items():
         if not target.exists():
             if apply:
@@ -649,7 +667,13 @@ def missing_paths(root: Path, cfg: dict[str, str], dictionaries: bool = False) -
         if cfg["scope"] == "para" or dictionaries:
             missing += [cfg[k] for k in DICTIONARY_PATHS if not (root / cfg[k]).exists()]
         return missing
-    return [*missing, *(path for path in TOW_BUNDLE if not (root / path).exists())]
+    manuals = (".tow/tags.md", ".tow/categories.md")
+    dictionary_paths = [cfg[key] for key in DICTIONARY_PATHS] if cfg["scope"] == "para" or dictionaries else []
+    return [
+        *missing,
+        *(path for path in (".tow/config.json", *manuals) if not (root / path).exists()),
+        *(path for path in dictionary_paths if not (root / path).exists()),
+    ]
 
 
 def cmd_init(
@@ -665,10 +689,15 @@ def cmd_init(
     if not legacy and layout == "plain":
         init_cfg = {**TOW_DEFAULTS, **{key: value for key, value in cfg.items() if value != DEFAULTS.get(key)}}
     folders = [root / init_cfg[k] for k in (*PARA, "inbox")] if init_cfg["scope"] == "para" else []
+    dictionary_paths = (
+        [init_cfg[key] for key in DICTIONARY_PATHS] if init_cfg["scope"] == "para" or dictionaries else []
+    )
+    dictionary_files = {root / path for path in dictionary_paths}
     if legacy:
-        files = [root / init_cfg[k] for k in DICTIONARY_PATHS] if init_cfg["scope"] == "para" or dictionaries else []
+        files = [root / path for path in dictionary_paths]
     else:
-        files = [root / path for path in TOW_BUNDLE]
+        manuals = (".tow/tags.md", ".tow/categories.md")
+        files = [root / path for path in (".tow/config.json", *manuals, *dictionary_paths)]
     targets = [(p, True) for p in folders] + [(p, False) for p in files]
     resolved_files = [p.resolve() for p in files]
     if len(set(resolved_files)) != len(resolved_files):
@@ -697,16 +726,17 @@ def cmd_init(
             init_cfg["tagDictionary"]: serialize_entries({}),
         }
     else:
-        bundle_dictionaries = {".tow/tag-dictionary.json", ".tow/category-dictionary.json"}
         starters = {
-            path: (
+            str(p.relative_to(root)): (
                 '{"kind": "vault"}\n'
-                if path == ".tow/config.json"
+                if p.relative_to(root).as_posix() == ".tow/config.json"
                 else serialize_entries({})
-                if path in bundle_dictionaries
-                else (Path(__file__).parent / "starters" / TOW_BUNDLE_STARTER_FILES[path]).read_text(encoding="utf-8")
+                if p in dictionary_files
+                else (
+                    Path(__file__).parent / "starters" / TOW_BUNDLE_STARTER_FILES[p.relative_to(root).as_posix()]
+                ).read_text(encoding="utf-8")
             )
-            for path in TOW_BUNDLE
+            for p in files
         }
     missing = missing_paths(root, init_cfg, dictionaries)
     for path in missing:
@@ -827,9 +857,7 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_connect(args.vault, args.apply)
         if args.command == "project" and args.project_command == "files":
             project = resolve_project(Path.cwd(), None)
-            if project is None:
-                raise ConfigError("project files must run outside the vault")
-            return cmd_project_files(project)
+            return cmd_project_files(project or Path.cwd())
         if args.command == "project" and args.project_command == "status":
             try:
                 vault_ref = resolve_vault(Path.cwd(), args.root, os.environ)
@@ -854,9 +882,17 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "lookup":
             cfg = read_config(root)
             project = resolve_project(Path.cwd(), root)
-            if project is not None and tow_kind(project) != "project":
+            if (
+                project is not None
+                and tow_kind(project) != "project"
+                and not (project / ".tow" / "config.json").is_file()
+            ):
                 project = None
-            return cmd_lookup(root, cfg, project, args.tag, args.exact)
+            show_args = [args.tag, "--notes", "--json"]
+            if args.exact:
+                show_args.append("--exact")
+            vault_args = ontology_args("show", show_args, str(root), cfg, scope_excludes(root, cfg, []))
+            return cmd_lookup(root, cfg, project, args.tag, args.exact, vault_args)
         if args.command == "verify-body":
             return cmd_verify_body(root, args.before, args.after)
         cfg = read_config(root)
@@ -872,6 +908,16 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "config":
             print(json.dumps(cfg, ensure_ascii=False, indent=2))
             print(f"tow: vault {root} (from {vault_ref.source}, {vault_ref.layout})", file=sys.stderr)
+            cwd = Path.cwd().resolve()
+            for folder in (cwd, *cwd.parents):
+                if tow_kind(folder) == "vault" or is_legacy_vault(folder):
+                    if folder.resolve() != root:
+                        print(
+                            f"tow: warning: the current folder is inside the vault {folder.resolve()}, "
+                            f"but TOW uses {root} (from {vault_ref.source}); pass --root or run tow connect",
+                            file=sys.stderr,
+                        )
+                    break
             warning = plugin_dictionary_warning(root, cfg)
             if warning:
                 print(f"tow: warning: {warning}", file=sys.stderr)

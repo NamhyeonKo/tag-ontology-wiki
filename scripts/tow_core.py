@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import json
 import os
 import shlex
@@ -70,7 +71,14 @@ def write_text_atomic(path: Path, text: str, *, exclusive: bool = False) -> None
             temporary = file.name
             file.write(text)
         if exclusive:
-            os.link(temporary, path)
+            try:
+                os.link(temporary, path)
+            except OSError as e:
+                if e.errno not in {errno.EPERM, errno.ENOTSUP, errno.EOPNOTSUPP, errno.EXDEV, errno.ENOSYS}:
+                    raise
+                fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0), 0o666)
+                with os.fdopen(fd, "w", encoding="utf-8", newline="") as file:
+                    file.write(text)
             os.unlink(temporary)
         else:
             os.replace(temporary, path)

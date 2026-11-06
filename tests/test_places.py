@@ -1,3 +1,4 @@
+import errno
 import json
 import subprocess
 from pathlib import Path
@@ -309,6 +310,39 @@ def test_connect_refuses_a_folder_that_is_not_a_vault(
     assert tow.main(["connect", str(not_a_vault)]) == 2
     assert "run setup inside the vault first" in capsys.readouterr().err
     assert not (home / ".tow" / "config.json").exists()
+
+
+def test_exclusive_atomic_write_falls_back_when_hard_links_are_unavailable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "created.txt"
+
+    def unavailable_link(source: str | Path, target: str | Path) -> None:
+        raise OSError(errno.ENOTSUP, "operation not supported")
+
+    monkeypatch.setattr(tow_core.os, "link", unavailable_link)
+
+    tow_core.write_text_atomic(path, "created", exclusive=True)
+
+    assert path.read_text(encoding="utf-8") == "created"
+    assert list(tmp_path.iterdir()) == [path]
+
+
+def test_exclusive_atomic_write_fallback_still_refuses_existing_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "existing.txt"
+    path.write_text("original", encoding="utf-8")
+
+    def unavailable_link(source: str | Path, target: str | Path) -> None:
+        raise OSError(errno.ENOTSUP, "operation not supported")
+
+    monkeypatch.setattr(tow_core.os, "link", unavailable_link)
+
+    with pytest.raises(FileExistsError):
+        tow_core.write_text_atomic(path, "replacement", exclusive=True)
+
+    assert path.read_text(encoding="utf-8") == "original"
 
 
 def test_shared_plumbing_remains_importable_from_tow() -> None:

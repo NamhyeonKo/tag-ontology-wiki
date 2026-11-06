@@ -44,6 +44,41 @@ def make_vault(path: Path) -> Path:
     return path
 
 
+@pytest.mark.parametrize("legacy", [False, True], ids=["tow-vault", "legacy-vault"])
+def test_project_init_refuses_to_register_a_vault_as_a_project(
+    tmp_path: Path, legacy: bool, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project = tmp_path / "vault"
+    project.mkdir()
+    if legacy:
+        (project / "tow.json").write_text("{}\n", encoding="utf-8")
+    else:
+        (project / ".tow").mkdir()
+        (project / ".tow" / "config.json").write_text('{"kind": "vault"}\n', encoding="utf-8")
+    vault = make_vault(tmp_path / "connected-vault")
+    monkeypatch.chdir(project)
+
+    assert tow.main(["--root", str(vault), "project", "init", "--mode", "shared"]) == 2
+
+    assert "project root is a vault" in capsys.readouterr().err
+    assert not (project / ".tow" / "documents.json").exists()
+
+
+def test_project_init_refuses_to_register_home_as_a_project(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    home = tmp_path / "home"
+    home.mkdir()
+    vault = make_vault(tmp_path / "vault")
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.chdir(home)
+
+    assert tow.main(["--root", str(vault), "project", "init", "--mode", "shared"]) == 2
+
+    assert "project root must not be the home directory" in capsys.readouterr().err
+    assert not (home / ".tow").exists()
+
+
 def test_project_init_shared_creates_files_and_excludes_only_the_local_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -148,16 +183,16 @@ def test_project_init_refuses_local_mode_when_tracked_file_check_fails(
 ) -> None:
     project = init_repo(tmp_path / "project")
     vault = make_vault(tmp_path / "vault")
-    real_git = tow_project.git
+    real_git_run = tow_project.git.__globals__["_git_run"]
 
-    def fail_ls_files(cwd: Path, *args: str) -> str | None:
-        if args == ("ls-files", ".tow"):
-            return None
-        return real_git(cwd, *args)
+    def fail_ls_files(cwd: Path, *args: str) -> subprocess.CompletedProcess[str] | None:
+        if "ls-files" in args:
+            return subprocess.CompletedProcess(args, 128, "", "simulated Git failure")
+        return real_git_run(cwd, *args)
 
-    monkeypatch.setattr(tow_project, "git", fail_ls_files)
+    monkeypatch.setattr(tow_project, "_git_run", fail_ls_files)
 
-    with pytest.raises(tow.ConfigError, match=r"can't determine whether \.tow contains tracked files"):
+    with pytest.raises(tow.ConfigError, match="Git failed while determining project file status"):
         tow_project.cmd_project_init(project, vault, {}, "local", [], True)
 
     assert not (project / ".tow" / "config.json").exists()
@@ -264,6 +299,46 @@ def test_project_mode_reports_none_outside_git(tmp_path: Path) -> None:
     project.mkdir()
 
     assert tow_project.project_mode(project) == "none"
+
+
+def test_project_files_lists_every_document_as_untracked_outside_git(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    (project / ".tow").mkdir(parents=True)
+    (project / ".tow" / "config.json").write_text('{"kind": "project"}\n', encoding="utf-8")
+    (project / "note.md").write_text("note\n", encoding="utf-8")
+    (project / "private.md").write_text("private\n", encoding="utf-8")
+    (project / ".gitignore").write_text("private.md\n", encoding="utf-8")
+
+    assert tow_project.project_files(project) == [("untracked", "note.md"), ("untracked", "private.md")]
+
+
+def test_project_commands_fail_closed_when_git_is_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch)
+    (project / "note.md").write_text("note\n", encoding="utf-8")
+    changes = write_changes(tmp_path, {"note.md": ["used"]})
+    monkeypatch.chdir(project)
+    monkeypatch.setenv("PATH", "")
+
+    assert tow.main(["--root", str(vault), "project", "tag", str(changes)]) == 2
+    assert "Git" in capsys.readouterr().err
+    assert tow.main(["project", "files"]) == 2
+    assert "Git" in capsys.readouterr().err
+
+
+def test_project_init_fails_closed_when_git_is_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project = init_repo(tmp_path / "project")
+    vault = make_vault(tmp_path / "vault")
+    monkeypatch.chdir(project)
+    monkeypatch.setenv("PATH", "")
+
+    assert tow.main(["--root", str(vault), "project", "init", "--mode", "shared", "--apply"]) == 2
+
+    assert "Git failed" in capsys.readouterr().err
+    assert not (project / ".tow").exists()
 
 
 # project tag
@@ -617,6 +692,23 @@ def test_project_tag_writes_a_moved_entry_to_its_new_file_first(
     assert any("draft.md" in read_json(path) for path in files if path.exists())
 
 
+def test_project_status_reports_untracked_documents_json_entries_as_local_in_shared_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch, mode="shared")
+    capsys.readouterr()
+    note = project / "leftover.md"
+    note.write_text("leftover\n", encoding="utf-8")
+    (project / ".tow" / "documents.json").write_text(
+        json.dumps({"leftover.md": {"tags": ["used"], "sha256": sha256(note)}}), encoding="utf-8"
+    )
+    (project / ".tow" / "documents.local.json").write_text("{}\n", encoding="utf-8")
+
+    assert tow_project.cmd_project_status(project, vault, TAG_CFG) == 0
+
+    assert capsys.readouterr().out.splitlines() == ["local-entry-in-shared leftover.md"]
+
+
 def test_project_status_reports_stale_entries(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -650,7 +742,11 @@ def test_project_status_suggests_a_renamed_file_by_hash(
 
     assert tow_project.cmd_project_status(project, vault, TAG_CFG) == 0
 
-    assert capsys.readouterr().out.splitlines() == ["missing old.md", "  moved? renamed.md"]
+    assert capsys.readouterr().out.splitlines() == [
+        "local-entry-in-shared old.md",
+        "missing old.md",
+        "  moved? renamed.md",
+    ]
 
 
 def test_project_status_reports_tags_missing_from_the_project_dictionary(
@@ -669,7 +765,10 @@ def test_project_status_reports_tags_missing_from_the_project_dictionary(
 
     assert tow_project.cmd_project_status(project, vault, TAG_CFG) == 0
 
-    assert capsys.readouterr().out.splitlines() == ["unknown-tag note.md missing"]
+    assert capsys.readouterr().out.splitlines() == [
+        "local-entry-in-shared note.md",
+        "unknown-tag note.md missing",
+    ]
 
 
 def test_project_status_is_read_only(
@@ -703,6 +802,48 @@ def test_project_files_lists_tracked_untracked_and_ignored_names(
         ("tracked", "tracked.md"),
         ("untracked", "draft.md"),
         ("ignored", "private.md"),
+    ]
+
+
+def test_project_files_preserves_non_ascii_names_for_each_git_status(tmp_path: Path) -> None:
+    project = init_repo(tmp_path / "project")
+    names = {
+        "tracked": "docs/설계 노트.md",
+        "untracked": "drafts/미완성 노트.md",
+        "ignored": "private/비공개 노트.md",
+    }
+    for name in names.values():
+        path = project / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("content\n", encoding="utf-8")
+    (project / ".gitignore").write_text("private/\n", encoding="utf-8")
+    git(project, "add", names["tracked"], ".gitignore")
+    (project / ".tow").mkdir()
+    (project / ".tow" / "config.json").write_text('{"kind": "project"}\n', encoding="utf-8")
+
+    assert tow_project.project_files(project) == [
+        ("tracked", names["tracked"]),
+        ("untracked", names["untracked"]),
+        ("ignored", names["ignored"]),
+    ]
+
+
+def test_project_files_reports_status_relative_to_nested_project_root(tmp_path: Path) -> None:
+    repository = init_repo(tmp_path / "repository")
+    project = repository / "work" / "nested"
+    project.mkdir(parents=True)
+    names = {"tracked": "tracked.md", "untracked": "draft.md", "ignored": "private.md"}
+    for name in names.values():
+        (project / name).write_text(f"{name}\n", encoding="utf-8")
+    (project / ".gitignore").write_text("private.md\n", encoding="utf-8")
+    git(repository, "add", "work/nested/tracked.md", "work/nested/.gitignore")
+    (project / ".tow").mkdir()
+    (project / ".tow" / "config.json").write_text('{"kind": "project"}\n', encoding="utf-8")
+
+    assert tow_project.project_files(project) == [
+        ("tracked", names["tracked"]),
+        ("untracked", names["untracked"]),
+        ("ignored", names["ignored"]),
     ]
 
 
@@ -830,7 +971,7 @@ def test_project_concepts_emits_additions_only(
                     "description": "Project concept",
                     "aliases": ["pc"],
                     "parents": ["vault-tag"],
-                    "children": ["project-child"],
+                    "children": [],
                     "related": [],
                 },
             },
@@ -879,6 +1020,40 @@ def lookup_note(path: str, *matches: tuple[str, str]) -> dict[str, Any]:
     return {"path": path, "matches": [{"tag": tag, "source": source} for tag, source in matches]}
 
 
+@pytest.mark.parametrize(
+    ("broken", "contents"),
+    [("config", "{"), ("dictionary", "[")],
+)
+def test_lookup_reports_malformed_project_data_but_keeps_vault_results(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    broken: str,
+    contents: str,
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch)
+    (vault / ".tow" / "tag-dictionary.json").write_text(json.dumps(VAULT_TAGS), encoding="utf-8")
+    (project / ".tow" / ("config.json" if broken == "config" else "tag-dictionary.json")).write_text(
+        contents, encoding="utf-8"
+    )
+    calls_path = fake_lookup_cli(
+        tmp_path,
+        monkeypatch,
+        {str(vault): lookup_response("used", lookup_note("vault.md", ("used", "tags")))},
+    )
+    monkeypatch.chdir(project)
+    capsys.readouterr()
+
+    assert tow.main(["--root", str(vault), "lookup", "used"]) == 0
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["results"] == [
+        {"source": "vault", "path": "vault.md", "matches": [{"tag": "used", "source": "tags", "kind": "exact"}]}
+    ]
+    assert result["unavailable"] and result["unavailable"][0].startswith("project: ")
+    assert len(read_json(calls_path)) == 1
+
+
 def test_lookup_merges_vault_then_project_results_sorted_by_path(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -888,6 +1063,9 @@ def test_lookup_merges_vault_then_project_results_sorted_by_path(
         "used": project_entry,
         "project-only": {"description": "Only here", "broader": []},
     }
+    vault_entry = {**VAULT_TAGS["used"], "broader": ["root"]}
+    current_vault_dictionary = {**VAULT_TAGS, "used": vault_entry}
+    (vault / ".tow" / "tag-dictionary.json").write_text(json.dumps(current_vault_dictionary), encoding="utf-8")
     (project / ".tow" / "tag-dictionary.json").write_text(json.dumps(project_dictionary), encoding="utf-8")
     (project / ".tow" / "config.json").write_text(
         json.dumps({"kind": "project", "docs": ["docs"], "exclude": ["docs/private"]}), encoding="utf-8"
@@ -933,7 +1111,7 @@ def test_lookup_merges_vault_then_project_results_sorted_by_path(
     }
     calls = read_json(calls_path)
     project_call = next(call for call in calls if call["args"][call["args"].index("--root") + 1] == str(project))
-    assert project_call["dictionary"] == {**VAULT_TAGS, **project_dictionary}
+    assert project_call["dictionary"] == {**project_dictionary, **current_vault_dictionary}
     assert project_call["tags_files"] == [str(project / ".tow" / "documents.json")]
     assert "--exclude" in project_call["args"] and "docs/private" in project_call["args"]
     assert snapshot(project) == before_project
@@ -1101,4 +1279,4 @@ def test_lookup_finds_a_project_only_tag_without_querying_the_vault(
     calls = read_json(calls_path)
     assert len(calls) == 1
     assert calls[0]["args"][calls[0]["args"].index("--root") + 1] == str(project)
-    assert calls[0]["dictionary"] == {**VAULT_TAGS, **project_dictionary}
+    assert calls[0]["dictionary"] == {**project_dictionary, **VAULT_TAGS}
