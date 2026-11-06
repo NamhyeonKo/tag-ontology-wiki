@@ -2,10 +2,10 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "tow",
   "displayName": "TOW",
-  "version": "0.4.2",
-  "description": "Manage documents inside an Obsidian vault with content-preserving formatting, frontmatter and optional user-guided post-curation.",
+  "version": "0.5.0",
+  "description": "Search a connected Obsidian vault and project, tag project documents in .tow/, send selected content to the vault, and manage vault notes with content-preserving workflows.",
   "logo": "assets/icon.png",
-  "suggestedPrompts": ["Find my project notes about RAG.", "Check the formatting of these notes without changing their content.", "Suggest concept tags for this note."],
+  "suggestedPrompts": ["Find my project notes about RAG.", "Send this project note to my vault.", "Suggest concept tags for these project documents."],
   "author": {
     "name": "NamhyeonKo",
     "url": "https://github.com/NamhyeonKo"

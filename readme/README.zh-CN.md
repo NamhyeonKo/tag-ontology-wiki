@@ -1,10 +1,10 @@
 # TOW — Tag Ontology for Wiki
 
-用于管理 **Obsidian vault 内部文档**的智能体技能插件：搜索笔记、管理 frontmatter，并在保留内容的前提下修正格式。将 vault 作为工作区，可在 Claude Code、Codex 和 Google Antigravity 中使用。
+用于连接 Obsidian vault 与编码项目的智能体技能插件：按概念搜索两处内容，在项目 `.tow/` 元数据中为文档添加标签，并将选定内容发送为新的 vault 笔记。项目文档不会被修改；vault 维护工作会保留内容。可在 Claude Code、Codex 和 Google Antigravity 中使用。
 
 [English](../README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-> **版本：** 0.4.2。
+> **版本：** 0.5.0。
 
 ## 概述
 
@@ -16,14 +16,14 @@
 
 设置时可选择 PARA，也可保留自己的文件夹。普通搜索和正文操作不要求使用词典或先清理元数据。查询优先使用 Obsidian CLI，必要时补充限定范围的文件搜索，最后验证内容；现有属性可提高查询精度。完整约定见 [docs/methodology.md](../docs/methodology.md)。
 
-TOW 为本地编程智能体安装十一项工作流程。指定 vault 和笔记后，智能体读取相关文件，按分类和概念标签搜索，并提出范围明确的修改方案供你批准。文件仍保存在你的 Obsidian vault 中。
+TOW 为本地智能体宿主安装十二项工作流程。vault 专用流程管理 Obsidian 笔记；在项目中，`tow-query` 会同时搜索已连接的 vault 和当前项目，`tow-send-vault` 则在批准后将选定内容创建为新的 vault 笔记。项目标签和哈希保存在项目 `.tow/` 元数据中，不会修改项目文档。
 
 插件包含技能、共享约定和 Python 辅助脚本 [`scripts/tow.py`](../scripts/tow.py)。该脚本检查分类规则，并调用 [`tag-ontology`](https://github.com/NamhyeonKo/obsidian-tag-ontology) npm CLI 来解析笔记、查询标签及验证或修改词典。模型和文件工具由智能体宿主提供。
 
 TOW 使用 Tag Ontology CLI 查询标签并验证、管理词典。同时安装 [Obsidian 的 Tag Ontology 插件](https://github.com/NamhyeonKo/obsidian-tag-ontology)（[社区插件页面](https://community.obsidian.md/plugins/tag-ontology)），即可通过图谱直观查看所管理标签的层级和关系。
 
 ```text
-tag-ontology@0.1.3        词典检查、查询、编辑和笔记解析
+tag-ontology@0.2.0        词典检查、查询、编辑和笔记解析
       ▲  npx tag-ontology … --json
 tow（本插件）             vault 约定检查、技能
       ▲  Claude Code / Codex / Antigravity
@@ -34,7 +34,8 @@ tow（本插件）             vault 约定检查、技能
 
 | 技能 | 适用场景 | 修改范围 |
 | --- | --- | --- |
-| `tow-setup` | 选择 PARA 或现有结构；按需启用词典 | 仅列出顶层文件夹；经批准后创建文件夹、词典和 `tow.json`，不移动笔记 |
+| `tow-setup` | 设置 vault、连接 vault 供项目使用，或注册项目元数据 | 先检查名称；仅写入已批准的 `.tow/` 元数据或个人连接设置 |
+| `tow-send-vault` | 将选定的项目内容发送到已连接的 vault | 经批准后创建新笔记；除非请求转换，否则保留选定正文 |
 | `tow-query` | 按自然语言条件、自定义属性、标签或文本查找文档 | 只读；优先使用 CLI，必要时使用限定范围的文件搜索，并区分已验证的匹配与推断候选 |
 | `tow-check` | 检查 frontmatter、Markdown、数学公式、代码、表格和引用 | 先报告；选定的语法修正保留文字、内部内容和值 |
 | `tow-tag-suggest` | 为选定笔记推荐概念标签 | 仅应用你选定的添加或移除操作 |
@@ -125,25 +126,26 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 
 ## 首次使用
 
-将 vault 作为宿主工作区打开。在新会话中按上述宿主对应的方法选择 `tow-query`，然后发送：
+仅维护 vault 时，将 vault 作为宿主工作区打开。在项目中使用时，打开项目工作区并选择 `tow-setup`，以连接 vault 并注册项目 `.tow/` 元数据。在新的项目会话中选择 `tow-query`，然后发送：
 
 ```text
 我的 vault 位于 /absolute/path/to/vault。按 category 或概念查找与 RAG 相关的项目笔记，
-排除已被替代的文档。总结前先读取匹配的笔记，并返回路径和数量。不要修改文件。
+排除已被替代的文档。请同时搜索当前项目和已连接的 vault，读取匹配笔记后再总结，
+并返回来源、路径、匹配原因和数量。不要修改文件。
 ```
 
-无需设置即可开始搜索。如需可选的组织功能，请选择 `tow-setup`；它会先询问你是否使用 PARA，并保留现有结构和字段模式。TOW 读取 vault 根目录的 `tow.json`；省略的设置采用[设置指南](../docs/installation.md#configure-the-vault)中的默认值。安装不会创建或迁移 vault。
+无需注册项目或词典即可搜索；项目标签功能需要 `.tow/` 元数据。个人连接保存在 `$TOW_VAULT` 或 `~/.tow/config.json` 中，不写入项目文件。在 vault 内执行查询时只搜索该 vault。配置 vault 时，`tow-setup` 会询问是否采用 PARA，并保留现有结构和模式。新 vault 设置位于 `.tow/config.json`；旧版 0.4.x vault 的根目录 `tow.json` 在迁移前仍可读取。详见[设置指南](../docs/installation.md#configure-the-vault)和[项目连接说明](../docs/installation.md#connect-a-vault-to-a-project)。
 
 ## CLI 与设置检查
 
-辅助脚本使用 `npx --yes tag-ontology@0.1.3`；npm 在需要时下载该确切版本。手动运行辅助命令时，使用已安装的 `scripts/tow.py` 路径。约定中的 `tow` 是该路径的简写。
+辅助脚本使用 `npx --yes tag-ontology@0.2.0`；npm 在需要时下载该确切版本。手动运行辅助命令时，使用已安装的 `scripts/tow.py` 路径。约定中的 `tow` 是该路径的简写。
 
-TOW 0.4.2 和 `tag-ontology` 0.1.3 均没有 `doctor` 命令。先运行：
+TOW 0.5.0 和 `tag-ontology` 0.2.0 均没有 `doctor` 命令。先运行：
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.1.3 --version
+npx --yes tag-ontology@0.2.0 --version
 ```
 
 仅对采用 TOW 元数据的笔记运行 TOW `lint`；词典检查仅适用于已初始化的本体功能。缺少未选用的可选元数据或词典，并不表示安装失败。然后按[设置检查](../docs/installation.md#check-the-setup)验证插件、配置、词典和笔记标签。`lint` 检查分类字段和标签数量，检查技能还逐篇检查格式与引用。仅有 lint 通过并不代表完成了技能的全部检查。

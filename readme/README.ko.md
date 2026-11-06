@@ -1,10 +1,10 @@
 # TOW — Tag Ontology for Wiki
 
-**Obsidian vault 내부 문서 관리용 에이전트 스킬 플러그인**입니다. vault를 작업 폴더로 열어 노트 검색·frontmatter 관리·내용을 보존하는 형식 교정을 수행하며, Claude Code·Codex·Google Antigravity에서 실행됩니다.
+Obsidian vault와 코딩 프로젝트를 연결해 개념으로 검색하고, project `.tow/` 메타데이터로 문서에 태그를 붙이며, 선택한 내용을 새 vault 노트로 보내는 에이전트 스킬 플러그인입니다. 프로젝트 문서는 수정하지 않으며, vault 유지 관리 작업은 내용을 보존합니다. Claude Code·Codex·Google Antigravity에서 실행됩니다.
 
 [English](../README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-> **버전:** 0.4.2.
+> **버전:** 0.5.0.
 
 ## 개요
 
@@ -16,14 +16,14 @@
 
 초기 설정에서 PARA 사용 여부를 선택하며, 원하지 않으면 기존 구조를 유지합니다. 일반 검색·본문 작업에는 사전이나 메타데이터 정리가 필요하지 않습니다. 검색은 Obsidian CLI 우선 → 범위를 지정한 파일 검색 보완 → 내용 확인 순서이며, 기존 속성이 있으면 정확도를 높이는 데 활용합니다. 전체 규약은 [docs/methodology.md](../docs/methodology.md)(영어)에 있습니다.
 
-TOW는 로컬 코딩 에이전트에 열한 가지 작업 절차를 설치합니다. vault와 대상 노트를 지정하면 에이전트가 파일을 읽고, 분류·개념 태그로 검색하고, 승인할 변경안을 제안합니다. 노트는 기존 Obsidian vault의 파일로 유지됩니다.
+TOW는 로컬 에이전트 호스트에 열두 가지 작업 절차를 설치합니다. vault 전용 작업은 Obsidian 노트를 관리하며, 프로젝트에서는 `tow-query`가 연결된 vault와 현재 프로젝트를 검색하고 `tow-send-vault`가 승인 후 선택한 내용을 새 vault 노트로 만듭니다. 프로젝트 태그와 해시는 프로젝트 `.tow/` 메타데이터에 저장하며 프로젝트 문서는 수정하지 않습니다.
 
 패키지는 스킬·공통 규약·Python helper인 [`scripts/tow.py`](../scripts/tow.py)로 구성됩니다. helper는 분류 규칙을 검사하고, [`tag-ontology`](https://github.com/NamhyeonKo/obsidian-tag-ontology) npm CLI를 호출해 노트 파싱·태그 조회·사전 검증과 변경을 처리합니다. 모델과 파일 도구는 에이전트 호스트가 제공합니다.
 
 TOW는 Tag Ontology의 CLI를 활용해 태그를 조회하고 사전을 검증·관리합니다. [Obsidian용 Tag Ontology 플러그인](https://github.com/NamhyeonKo/obsidian-tag-ontology)([커뮤니티 플러그인 페이지](https://community.obsidian.md/plugins/tag-ontology))을 함께 설치하면, 관리한 태그의 계층과 관계를 그래프로 시각적으로 확인할 수 있습니다.
 
 ```text
-tag-ontology@0.1.3        사전 검증·조회·변경, 노트 파싱
+tag-ontology@0.2.0        사전 검증·조회·변경, 노트 파싱
       ▲  npx tag-ontology … --json
 tow (이 플러그인)          vault 규약 검사, 스킬
       ▲  Claude Code / Codex / Antigravity
@@ -34,7 +34,8 @@ tow (이 플러그인)          vault 규약 검사, 스킬
 
 | 스킬 | 이런 때 사용 | 변경 범위 |
 | --- | --- | --- |
-| `tow-setup` | PARA 또는 기존 구조 선택, 필요한 사전만 선택적으로 설정 | 최상위 폴더만 확인. 승인 뒤 폴더·사전·`tow.json`만 만들고 노트는 옮기지 않습니다. |
+| `tow-setup` | vault 설정, 프로젝트용 연결 또는 프로젝트 메타데이터 등록 | 이름을 먼저 확인하고 승인한 `.tow/` 메타데이터나 개인 연결 설정만 기록합니다. |
+| `tow-send-vault` | 선택한 프로젝트 내용을 연결된 vault로 전송 | 승인 후 새 노트를 만들며, 변환 요청이 없으면 선택한 본문을 보존합니다. |
 | `tow-query` | 자연어 조건·사용자 속성·태그·본문으로 문서 찾기 | 읽기 전용. CLI 우선, 파일 검색 보완, 확인된 결과와 추정 후보 구분. |
 | `tow-check` | frontmatter·Markdown·수식·코드·표·참조 검사 | 먼저 보고하고, 문장·내부 내용·값을 보존하는 승인한 구문만 고칩니다. |
 | `tow-tag-suggest` | 지정한 노트의 개념 태그 추천 | 사용자가 고른 추가·제거만 적용합니다. |
@@ -125,26 +126,26 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 
 ## 처음 사용하기
 
-vault를 호스트의 작업 폴더로 엽니다. 새 세션에서 위의 호스트별 방식으로 `tow-query`를 선택하고 다음처럼 요청합니다.
+vault 유지 관리만 할 때는 vault를 호스트 작업 폴더로 엽니다. 프로젝트에서 사용할 때는 프로젝트를 열고 `tow-setup`을 선택해 vault 연결과 프로젝트 `.tow/` 메타데이터를 설정합니다. 새 프로젝트 세션에서 `tow-query`를 선택하고 다음처럼 요청합니다.
 
 ```text
 내 vault는 /절대/경로/vault야. RAG 관련 프로젝트 노트를 category와 개념 태그로
-찾아줘. 대체된 문서는 제외하고, 요약할 노트는 먼저 읽은 뒤 경로와 개수를 알려줘.
-파일은 수정하지 마.
+찾아줘. 대체된 문서는 제외하고, 현재 프로젝트와 연결된 vault를 모두 검색해.
+요약할 노트를 먼저 읽고 출처·경로·일치 이유·개수를 알려줘. 파일은 수정하지 마.
 ```
 
-설정 없이 바로 검색할 수 있습니다. 정리 기능을 설정하려면 `tow-setup`을 선택하세요. PARA 사용 여부를 먼저 묻고 기존 구조·속성을 보존합니다. TOW는 vault 루트의 `tow.json`을 읽고, 생략한 설정에는 [가이드의 기본값](../docs/installation.md#configure-the-vault)을 사용합니다. 설치 과정에서 vault를 생성하거나 이관하지는 않습니다.
+프로젝트 등록이나 사전 없이도 검색할 수 있지만, 프로젝트 태깅에는 `.tow/` 메타데이터가 필요합니다. 개인 연결은 `$TOW_VAULT` 또는 `~/.tow/config.json`에 저장하며 프로젝트 파일에는 기록하지 않습니다. vault 안에서 실행한 검색은 vault만 대상으로 합니다. vault 구성을 위해 `tow-setup`을 선택하면 PARA 사용 여부를 묻고 기존 구조·스키마를 보존합니다. 새 vault 설정은 `.tow/config.json`에 저장되며, 기존 0.4.x vault의 루트 `tow.json`도 이관 전까지 읽을 수 있습니다. [설정 가이드](../docs/installation.md#configure-the-vault)와 [프로젝트 연결 안내](../docs/installation.md#connect-a-vault-to-a-project)를 참고하세요.
 
 ## CLI와 설치 점검
 
-helper가 사용하는 명령은 `npx --yes tag-ontology@0.1.3`입니다. 필요할 때 npm으로 해당 버전을 내려받습니다. 직접 실행할 때는 설치된 `scripts/tow.py` 경로를 사용합니다. 규약 문서의 `tow`는 이 경로를 줄여 쓴 이름입니다.
+helper가 사용하는 명령은 `npx --yes tag-ontology@0.2.0`입니다. 필요할 때 npm으로 해당 버전을 내려받습니다. 직접 실행할 때는 설치된 `scripts/tow.py` 경로를 사용합니다. 규약 문서의 `tow`는 이 경로를 줄여 쓴 이름입니다.
 
-TOW 0.4.2와 `tag-ontology` 0.1.3 모두 `doctor` 명령은 없습니다. 먼저 다음을 확인합니다.
+TOW 0.5.0과 `tag-ontology` 0.2.0 모두 `doctor` 명령은 없습니다. 먼저 다음을 확인합니다.
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.1.3 --version
+npx --yes tag-ontology@0.2.0 --version
 ```
 
 TOW `lint`는 해당 메타데이터 규약을 채택한 노트에, 사전 검사는 온톨로지를 초기화한 경우에 적용합니다. 선택하지 않은 메타데이터·사전이 없다는 것은 설치 실패가 아닙니다. 이후 [설치 점검 절차](../docs/installation.md#check-the-setup)로 플러그인·설정·사전·노트 태그를 확인합니다. `lint`는 분류 필드와 태그 수 등을 검사하고, check 스킬은 노트별 서식·참조 검토를 더합니다. lint 통과만으로 스킬의 모든 검사 항목을 확인한 것은 아닙니다.

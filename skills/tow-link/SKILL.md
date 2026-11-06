@@ -8,6 +8,10 @@ description: >-
 
 # tow-link
 
+This skill works only inside the vault. From another project, stop and use `tow-query` to find vault content or `tow-send-vault` to bring content in.
+
+Before any write, run `tow config` and verify the vault root it prints contains the current working directory and every file being edited; otherwise stop and route the request as above.
+
 Wrap existing mentions of other notes in `[[wikilinks]]` for navigation. Read the [conventions](../../docs/methodology.md) and `tow config` first. Tags/categories/dictionaries are not prerequisites for navigation. Preserve words, sentences, headings, sections and existing metadata (including custom `related:`). Use existing target files, once per target at its first eligible body mention.
 
 ## Workflow

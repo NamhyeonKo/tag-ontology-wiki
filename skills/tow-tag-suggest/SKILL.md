@@ -1,27 +1,24 @@
 ---
 name: tow-tag-suggest
 description: >-
-  Use when the user asks for concept-tag (`tags:`) candidates for specific notes in a TOW
-  vault. Recommends only, then attaches the tags the user picks. Triggers: "suggest tags for
-  this note", "what tags should this note have?", "extract concept tags".
+  Use when the user asks for concept-tag candidates for vault notes or project documents.
+  Recommends only, then attaches the tags the user picks. Triggers: "suggest tags for this
+  note", "what tags should this note have?", "extract concept tags", "tag these project docs".
 ---
 
 # tow-tag-suggest
 
-**Recommends** concept-tag candidates for the notes the user names. The user decides which tags go on a note; this skill adds only the tags the user picks to its `tags:`.
+**Recommends** concept-tag candidates for notes or project documents named by the user. The user decides which tags a document carries; vault tags are written only to selected note frontmatter, while project tags are written only to `.tow/` metadata.
 
-Before starting, read the [TOW conventions](../../docs/methodology.md): they define the `tow` command used below and the selection rules in §3 "Concept tags" (what to tag, how many, in what priority).
-
-For every selected note-metadata edit, follow the [preservation contract](../../docs/preservation.md): keep independent before/candidate copies, verify only selected metadata values, and require `tow verify-body <before> <candidate>` to pass before replacing the note. This operation does not authorize fixing body format, rewriting prose or invoking post-curation. Dictionary files are verified separately by their own rules.
+Before starting, read the [TOW conventions](../../docs/methodology.md): they define `tow` and the selection rules in §3 "Concept tags". Project work reads rules from `.tow/tags.md` and follows the project's explicit file scope.
 
 ## Workflow
 
-1. **Scope**: only the notes the user names. Recommend for a whole folder only when the user states that scope.
-2. **Headings first**: use the H2/H3 structure to find the concepts the note explains directly. Body text adds candidates only for big-picture concepts. The note's title concept is always a candidate. When the CLI is available, `tow ontology scan <paths…> --json` gives the title (`path`), `frontmatter.description`, `frontmatter.aliases`, existing `tags`/`bodyTags` and all `headings`; read the body where they don't settle a candidate.
-3. **Pick candidates**: apply conventions §3 plus the [judgement calls](#judgement-calls).
-4. **Look up existing vocabulary**: when a tag dictionary is present, look up each candidate in exact match → alias → partial match order and use its canonical spelling; use `tow ontology show <tag> --json` for taxonomy paths only when its full read scope is authorized under the conventions; otherwise inspect the relevant dictionary entries and report unavailable aggregate checks. Without a dictionary, inspect tags in authorized notes with the shared CLI-first search policy and mark dictionary status `not checked (no dictionary)`, rather than blocking suggestions or creating a dictionary. Match the vault's adopted tag style; TOW naming/taxonomy rules below are optional.
-5. **Recommend** in the [recommendation format](#recommendation-format) and wait for the user's choice. On a note that already has tags, keep the existing tags and split the recommendation into `add` candidates and `remove` candidates (a broader tag the note uses only as background next to its narrower tag, tags outside the rules). A broader + narrower pair the note explains directly is not a `remove` candidate.
-6. **Apply** only selected additions/removals to `tags:`; if that property/frontmatter is absent, its creation must be explicit in the selection plan. Follow the adopted date policy; preserve other fields and the body. Hand unregistered tags to `tow-tag-sync` only when the user has chosen ontology management; otherwise report them as dictionary-unverified without requiring setup.
+1. **Scope.** For a vault note, work only on the notes the user names, or the folder they explicitly select. For project documents, use `tow project files` to discover the configured document set. List untracked and ignored file names before reading any contents; include those files only when the user selects them. Never edit project document bytes/frontmatter. Edit vault frontmatter only when the vault root reported by `tow config` contains both the current folder and every target note; otherwise stop. From a project, tag project documents with `tow project tag` or offer `tow-send-vault` for an approved new vault note.
+2. **Inspect candidates.** Use H2/H3 structure to identify concepts explained directly; the title concept is always a candidate. Body text adds candidates for big-picture concepts. For vault notes, when available, `tow ontology scan <paths…> --json` provides title, description, aliases, existing tags/body tags and headings. For project docs, read `.tow/tags.md` and consult the vault dictionary for shared concepts. Use the configured vault tag dictionary for canonical concepts/aliases and the project `.tow/tag-dictionary.json` for project-only concepts. Look up candidates exact match → alias → partial match; follow the vault's broader/narrower rule when a note explains both concepts directly. Without a dictionary, continue with authorized note vocabulary and mark status `not checked (no dictionary)` rather than blocking suggestions or creating one.
+3. **Recommend as one batch.** Present one table for the whole selected set: document, candidate tags, add/remove decision, dictionary status and reason. Keep existing tags; for vault notes, list removals only for tags outside the rules or a broader tag used only as background beside a narrower tag. A broader+narrower pair directly explained by the note is not a removal candidate. Pre-select existing dictionary concepts; list new concepts separately with broader candidates and attach them only if the user picks them. If there is an established convention for number, use it; otherwise recommend few, within 3–10 where applicable. Wait for one approval for the batch.
+4. **Apply vault selections.** For vault notes, edit only selected frontmatter `tags:` additions/removals. Follow the [preservation contract](../../docs/preservation.md), preserving body bytes and all other fields. Do not create missing metadata unless selected. Route user-selected unregistered concepts to `tow-tag-sync` only when ontology management is adopted.
+5. **Apply project selections.** Prepare one changes JSON with `documents` mapping project-relative paths to the complete selected tag lists and `concepts` containing only user-picked new concepts with `description` and `broader`. Preview with `tow project tag <changes>`; after approval, run `tow project tag <changes> --apply`. This writes only project `.tow/` files; it does not change any project document or vault dictionary. Do not add unselected concepts.
 
 ## Judgement calls
 
@@ -33,10 +30,8 @@ For every selected note-metadata edit, follow the [preservation contract](../../
 
 ## Recommendation format
 
-| Note | Candidate tag | Add/remove | Dictionary | Reason |
+| Document | Candidate tags | Decision | Dictionary | Reason |
 | --- | --- | --- | --- | --- |
-| Chunking.md | `chunking` | add | exists | Title concept |
-| Chunking.md | `semantic-chunking` | add | new (broader candidate: `chunking`) | The `## Semantic chunking` section explains it |
-| Chunking.md | `rag` | remove | exists | Mentioned only as background; the note explains chunking, not RAG itself |
+| `Chunking.md` | `chunking`, `semantic-chunking` | add | Existing: `chunking`; new: `semantic-chunking` (broader: `chunking`) | Title and `## Semantic chunking` |
 
-For new candidates, include guessed aliases and broader concepts so `tow-tag-sync` can pick them up.
+Project documents use the same batch table; clearly separate new project-only concepts and include a description and broader-concept candidates for concepts selected by the user.

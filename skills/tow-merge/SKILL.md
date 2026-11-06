@@ -9,6 +9,10 @@ description: >-
 
 # tow-merge
 
+This skill works only inside the vault. From another project, stop and use `tow-query` to find vault content or `tow-send-vault` to bring content in.
+
+Before any write, run `tow config` and verify the vault root it prints contains the current working directory and every file being edited; otherwise stop and route the request as above.
+
 Optional case-by-case aftercare, not a lint fix. Read the [conventions](../../docs/methodology.md), [post-curation contract](../../docs/post-curation.md), [preservation contract](../../docs/preservation.md), `tow config` and [concept ownership](../tow-review/references/concept-ownership.md). An overlap finding from intake/review is a proposal, not merge permission.
 
 ## Workflow

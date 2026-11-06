@@ -1,14 +1,19 @@
 ---
 name: tow-ingest
 description: >-
-  Use when the user explicitly selects filing or source-note aftercare under their own
-  destination, template and preservation rules. Triggers: "process my inbox",
-  "file these captures", "intake", "derive concept notes from this source".
+  Use when the user explicitly selects vault-internal filing or source-note aftercare under
+  their own destination, template and preservation rules. Triggers: "process my inbox",
+  "file these captures", "intake", "derive concept notes from this source". For bringing
+  project documents into the vault, use tow-send-vault.
 ---
 
 # tow-ingest
 
-Optional post-curation for a selected capture/source batch. Read the [conventions](../../docs/methodology.md), [post-curation contract](../../docs/post-curation.md), [preservation contract](../../docs/preservation.md) and `tow config`. Filing can be a verbatim move; it does not imply adding frontmatter, rewriting prose, deriving concepts or adopting PARA.
+This skill works only inside the vault. From another project, stop and use `tow-query` to find vault content or `tow-send-vault` to bring content in.
+
+Before any write, run `tow config` and verify the vault root it prints contains the current working directory and every file being edited; otherwise stop and route the request as above.
+
+Optional post-curation for a selected capture/source batch, including notes `tow-send-vault` left in the inbox. Read the [conventions](../../docs/methodology.md), [post-curation contract](../../docs/post-curation.md), [preservation contract](../../docs/preservation.md) and `tow config`. Filing can be a verbatim move; it does not imply adding frontmatter, rewriting prose, deriving concepts or adopting PARA.
 
 ## Workflow
 

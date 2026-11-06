@@ -9,6 +9,10 @@ description: >-
 
 # tow-check
 
+This skill works only inside the vault. From another project, stop and use `tow-query` to find vault content or `tow-send-vault` to bring content in.
+
+Before any write, run `tow config` and verify the vault root it prints contains the current working directory and every file being edited; otherwise stop and route the request as above.
+
 Report issues first; apply only approved format changes. Read the [conventions](../../docs/methodology.md), [preservation contract](../../docs/preservation.md) and [notation rules](references/markdown-format.md). User rules take precedence. This skill never writes missing prose, corrects formulas/code/values, summarizes, merges or splits notes.
 
 ## Checks

@@ -134,7 +134,25 @@ def test_real_cli_checks_explicit_paths_without_treating_show_tags_as_paths(real
     assert show["notePaths"] == []
 
 
-def test_real_cli_plan_apply_and_stale_base_preserve_write_boundaries(real_vault: Path, tmp_path: Path) -> None:
+def test_real_cli_subset_and_overlay(real_vault: Path, tmp_path: Path) -> None:
+    before = snapshot(real_vault)
+    overlay = tmp_path / "tags.json"
+    overlay.write_text(json.dumps({"Resources/Example.md": {"tags": ["rag"]}}))
+
+    show = json.loads(run(real_vault, "ontology", "show", "rag", "--notes", "--tags-file", str(overlay), "--json"))
+    assert {m["path"] for m in show["noteMatches"]} >= {"Resources/Example.md"}
+    match = next(m for m in show["noteMatches"] if m["path"] == "Resources/Example.md")
+    assert match["matches"] == [{"tag": "rag", "source": "overlay"}]
+
+    subset = json.loads(run(real_vault, "ontology", "subset", "rag", "--json"))
+    assert set(subset["dictionary"]) == {"information-retrieval", "rag"}
+    assert snapshot(real_vault) == before
+
+
+def test_real_cli_plan_apply_and_stale_base_preserve_write_boundaries(
+    real_vault: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(real_vault)
     before = snapshot(real_vault)
     draft = json.loads(run(real_vault, "ontology", "show", "rag", "--json"))["draft"]
     draft["description"] = "An answer-generation method that retrieves supporting material before generating an answer."
@@ -158,3 +176,73 @@ def test_real_cli_plan_apply_and_stale_base_preserve_write_boundaries(real_vault
     conflict = json.loads(run(real_vault, "ontology", "apply", str(changes), "--base", plan["base"], "--json", code=3))
     assert conflict["conflict"]["current"] == applied["hash"]
     assert snapshot(real_vault) == after
+
+
+def test_real_cli_project_concepts_imports_each_broader_link_once(
+    real_vault: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = tmp_path / "project"
+    (project / ".tow").mkdir(parents=True)
+    (project / ".tow" / "config.json").write_text('{"kind": "project"}\n')
+    (project / ".tow" / "tag-dictionary.json").write_text(
+        json.dumps(
+            {
+                "project-parent": {"description": "Parent", "broader": []},
+                "project-child": {"description": "Child", "broader": ["project-parent"]},
+            }
+        )
+    )
+    monkeypatch.chdir(real_vault)
+    changes = json.loads(run(real_vault, "project", "concepts", str(project)))
+    change_file = real_vault / ".tow-tmp" / "changes.json"
+    change_file.parent.mkdir()
+    change_file.write_text(json.dumps({"schemaVersion": 1, "changes": changes["changes"]}))
+    before = snapshot(real_vault)
+
+    plan = json.loads(run(real_vault, "ontology", "plan", str(change_file), "--json"))
+    assert plan["ok"]
+    assert [item["tag"] for item in plan["diff"]] == ["project-child", "project-parent"]
+    applied = json.loads(run(real_vault, "ontology", "apply", str(change_file), "--base", plan["base"], "--json"))
+    assert applied["written"] is True
+    dictionary = json.loads((real_vault / "meta" / "Tag-Dictionary.json").read_text())
+    assert dictionary["project-child"]["broader"] == ["project-parent"]
+    assert dictionary["project-parent"]["broader"] == []
+    after = snapshot(real_vault)
+    assert {path for path in before.keys() | after.keys() if before.get(path) != after.get(path)} == {
+        "meta/Tag-Dictionary.json"
+    }
+
+
+def test_real_cli_project_tag_refreshes_the_subset_and_validates_it(
+    real_vault: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "gitconfig").write_text("")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(tmp_path / "gitconfig"))
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    project = tmp_path / "project"
+    project.mkdir()
+    subprocess.run(["git", "-C", str(project), "init", "-q"], check=True)
+    (project / "notes.md").write_text("# Notes\n")
+    subprocess.run(["git", "-C", str(project), "add", "notes.md"], check=True)
+    monkeypatch.chdir(project)
+    run(real_vault, "project", "init", "--mode", "shared", "--apply")
+    vault_before = snapshot(real_vault)
+    concept = {"description": "Our ranking experiments.", "broader": ["bm25"]}
+    changes = tmp_path / "changes.json"
+    changes.write_text(
+        json.dumps({"documents": {"notes.md": ["rag", "ranking-lab"]}, "concepts": {"ranking-lab": concept}})
+    )
+
+    assert "would add notes.md to .tow/documents.json" in run(real_vault, "project", "tag", str(changes))
+    run(real_vault, "project", "tag", str(changes), "--apply")
+
+    dictionary = json.loads((project / ".tow" / "tag-dictionary.json").read_text())
+    assert set(dictionary) == {"bm25", "information-retrieval", "rag", "ranking-lab"}
+    assert dictionary["ranking-lab"] == concept
+    assert json.loads((project / ".tow" / "documents.json").read_text())["notes.md"]["tags"] == ["rag", "ranking-lab"]
+    project_before = snapshot(project / ".tow")
+    concept["broader"] = ["nowhere"]
+    changes.write_text(json.dumps({"documents": {}, "concepts": {"ranking-lab": concept}}))
+    run(real_vault, "project", "tag", str(changes), "--apply", code=2)
+    assert snapshot(project / ".tow") == project_before
+    assert snapshot(real_vault) == vault_before

@@ -9,6 +9,10 @@ description: >-
 
 # tow-edit
 
+This skill works only inside the vault. From another project, stop and use `tow-query` to find vault content or `tow-send-vault` to bring content in.
+
+Before any write, run `tow config` and verify the vault root it prints contains the current working directory and every file being edited; otherwise stop and route the request as above.
+
 Optional, user-guided body aftercare. Read the [conventions](../../docs/methodology.md), [post-curation contract](../../docs/post-curation.md) and [preservation contract](../../docs/preservation.md), then resolve `tow config`. Routine metadata/format requests use their owning skills; they never trigger body generation here.
 
 ## Workflow
