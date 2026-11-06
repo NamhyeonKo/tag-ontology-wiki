@@ -1,10 +1,16 @@
-# TOW — Tag Ontology for Wiki
+<h1 align="center">TOW — Tag Ontology for Wiki</h1>
+
+<p align="center">
+  <a href="https://github.com/NamhyeonKo/tag-ontology-wiki/stargazers"><img alt="stars" src="https://img.shields.io/github/stars/NamhyeonKo/tag-ontology-wiki?label=stars"></a>
+  <a href="https://github.com/NamhyeonKo/tag-ontology-wiki/releases/latest"><img alt="release" src="https://img.shields.io/github/v/release/NamhyeonKo/tag-ontology-wiki?label=release"></a>
+  <a href="../LICENSE"><img alt="license" src="https://img.shields.io/github/license/NamhyeonKo/tag-ontology-wiki?label=license"></a>
+</p>
+
+<p align="center"><a href="../README.md">English</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a></p>
 
 Obsidian vault と開発プロジェクトを接続するエージェントスキルプラグインです。両方を概念で検索し、プロジェクトの `.tow/` メタデータで文書にタグを付け、選択した内容を新しい vault ノートとして送信します。プロジェクト文書は変更せず、vault の保守作業では内容を保持します。Claude Code、Codex、Google Antigravity で動作します。
 
-[English](../README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md)
-
-> **バージョン:** 0.5.1。
+> **バージョン:** 0.5.2。
 
 ## 概要
 
@@ -126,7 +132,7 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 
 ## 初めて使う
 
-vault の保守だけを行う場合は、vault をホストのワークスペースとして開きます。プロジェクトで使う場合は、プロジェクトのワークスペースを開き、`tow-setup` を選択して vault を接続し、プロジェクトの `.tow/` メタデータを登録します。新しいプロジェクトセッションで `tow-query` を選択し、次のように依頼します。
+vault の保守だけを行う場合は、vault をホストのワークスペースとして開きます。vault 側の TOW ファイルは可視の `tow/` に置き、外部プロジェクトのメタデータは引き続きプロジェクト `.tow/` に置きます。プロジェクトで使う場合は、プロジェクトのワークスペースを開き、`tow-setup` を選択して vault を接続し、プロジェクトメタデータを登録します。新しいプロジェクトセッションで `tow-query` を選択し、次のように依頼します。
 
 ```text
 私の vault は /absolute/path/to/vault です。カテゴリーまたは概念で、RAG に関する
@@ -134,13 +140,13 @@ vault の保守だけを行う場合は、vault をホストのワークスペ�
 接続済み vault の両方を検索し、一致するノートを読んでから要約して、出典・パス・一致理由・件数を返してください。ファイルは変更しないでください。
 ```
 
-プロジェクト登録や辞書なしでも検索できます。プロジェクトへのタグ付けには `.tow/` メタデータが必要です。個人接続は `$TOW_VAULT` または `~/.tow/config.json` に保存され、プロジェクトファイルには記録されません。現在のディレクトリが vault 内にある場合、その vault が個人接続より優先されます。明示的に選ぶには `--root` を使います。vault 内での検索はその vault のみを対象にします。vault を整理するには `tow-setup` を選択してください。PARA の採用を確認し、既存の構成・スキーマを保持します。新しい vault 設定は `.tow/config.json` に置かれ、従来の 0.4.x vault も移行するまではルートの `tow.json` から読み取れます。[セットアップガイド](../docs/installation.md#configure-the-vault)と[プロジェクト接続手順](../docs/installation.md#connect-a-vault-to-a-project)を参照してください。
+プロジェクト登録や辞書なしでも検索できます。プロジェクトへのタグ付けには `.tow/` メタデータが必要です。個人接続は `$TOW_VAULT` または `~/.tow/config.json` に保存され、プロジェクトファイルには記録されません。現在のディレクトリが vault 内にある場合、その vault が個人接続より優先されます。明示的に選ぶには `--root` を使います。vault 内での検索はその vault のみを対象にします。vault を整理するには `tow-setup` を選択してください。PARA の採用を確認し、既存の構成・スキーマを保持します。新しい vault 設定は `tow/config.json` に置かれ、従来の `.tow/` および 0.4.x vault も `tow/` に移行するまでは読み取れます。[セットアップガイド](../docs/installation.md#configure-the-vault)と[プロジェクト接続手順](../docs/installation.md#connect-a-vault-to-a-project)を参照してください。
 
 ## CLI とセットアップの確認
 
 ヘルパーは `npx --yes tag-ontology@0.2.0` を使用します。必要に応じて npm がその正確なバージョンを取得します。ヘルパーを手動で実行するときは、インストールされた `scripts/tow.py` のパスを使います。規約中の `tow` は、そのパスの略記です。
 
-TOW 0.5.1 にも `tag-ontology` 0.2.0 にも、`doctor` コマンドはありません。まず次を実行してください。
+TOW 0.5.2 にも `tag-ontology` 0.2.0 にも、`doctor` コマンドはありません。まず次を実行してください。
 
 ```bash
 python3 --version

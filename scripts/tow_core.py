@@ -16,7 +16,7 @@ from typing import Final, Literal, cast
 
 DEFAULT_CLI: Final = "npx --yes tag-ontology@0.2.0"
 VaultSource = Literal["--root", "TOW_VAULT", "user", "ancestor"]
-VaultLayout = Literal["tow", "legacy", "plain"]
+VaultLayout = Literal["tow", "dot", "legacy", "plain"]
 
 
 class ConfigError(Exception):
@@ -97,7 +97,7 @@ def write_text_atomic(path: Path, text: str, *, exclusive: bool = False) -> None
 
 def write_user_config(vault: Path) -> None:
     """Connect this user to a configured TOW vault."""
-    if not vault.is_absolute() or not (tow_kind(vault) == "vault" or is_legacy_vault(vault)):
+    if not vault.is_absolute() or vault_layout(vault) == "plain":
         raise ConfigError(f"not a TOW vault; run setup inside the vault first: {vault}")
     path = user_config_file()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -138,16 +138,36 @@ def upward(start: Path) -> Iterator[Path]:
         current = current.parent
 
 
-def tow_kind(folder: Path) -> str | None:
-    """Return the kind in folder/.tow/config.json, or None if unavailable."""
+def config_kind(path: Path) -> str | None:
     try:
-        raw = json.loads((folder / ".tow" / "config.json").read_text(encoding="utf-8"))
+        raw = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
     if not isinstance(raw, dict):
         return None
     kind = cast(dict[str, object], raw).get("kind")
     return kind if isinstance(kind, str) else None
+
+
+def tow_kind(folder: Path) -> str | None:
+    """Return the kind in folder/.tow/config.json, or None if unavailable."""
+    return config_kind(folder / ".tow" / "config.json")
+
+
+def vault_layout(folder: Path) -> VaultLayout:
+    """Return the first recognized vault layout, or plain when none matches."""
+    if config_kind(folder / "tow" / "config.json") == "vault":
+        return "tow"
+    if tow_kind(folder) == "vault":
+        return "dot"
+    if is_legacy_vault(folder):
+        return "legacy"
+    return "plain"
+
+
+def vault_folder(layout: VaultLayout) -> str | None:
+    """Folder containing TOW vault configuration, or None for the legacy root layout."""
+    return {"tow": "tow", "dot": ".tow", "legacy": None, "plain": None}[layout]
 
 
 def is_empty_plugin_dictionary(folder: Path) -> bool:
@@ -179,12 +199,7 @@ def _configured_vault(value: str | Path, cwd: Path, source: VaultSource) -> Vaul
     root = path.resolve()
     if not root.is_dir():
         raise ConfigError(f"configured vault does not exist or is not a directory: {root}")
-    if tow_kind(root) == "vault":
-        layout: Literal["tow", "legacy", "plain"] = "tow"
-    elif is_legacy_vault(root):
-        layout = "legacy"
-    else:
-        layout = "plain"
+    layout = vault_layout(root)
     return VaultRef(root=root, source=source, layout=layout)
 
 
@@ -195,10 +210,7 @@ def resolve_vault(cwd: Path, root_arg: Path | None, env: Mapping[str, str]) -> V
 
     ancestors = list(upward(cwd))
     for folder in ancestors:
-        if tow_kind(folder) == "vault":
-            return _configured_vault(folder, cwd, "ancestor")
-    for folder in ancestors:
-        if is_legacy_vault(folder):
+        if vault_layout(folder) != "plain":
             return _configured_vault(folder, cwd, "ancestor")
     env_vault = env.get("TOW_VAULT")
     if env_vault:

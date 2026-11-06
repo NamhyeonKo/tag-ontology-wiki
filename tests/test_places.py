@@ -14,7 +14,6 @@ from tow_core import (
     resolve_project,
     resolve_vault,
     serialize_entries,
-    tow_kind,
     upward,
     user_config_file,
 )
@@ -110,16 +109,15 @@ def test_ancestor_tow_vault_is_found_from_a_subfolder(tmp_path: Path, monkeypatc
     set_home(tmp_path, monkeypatch)
     vault = tmp_path / "vault"
     project_dir = vault / "projects" / "one"
-    (vault / ".tow").mkdir(parents=True)
+    (vault / "tow").mkdir(parents=True)
     project_dir.mkdir(parents=True)
-    (vault / ".tow" / "config.json").write_text('{"kind": "vault"}', encoding="utf-8")
+    (vault / "tow" / "config.json").write_text('{"kind": "vault"}', encoding="utf-8")
 
     resolved = resolve_vault(project_dir, None, {})
 
     assert resolved.root == vault
     assert resolved.layout == "tow"
     assert resolved.source == "ancestor"
-    assert tow_kind(vault) == "vault"
 
 
 @pytest.mark.parametrize("marker", ["tow.json", "Tag-Dictionary.json", "Category-Dictionary.md"])

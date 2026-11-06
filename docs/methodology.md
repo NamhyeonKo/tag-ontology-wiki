@@ -6,17 +6,17 @@ Shared rules for frontmatter and content-preserving formatting, with optional us
 
 TOW works across a vault, a project, and a personal connection between them:
 
-- A **vault** is identified by `.tow/config.json` with `"kind": "vault"`. Legacy 0.4.x vaults remain readable through root `tow.json`, a non-empty root `Tag-Dictionary.json`, or root `Category-Dictionary.md` until migrated; an empty `{}` tag dictionary alone is the plugin's starter and is not a legacy marker.
+- A **vault** is identified by `tow/config.json` with `"kind": "vault"`; existing `.tow/config.json` vaults and legacy 0.4.x root markers remain readable until migrated. Legacy root markers are `tow.json`, a non-empty root `Tag-Dictionary.json`, or root `Category-Dictionary.md`; an empty `{}` tag dictionary alone is the plugin's starter and is not a legacy marker.
 - A **project** is the current Git repository or working directory. Its optional `.tow/config.json` has `"kind": "project"` and may set document scope. Project documents are never edited by TOW's project workflows; tags and hashes live in project `.tow/` metadata.
 - A **connection** is personal: `$TOW_VAULT` or `~/.tow/config.json` with `"kind": "user"` identifies the vault from a project session when the current directory is not inside a vault. `tow connect <vault>` previews it; `tow connect <vault> --apply` saves it. No project file stores the personal vault path.
 
 From a project, `tow-query` searches the connected vault and current project. Inside a vault, it searches only that vault. Project tagging writes only `.tow/` metadata. `tow-send-vault` can create a new vault note from selected project content after approval; by default, the selected body is preserved exactly. Vault-maintenance skills remain vault-only. See the [installation guide](installation.md) for host access suggestions and the limits of TOW's safety model.
 
-### `.tow/` layout
+### Vault and project layouts
 
-The vault's `.tow/` contains `config.json`, `tags.md`, `tag-dictionary.json`, `categories.md`, and `category-dictionary.json`. Manuals contain rules; dictionaries contain data. The project `.tow/` contains `config.json`, `tags.md`, `tag-dictionary.json`, and `documents.json`; shared projects may also use `documents.local.json` for metadata about local files. Local project mode adds `.tow/` to Git's repository-local `info/exclude` after approval; shared mode leaves project metadata commit-able and excludes `documents.local.json`. Neither mode edits `.gitignore` or project document content.
+The current vault layout stores `config.json`, `tags.md`, `tag-dictionary.json`, `categories.md`, and `category-dictionary.json` in visible `tow/`. Manuals contain rules; dictionaries contain data. Older vaults using `.tow/` or the legacy root layout remain readable until migrated with `tow migrate`. The project `.tow/` contains `config.json`, `tags.md`, `tag-dictionary.json`, and `documents.json`; shared projects may also use `documents.local.json` for metadata about local files. Local project mode adds `.tow/` to Git's repository-local `info/exclude` after approval; shared mode leaves project metadata commit-able and excludes `documents.local.json`. Neither mode edits `.gitignore` or project document content.
 
-Vault and project configuration paths are relative to their respective roots. Vault dictionary defaults are `.tow/tag-dictionary.json` and `.tow/category-dictionary.json`, but can be set elsewhere. Obsidian Sync skips dot-folders other than `.obsidian`; Sync users should keep dictionaries outside `.tow/` and configure their paths in `.tow/config.json`. The Tag Ontology Obsidian plugin has its own dictionary path setting, which must match TOW's configured tag dictionary path.
+Vault and project configuration paths are relative to their respective roots. Vault dictionary defaults are `tow/tag-dictionary.json` and `tow/category-dictionary.json`, but can be set elsewhere. Visible vault files sync with Obsidian Sync; optionally add `tow/` to Obsidian's “Excluded files” setting to hide it from search and graph. The Tag Ontology Obsidian plugin has its own dictionary path setting, which must match TOW's configured tag dictionary path.
 
 ## Vault compatibility
 
@@ -41,7 +41,7 @@ For every skill's note discovery, use **CLI first → scoped file search when un
 
 ## The `tow` command
 
-`tow` is the executable Python 3 script `scripts/tow.py` in the installed plugin. Resolve the plugin root from the absolute path of this document: it is the directory above `docs/` (also two directories above the loaded `skills/<name>/SKILL.md`). Use that installed location, independently of the agent host or the vault's working directory.
+`tow` is the executable Python 3 script `scripts/tow.py` in the installed plugin. Resolve the plugin root from the absolute path of this document: it is the directory above `docs/` (also two directories above the loaded `skills/<name>/SKILL.md`). Use that installed location, independently of the agent host or the vault's working directory. When `tow config` reports that a legacy or `.tow/` vault can be moved, tell the user once and offer the optional `tow-setup` move-to-`tow/` flow; continue the requested work without waiting for migration.
 
 Run the helper from the relevant vault or project. Use `--root <vault>` for a vault-targeted command when needed. Replace `<plugin-root>` below with the installed plugin's absolute path, keep it in a variable, and quote it in zsh or bash:
 
@@ -56,7 +56,7 @@ TOW="<plugin-root>/scripts/tow.py"
 | `tow config` | Print effective vault settings and their source; warn if the Tag Ontology plugin dictionary path differs |
 | `tow category add <value> <description> [--apply]` | Preview/register a category dictionary entry; `--apply` writes it after approval |
 | `tow init [--dictionaries] [--apply]` | Preview/create missing vault files at the configured dictionary paths; in a free-form vault, `--dictionaries` opts into starter dictionaries. `--apply` never overwrites |
-| `tow migrate [--apply] [--remove-legacy]` | Preview/migrate a legacy 0.4.x vault into `.tow/`; removing verified originals is a separate approved operation |
+| `tow migrate [--apply] [--remove-legacy]` | Preview/migrate a legacy or `.tow/` vault into `tow/`; removal of verified originals is separately approved |
 | `tow project init --mode {local,shared} [--exclude GLOB] [--apply]` | Preview/register project `.tow/` metadata; local mode uses Git's repository-local exclude file; shared mode leaves metadata commit-able |
 | `tow project tag <changes> [--apply]` | Preview/apply approved document tags and project-only concepts; writes only project `.tow/` files |
 | `tow project status` / `tow project files` | Report stale project metadata or list scoped Markdown paths by Git status (names only) |
@@ -68,7 +68,7 @@ TOW="<plugin-root>/scripts/tow.py"
 | `tow find [<prefix>] [--type …] [--status …] [--kind …] [--tag …] [--all]` | Find vault notes matching every condition: category prefix, frontmatter fields and/or tag |
 | `tow ontology <command> [arg…]` | Run the [`tag-ontology` CLI](https://github.com/NamhyeonKo/obsidian-tag-ontology) with the vault's settings |
 
-The helper resolves the vault in this order: `--root` → nearest ancestor vault (first `.tow/config.json` with `"kind": "vault"`, then a 0.4.x marker) → `$TOW_VAULT` → `~/.tow/config.json`. The current vault wins over personal connections; `--root` is explicit. The legacy markers are `tow.json`, a non-empty `Tag-Dictionary.json`, or `Category-Dictionary.md`; an empty `{}` `Tag-Dictionary.json` alone is the plugin's starter, not a legacy marker. If no vault or personal connection is found, it errors with `no vault found; run tow-setup`. Upward searches stop below the home folder. There is no current-folder fallback and no inference from `.obsidian`; it never guesses from Obsidian's active vault. Vault-maintenance write commands remain vault-only; `tow lookup` and project workflows can run from a project. `tow ontology` adds the configured dictionary, `--root`, and `--names kebab`, and limits note scans to the vault search scope. In PARA scope, `show` also skips project archive folders; `--all` keeps them. `scan` requires no dictionary and exposes parsed custom frontmatter, separate frontmatter `tags` and `bodyTags`, and headings. `usage` and `show` count both tag representations; `find` and convention lint use frontmatter tags only. Dictionary `apply` never edits note tags or bodies.
+The helper resolves the vault in this order: `--root` → nearest ancestor vault (`tow/config.json`, then `.tow/config.json`, then a 0.4.x marker) → `$TOW_VAULT` → `~/.tow/config.json`. The current vault wins over personal connections; `--root` is explicit. The legacy markers are `tow.json`, a non-empty `Tag-Dictionary.json`, or `Category-Dictionary.md`; an empty `{}` `Tag-Dictionary.json` alone is the plugin's starter, not a legacy marker. If no vault or personal connection is found, it errors with `no vault found; run tow-setup`. Upward searches stop below the home folder. There is no current-folder fallback and no inference from `.obsidian`; it never guesses from Obsidian's active vault. Vault-maintenance write commands remain vault-only; `tow lookup` and project workflows can run from a project. `tow ontology` adds the configured dictionary, `--root`, and `--names kebab`, and limits note scans to the vault search scope. In PARA scope, `show` also skips project archive folders; `--all` keeps them. `scan` requires no dictionary and exposes parsed custom frontmatter, separate frontmatter `tags` and `bodyTags`, and headings. `usage` and `show` count both tag representations; `find` and convention lint use frontmatter tags only. Dictionary `apply` never edits note tags or bodies.
 
 ### Scope before reading note contents
 
@@ -80,9 +80,9 @@ The helper/CLI does **not** automatically apply Git ignore or private-input rule
 - `usage <paths>` still scans the whole configured scope minus explicit exclusions to compute `unused`; the positional paths restrict its per-note findings, not all reads. `show` also scans that scope even without `--notes`. Run either only when its entire effective read scope is authorized or exclusions safely remove every ineligible path before reading. Otherwise use exact-path `scan` and authorized dictionary lookup, and report aggregate checks unavailable. `unused` is not proof that an entry can be deleted; partial reads or parse failures limit that conclusion. `show --exact` restricts returned note paths, not its read scope or rollup counts.
 - A body-edit request or a declined retroactive-classification proposal does not authorize a vault-wide verification search. Check only changed/selected paths; report other unresolved work without scanning it.
 
-## Vault settings (`.tow/config.json`)
+## Vault settings (`tow/config.json`)
 
-Values that differ between vaults live in `.tow/config.json`. A missing file or key uses the defaults below; legacy vaults continue to read root `tow.json` until migrated. Vault config includes `"kind": "vault"`. The four PARA folders, `inbox`, and `misc` name direct children of the vault root. `projectArchive` names a history folder inside a project; matching folders at any depth in the search scope count. Dictionaries, `attachments`, and `dailyNotes` are paths relative to the vault root. Set each path explicitly when the layout differs; changing `areas` or `misc` does not rewrite another setting.
+Values that differ between vaults live in `tow/config.json`. A missing file or key uses the defaults below; older `.tow/` vaults and legacy vaults continue to work until migrated. Vault config includes `"kind": "vault"`. The four PARA folders, `inbox`, and `misc` name direct children of the vault root. `projectArchive` names a history folder inside a project; matching folders at any depth in the search scope count. Dictionaries, `attachments`, and `dailyNotes` are paths relative to the vault root. Set each path explicitly when the layout differs; changing `areas` or `misc` does not rewrite another setting.
 
 ```json
 {
@@ -92,8 +92,8 @@ Values that differ between vaults live in `.tow/config.json`. A missing file or 
   "resources": "03_Resources",
   "archives": "04_Archives",
   "projectArchive": "archive",
-  "tagDictionary": ".tow/tag-dictionary.json",
-  "categoryDictionary": ".tow/category-dictionary.json",
+  "tagDictionary": "tow/tag-dictionary.json",
+  "categoryDictionary": "tow/category-dictionary.json",
   "inbox": "00_Inbox",
   "attachments": "99_Etc/attachments",
   "dailyNotes": "02_Areas/daily-notes",
@@ -114,7 +114,7 @@ Before a move, inspect the vault's ignore/private rules. Ignored capture inputs 
 - Philosophy: build the knowledge graph from **tags rather than links**, and let the LLM go from the category dictionary index straight to the files, **without RAG**. Classification goes in **fields** such as `type` and `category`; the concept entities a note covers go in **`tags:`**.
 - PARA folders (the number prefixes in the defaults sort the Obsidian sidebar):
 
-| Folder | `.tow/config.json` key | Default | Holds |
+| Folder | `tow/config.json` key | Default | Holds |
 | --- | --- | --- | --- |
 | projects | `projects` | `01_Projects` | **Projects** with a goal and a deadline |
 | areas | `areas` | `02_Areas` | Ongoing areas of **life** |
@@ -150,7 +150,7 @@ Note metadata has two axes. **Classification (what kind of note)** goes in the `
 
 ### Category dictionary format
 
-The category dictionary is JSON at `.tow/category-dictionary.json` by default. It is an object keyed by category value; each value has a `description` string, keys are sorted, and each entry occupies one line. Configure a different root-relative path with `categoryDictionary` in `.tow/config.json`.
+The category dictionary is JSON at `tow/category-dictionary.json` by default. It is an object keyed by category value; each value has a `description` string, keys are sorted, and each entry occupies one line. Configure a different root-relative path with `categoryDictionary` in `tow/config.json`.
 
 ### Concept tags (`tags:`)
 
@@ -277,6 +277,7 @@ A thesaurus that lightly follows the core of W3C **SKOS** (Simple Knowledge Orga
 
 These apply to every TOW skill; skills don't repeat them.
 
+- When `tow config` prints a migrate hint for a legacy or `.tow/` vault, tell the user once and offer the optional `tow-setup` move-to-`tow/` flow. Do not block the requested task while migration is pending.
 - **Plan → approve → run**: for work that changes files, show a plan table first and run it after the user approves. Ask for approval once for the whole batch. Merges are approved case by case. A clear body-edit request proceeds directly only when its selected rules/source and preservation boundary are already established under the post-curation contract.
 - **Delegation keeps the choices**: an intake/review batch approval covers its listed category registrations and link positions, but merges still need sequential case-by-case strategies, discarded facts need explicit confirmation, and retroactive classification needs its separate decision. A choice already stated explicitly settles that choice.
 - **The approval gate stays**: "I'm in a hurry, just do it" or "I trust you" still gets one proposal and one confirmation.

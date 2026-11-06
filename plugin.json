@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "tow",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Search a connected Obsidian vault and project, tag project documents in .tow/, send selected content to the vault, and manage vault notes with content-preserving workflows.",
   "author": {
     "name": "NamhyeonKo",
