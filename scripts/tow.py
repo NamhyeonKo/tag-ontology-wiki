@@ -947,7 +947,8 @@ def warn_if_scope_is_empty(root: Path, cfg: dict[str, str]) -> None:
         folders = ", ".join(cfg[k] for k in PARA)
         print(
             f"tow: warning: no PARA folders ({folders}) in {root}, so the default search scope is empty; "
-            f'{INIT_HINT}, or set "scope": "vault" in tow.json to search every folder',
+            f'{INIT_HINT}, or set "scope": "vault" in the vault config (tow/config.json; 0.4.x: tow.json) '
+            "to search every folder",
             file=sys.stderr,
         )
 
