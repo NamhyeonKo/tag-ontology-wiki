@@ -42,6 +42,7 @@ from tow_core import DEFAULT_CLI as DEFAULT_CLI
 from tow_core import CliError as CliError
 from tow_core import ConfigError as ConfigError
 from tow_core import body_bytes as body_bytes
+from tow_core import is_empty_plugin_dictionary as is_empty_plugin_dictionary
 from tow_core import is_legacy_vault as is_legacy_vault
 from tow_core import read_user_config as read_user_config
 from tow_core import resolve_project as resolve_project
@@ -542,7 +543,7 @@ def cmd_migrate(root: Path, apply: bool, remove_legacy: bool) -> int:
                     (targets[2], tag_source, tag_copy == tag_bytes),
                     (targets[4], category_source, category_copy == category_entries_to_write),
                 )
-                if not matches
+                if not matches and source not in missing_sources and (copy != targets[2] or legacy_tag_source)
             ]
             for copy, source in changed_copies:
                 message = (
@@ -560,6 +561,7 @@ def cmd_migrate(root: Path, apply: bool, remove_legacy: bool) -> int:
                 legacy_paths.append(tag_source)
             if (
                 legacy_category_source
+                and category_source.resolve() == (root / "Category-Dictionary.md").resolve()
                 and category_source not in missing_sources
                 and category_source.is_file()
                 and category_copy == category_entries_to_write
@@ -612,12 +614,18 @@ def cmd_migrate(root: Path, apply: bool, remove_legacy: bool) -> int:
 
     complete_before = all(target.is_file() for target in expected)
     for source in missing_sources:
-        print(f"missing; {'created' if apply else 'would create'} empty dictionary {source.relative_to(root)}")
+        target = targets[2] if source == tag_source else targets[4]
+        if not apply and not target.is_file():
+            print(f"missing; would create empty dictionary {target.relative_to(root)}")
     for target, text in output.items():
         if not target.exists():
             if apply:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 write_text_atomic(target, text, exclusive=True)
+                if (target == targets[2] and tag_source in missing_sources) or (
+                    target == targets[4] and category_source in missing_sources
+                ):
+                    print(f"missing; created empty dictionary {target.relative_to(root)}")
             print(f"{'created' if apply else 'would create'} {target.relative_to(root)}")
 
     if apply:
@@ -685,9 +693,16 @@ def cmd_init(
 ) -> int:
     """List what's missing; with `apply`, create it. Never overwrites an existing file."""
     legacy = layout == "legacy" if layout is not None else tow_kind(root) != "vault" and is_legacy_vault(root)
+    if not legacy and is_empty_plugin_dictionary(root):
+        print(
+            "tow: Tag-Dictionary.json is the plugin's empty starter; the plugin switches to "
+            ".tow/tag-dictionary.json once it exists, and you can delete the root file",
+            file=sys.stderr,
+        )
     init_cfg = cfg
     if not legacy and layout == "plain":
         init_cfg = {**TOW_DEFAULTS, **{key: value for key, value in cfg.items() if value != DEFAULTS.get(key)}}
+    init_cfg = {**init_cfg, **{key: Path(init_cfg[key].replace("\\", "/")).as_posix() for key in DICTIONARY_PATHS}}
     folders = [root / init_cfg[k] for k in (*PARA, "inbox")] if init_cfg["scope"] == "para" else []
     dictionary_paths = (
         [init_cfg[key] for key in DICTIONARY_PATHS] if init_cfg["scope"] == "para" or dictionaries else []
@@ -730,11 +745,15 @@ def cmd_init(
             str(p.relative_to(root)): (
                 '{"kind": "vault"}\n'
                 if p.relative_to(root).as_posix() == ".tow/config.json"
-                else serialize_entries({})
-                if p in dictionary_files
                 else (
-                    Path(__file__).parent / "starters" / TOW_BUNDLE_STARTER_FILES[p.relative_to(root).as_posix()]
-                ).read_text(encoding="utf-8")
+                    LEGACY_STARTER_CATEGORIES.format(today=date.today().isoformat())
+                    if p in dictionary_files and p == root / init_cfg["categoryDictionary"] and p.suffix == ".md"
+                    else serialize_entries({})
+                    if p in dictionary_files
+                    else (
+                        Path(__file__).parent / "starters" / TOW_BUNDLE_STARTER_FILES[p.relative_to(root).as_posix()]
+                    ).read_text(encoding="utf-8")
+                )
             )
             for p in files
         }
@@ -864,14 +883,10 @@ def main(argv: list[str] | None = None) -> int:
             except ConfigError as e:
                 if args.root is None and str(e).startswith("no vault found"):
                     project = resolve_project(Path.cwd(), None)
-                    if project is None:
-                        raise ConfigError("project status must run outside the vault") from e
-                    return cmd_project_status(project)
+                    return cmd_project_status(project or Path.cwd())
                 raise
             project = resolve_project(Path.cwd(), vault_ref.root)
-            if project is None:
-                raise ConfigError("project status must run outside the vault")
-            return cmd_project_status(project, vault_ref.root, read_config(vault_ref.root))
+            return cmd_project_status(project or Path.cwd(), vault_ref.root, read_config(vault_ref.root))
         if args.command == "project" and args.project_command == "concepts":
             vault = resolve_vault(Path.cwd(), args.root, os.environ).root
             if not Path.cwd().resolve().is_relative_to(vault.resolve()):
@@ -908,16 +923,6 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "config":
             print(json.dumps(cfg, ensure_ascii=False, indent=2))
             print(f"tow: vault {root} (from {vault_ref.source}, {vault_ref.layout})", file=sys.stderr)
-            cwd = Path.cwd().resolve()
-            for folder in (cwd, *cwd.parents):
-                if tow_kind(folder) == "vault" or is_legacy_vault(folder):
-                    if folder.resolve() != root:
-                        print(
-                            f"tow: warning: the current folder is inside the vault {folder.resolve()}, "
-                            f"but TOW uses {root} (from {vault_ref.source}); pass --root or run tow connect",
-                            file=sys.stderr,
-                        )
-                    break
             warning = plugin_dictionary_warning(root, cfg)
             if warning:
                 print(f"tow: warning: {warning}", file=sys.stderr)
