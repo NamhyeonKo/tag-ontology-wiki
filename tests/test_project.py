@@ -40,11 +40,43 @@ def init_repo(path: Path) -> Path:
 
 def make_vault(path: Path) -> Path:
     (path / ".tow").mkdir(parents=True)
+    (path / ".tow" / "config.json").write_text('{"kind": "vault"}\n', encoding="utf-8")
     (path / ".tow" / "tags.md").write_text("# Vault tag rules\n", encoding="utf-8")
     return path
 
 
-@pytest.mark.parametrize("legacy", [False, True], ids=["tow-vault", "legacy-vault"])
+def test_project_init_copies_rule_manual_from_visible_vault_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = init_repo(tmp_path / "project")
+    vault = tmp_path / "vault"
+    (vault / "tow").mkdir(parents=True)
+    (vault / "tow/config.json").write_text('{"kind": "vault"}')
+    (vault / "tow/tags.md").write_text("visible rules\n")
+    monkeypatch.chdir(project)
+
+    assert tow.main(["--root", str(vault), "project", "init", "--mode", "shared", "--apply"]) == 0
+
+    assert (project / ".tow/tags.md").read_text() == "visible rules\n"
+
+
+def test_project_init_refuses_to_register_a_tow_layout_vault(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project = tmp_path / "vault"
+    project.mkdir()
+    (project / "tow").mkdir()
+    (project / "tow/config.json").write_text('{"kind": "vault"}')
+    vault = make_vault(tmp_path / "connected-vault")
+    monkeypatch.chdir(project)
+
+    assert tow.main(["--root", str(vault), "project", "init", "--mode", "shared"]) == 2
+
+    assert "project root is a vault" in capsys.readouterr().err
+    assert not (project / ".tow/documents.json").exists()
+
+
+@pytest.mark.parametrize("legacy", [True, False])
 def test_project_init_refuses_to_register_a_vault_as_a_project(
     tmp_path: Path, legacy: bool, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -299,13 +331,14 @@ def test_project_init_never_overwrites(tmp_path: Path) -> None:
     vault = make_vault(tmp_path / "vault")
     project_tow = project / ".tow"
     project_tow.mkdir()
+    (project_tow / "config.json").write_text('{"kind": "project"}\n', encoding="utf-8")
     (project_tow / "tags.md").write_text("keep this manual\n", encoding="utf-8")
 
     with pytest.raises(tow.ConfigError, match="already exists"):
         tow_project.cmd_project_init(project, vault, {}, "shared", [], True)
 
     assert (project_tow / "tags.md").read_text(encoding="utf-8") == "keep this manual\n"
-    assert not (project_tow / "config.json").exists()
+    assert (project_tow / "config.json").read_text(encoding="utf-8") == '{"kind": "project"}\n'
     assert not (project_tow / "documents.json").exists()
 
 
@@ -316,7 +349,7 @@ def test_project_init_skips_missing_vault_tags_manual(tmp_path: Path, capsys: py
 
     assert tow_project.cmd_project_init(project, vault, {}, "shared", [], True) == 0
 
-    assert "vault has no .tow/tags.md (run tow migrate)" in capsys.readouterr().out
+    assert "vault has no tow/tags.md (run tow migrate)" in capsys.readouterr().out
     assert (project / ".tow" / "config.json").is_file()
     assert (project / ".tow" / "documents.json").read_text(encoding="utf-8") == "{\n}\n"
     assert (project / ".tow" / "tag-dictionary.json").read_text(encoding="utf-8") == "{\n}\n"
