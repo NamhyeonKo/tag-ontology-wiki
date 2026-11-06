@@ -50,18 +50,17 @@ Confirm `tow`, version `0.5.0`, and its enabled state where shown. In the new se
 
 ## Configure the vault
 
-TOW reads `<vault>/.tow/config.json` with `"kind": "vault"`. Without it, the effective defaults are:
+TOW reads `<vault>/.tow/config.json` with `"kind": "vault"`. Without a config file, the effective legacy-compatible defaults are:
 
 ```json
 {
-  "kind": "vault",
   "projects": "01_Projects",
   "areas": "02_Areas",
   "resources": "03_Resources",
   "archives": "04_Archives",
   "projectArchive": "archive",
-  "tagDictionary": ".tow/tag-dictionary.json",
-  "categoryDictionary": ".tow/category-dictionary.json",
+  "tagDictionary": "Tag-Dictionary.json",
+  "categoryDictionary": "Category-Dictionary.md",
   "inbox": "00_Inbox",
   "attachments": "99_Etc/attachments",
   "dailyNotes": "02_Areas/daily-notes",
@@ -70,7 +69,7 @@ TOW reads `<vault>/.tow/config.json` with `"kind": "vault"`. Without it, the eff
 }
 ```
 
-Legacy 0.4.x vaults remain readable from root `tow.json` and their root dictionaries until migrated. Only override values that differ in your vault. For example, a vault with `Projects`, `Areas`, `Resources`, `Archives`, project history in `superseded`, and dictionaries in `meta/` can use:
+A legacy `tow.json` is merged over these same defaults. `tow config` prints effective settings without a `kind` field. A `.tow/config.json` vault uses `.tow/tag-dictionary.json` and `.tow/category-dictionary.json` defaults; legacy 0.4.x vaults remain readable from root `tow.json` and their root dictionaries until migrated. Only override values that differ in your vault. For example, a vault with `Projects`, `Areas`, `Resources`, `Archives`, project history in `superseded`, and dictionaries in `meta/` can use:
 
 ```json
 {

@@ -62,7 +62,7 @@ For every selected note-metadata edit, follow the [preservation contract](../../
 
 ## Import project-only concepts
 
-When the user names a project path while working inside the vault, first run `tow project concepts <project_path>` as a read-only preview and show its output. Only additions absent from the vault dictionary are included; never apply project copies of concepts that already exist in the vault. After approval, put the returned JSON changes array into a protected temporary changes file inside the vault, run `tow ontology plan <changes-file> --json`, and show the complete diff/issues before applying. This is an additions-only import and does not edit project metadata or notes.
+When the user names a project path while working inside the vault, first run `tow project concepts <project_path>` as a read-only preview and show its output. Only additions absent from the vault dictionary are included; never apply project copies of concepts that already exist in the vault. After approval, save the complete output from `tow project concepts` directly as the changes file (it is already a complete changes document; do not extract the array) in a protected temporary folder inside the vault, run `tow ontology plan <changes-file> --json`, and show the complete diff/issues before applying. This is an additions-only import and does not edit project metadata or notes.
 
 ## Consolidation and ontology review
 

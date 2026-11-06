@@ -55,7 +55,7 @@ TOW="<plugin-root>/scripts/tow.py"
 | `tow connect [<vault>] [--apply]` | Show the personal connection, preview a connection, or save it after approval in `~/.tow/config.json` |
 | `tow config` | Print effective vault settings and their source; warn if the Tag Ontology plugin dictionary path differs |
 | `tow category add <value> <description> [--apply]` | Preview/register a category dictionary entry; `--apply` writes it after approval |
-| `tow init [--dictionaries] [--apply]` | Preview/create missing vault `.tow/` files; in a free-form vault, `--dictionaries` opts into starter dictionaries. `--apply` never overwrites |
+| `tow init [--dictionaries] [--apply]` | Preview/create missing vault files at the configured dictionary paths; in a free-form vault, `--dictionaries` opts into starter dictionaries. `--apply` never overwrites |
 | `tow migrate [--apply] [--remove-legacy]` | Preview/migrate a legacy 0.4.x vault into `.tow/`; removing verified originals is a separate approved operation |
 | `tow project init --mode {local,shared} [--exclude GLOB] [--apply]` | Preview/register project `.tow/` metadata; local mode uses Git's repository-local exclude file; shared mode leaves metadata commit-able |
 | `tow project tag <changes> [--apply]` | Preview/apply approved document tags and project-only concepts; writes only project `.tow/` files |

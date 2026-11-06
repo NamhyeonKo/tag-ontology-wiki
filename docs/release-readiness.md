@@ -26,7 +26,7 @@ Checked on 2026-11-04 before promotion through `dev` to `main`. This patch moved
 
 ### Release scope
 
-- Pin the default executable, CI and install/contributing/README instructions to `npx --yes tag-ontology@0.1.3`, the published npm package required by project overlay support (engines `node >=22.18`, matching TOW's Node.js requirement). In 0.1.3, `usage` reports `redundant` as a structural review candidate that `--strict` does not fail on, and it also treats a single word of the file name as the title concept. Its `scan` text output also lists `description`, `aliases` and all headings. TOW doesn't publish the npm package.
+- Pin the default executable, CI and current install/contributing/README instructions to `npx --yes tag-ontology@0.1.3`, the published npm `latest` (engines `node >=22.18`, matching TOW's Node.js requirement). In 0.1.3, `usage` reports `redundant` as a structural review candidate that `--strict` does not fail on, and it also treats a single word of the file name as the title concept. Its `scan` text output also lists `description`, `aliases` and all headings. TOW doesn't publish the npm package.
 - `docs/methodology.md` §3/§6: a narrower tag alone no longer removes its broader tag; both stay when the note explains each directly (rule "Broader and narrower tags together").
 - `tow-tag-sync` reviews each `redundant` pair with exact-path `scan --json` and proposes a drop candidate only for background use. `tow-tag-suggest` recommends a broader concept next to its narrower one when the note explains it directly ([#20](https://github.com/NamhyeonKo/tag-ontology-wiki/pull/20)).
 
