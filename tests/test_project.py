@@ -130,6 +130,27 @@ def test_project_init_in_a_nested_project_uses_a_toplevel_relative_pattern(tmp_p
     assert git(repository, "check-ignore", "-q", "work/nested/.tow/config.json") == ""
 
 
+def test_exclude_target_fails_closed_for_project_outside_git_toplevel(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+
+    def git_root(_project: Path) -> Path:
+        return repository
+
+    def git_exclude(_cwd: Path, *_args: str) -> str:
+        return "info/exclude"
+
+    monkeypatch.setattr(tow_project, "_git_root", git_root)
+    monkeypatch.setattr(tow_project, "git", git_exclude)
+
+    with pytest.raises(tow.ConfigError, match="outside its Git repository"):
+        tow_project.exclude_target(outside)
+
+
 def test_project_init_in_a_worktree_uses_git_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     repository = init_repo(tmp_path / "repository")
     (repository / "README.md").write_text("repo\n", encoding="utf-8")
@@ -185,12 +206,12 @@ def test_project_init_refuses_local_mode_when_tracked_file_check_fails(
     vault = make_vault(tmp_path / "vault")
     real_git_run = tow_project.git.__globals__["_git_run"]
 
-    def fail_ls_files(cwd: Path, *args: str) -> subprocess.CompletedProcess[str] | None:
+    def fail_git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str] | None:
         if "ls-files" in args:
             return subprocess.CompletedProcess(args, 128, "", "simulated Git failure")
         return real_git_run(cwd, *args)
 
-    monkeypatch.setattr(tow_project, "_git_run", fail_ls_files)
+    monkeypatch.setattr(tow_project, "_git_run", fail_git)
 
     with pytest.raises(tow.ConfigError, match="Git failed while determining project file status"):
         tow_project.cmd_project_init(project, vault, {}, "local", [], True)
@@ -211,6 +232,25 @@ def test_project_init_shared_refuses_when_gitignore_hides_all_project_metadata(t
         "/.tow/documents.local.json"
         not in git_path(project, "rev-parse", "--git-path", "info/exclude").read_text(encoding="utf-8").splitlines()
     )
+
+
+@pytest.mark.parametrize("mode", ["local", "shared"])
+def test_project_init_refuses_when_git_check_ignore_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mode: Literal["local", "shared"]
+) -> None:
+    project = init_repo(tmp_path / "project")
+    vault = make_vault(tmp_path / "vault")
+    real_git_run = tow_project.git.__globals__["_git_run"]
+
+    def fail_check_ignore(cwd: Path, *args: str) -> subprocess.CompletedProcess[str] | None:
+        if "check-ignore" in args:
+            return subprocess.CompletedProcess(args, 128, "", "simulated Git failure")
+        return real_git_run(cwd, *args)
+
+    monkeypatch.setattr(tow_project, "_git_run", fail_check_ignore)
+
+    with pytest.raises(tow.ConfigError, match="Git failed while checking project metadata ignores"):
+        tow_project.cmd_project_init(project, vault, {}, mode, [], True)
 
 
 def test_project_init_shared_refuses_when_a_project_metadata_file_is_ignored(tmp_path: Path) -> None:
@@ -709,6 +749,20 @@ def test_project_status_reports_untracked_documents_json_entries_as_local_in_sha
     assert capsys.readouterr().out.splitlines() == ["local-entry-in-shared leftover.md"]
 
 
+def test_project_status_does_not_mark_missing_shared_files_as_local_entries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch, mode="shared")
+    (project / ".tow" / "documents.json").write_text(
+        json.dumps({"missing.md": {"tags": ["used"], "sha256": "bad"}}), encoding="utf-8"
+    )
+    capsys.readouterr()
+
+    assert tow_project.cmd_project_status(project, vault, TAG_CFG) == 0
+
+    assert capsys.readouterr().out.splitlines() == ["missing missing.md"]
+
+
 def test_project_status_reports_stale_entries(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -742,11 +796,7 @@ def test_project_status_suggests_a_renamed_file_by_hash(
 
     assert tow_project.cmd_project_status(project, vault, TAG_CFG) == 0
 
-    assert capsys.readouterr().out.splitlines() == [
-        "local-entry-in-shared old.md",
-        "missing old.md",
-        "  moved? renamed.md",
-    ]
+    assert capsys.readouterr().out.splitlines() == ["missing old.md", "  moved? renamed.md"]
 
 
 def test_project_status_reports_tags_missing_from_the_project_dictionary(

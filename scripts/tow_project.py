@@ -167,8 +167,8 @@ def exclude_target(project: Path) -> tuple[Path, str] | None:
     project_root = project.resolve()
     try:
         relative = project_root.relative_to(toplevel)
-    except ValueError:
-        return None
+    except ValueError as e:
+        raise ConfigError(f"project root is outside its Git repository: {project_root}") from e
     pattern = f"/{relative.as_posix() + '/' if relative.parts else ''}.tow/"
     exclude_path = Path(exclude_text)
     if not exclude_path.is_absolute():
@@ -230,14 +230,16 @@ def cmd_project_init(
             raise ConfigError(f"project init path must stay inside the project: {path}")
 
     target = exclude_target(project_root)
-    if mode == "shared" and target is not None:
-        ignored = [
-            path
-            for path in outputs
-            if git(project_root, "check-ignore", "-q", path.relative_to(project_root).as_posix()) is not None
-        ]
-        if ignored:
-            raise ConfigError("shared project metadata is ignored by Git; remove the conflicting ignore rule first")
+    if target is not None:
+        for path in outputs:
+            result = _git_run(project_root, "check-ignore", "-q", path.relative_to(project_root).as_posix())
+            if result is None:
+                raise ConfigError("Git executable is unavailable; can't check project metadata ignores")
+            if result.returncode not in (0, 1):
+                cause = result.stderr.strip() or f"git exited with status {result.returncode}"
+                raise ConfigError(f"Git failed while checking project metadata ignores: {cause}")
+            if mode == "shared" and result.returncode == 0:
+                raise ConfigError("shared project metadata is ignored by Git; remove the conflicting ignore rule first")
     if mode == "local" and target is not None:
         tracked = _git_files(project_root, "-c", "core.quotepath=false", "ls-files", "-z", ".tow")
         if tracked:
@@ -579,9 +581,10 @@ def cmd_project_status(project: Path, vault: Path | None = None, cfg: Mapping[st
             except ConfigError:
                 continue
             findings: list[str] = []
-            if mode == "shared" and name == DOCUMENTS and not _tracked(root, key):
+            exists = _exists_exactly(root, key)
+            if mode == "shared" and name == DOCUMENTS and exists and not _tracked(root, key):
                 findings.append(f"local-entry-in-shared {key}")
-            if _exists_exactly(root, key):
+            if exists:
                 digest = _document_sha256(path, key)
                 if digest != recorded:
                     findings.append(f"stale {key}")

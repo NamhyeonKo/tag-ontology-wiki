@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import errno
 import json
 import os
@@ -71,14 +72,21 @@ def write_text_atomic(path: Path, text: str, *, exclusive: bool = False) -> None
             temporary = file.name
             file.write(text)
         if exclusive:
+            with open(temporary, "rb") as file:
+                data = file.read()
             try:
                 os.link(temporary, path)
             except OSError as e:
                 if e.errno not in {errno.EPERM, errno.ENOTSUP, errno.EOPNOTSUPP, errno.EXDEV, errno.ENOSYS}:
                     raise
                 fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0), 0o666)
-                with os.fdopen(fd, "w", encoding="utf-8", newline="") as file:
-                    file.write(text)
+                try:
+                    with os.fdopen(fd, "wb") as file:
+                        file.write(data)
+                except BaseException:
+                    with contextlib.suppress(OSError):
+                        path.unlink()
+                    raise
             os.unlink(temporary)
         else:
             os.replace(temporary, path)
@@ -142,8 +150,19 @@ def tow_kind(folder: Path) -> str | None:
     return kind if isinstance(kind, str) else None
 
 
+def is_empty_plugin_dictionary(folder: Path) -> bool:
+    try:
+        value: object = json.loads((folder / "Tag-Dictionary.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return isinstance(value, dict) and not value
+
+
 def is_legacy_vault(folder: Path) -> bool:
-    return any((folder / marker).is_file() for marker in ("tow.json", "Tag-Dictionary.json", "Category-Dictionary.md"))
+    if (folder / "tow.json").is_file() or (folder / "Category-Dictionary.md").is_file():
+        return True
+    tag_dictionary = folder / "Tag-Dictionary.json"
+    return tag_dictionary.is_file() and not is_empty_plugin_dictionary(folder)
 
 
 @dataclass(frozen=True)
@@ -170,15 +189,9 @@ def _configured_vault(value: str | Path, cwd: Path, source: VaultSource) -> Vaul
 
 
 def resolve_vault(cwd: Path, root_arg: Path | None, env: Mapping[str, str]) -> VaultRef:
-    """Resolve the vault from explicit settings, personal connection, then cwd ancestors."""
+    """Resolve the vault from an explicit root, cwd ancestors, then personal connection."""
     if root_arg is not None:
         return _configured_vault(root_arg, cwd, "--root")
-    env_vault = env.get("TOW_VAULT")
-    if env_vault:
-        return _configured_vault(env_vault, cwd, "TOW_VAULT")
-    user_vault = read_user_config()
-    if user_vault is not None:
-        return _configured_vault(user_vault, cwd, "user")
 
     ancestors = list(upward(cwd))
     for folder in ancestors:
@@ -187,6 +200,12 @@ def resolve_vault(cwd: Path, root_arg: Path | None, env: Mapping[str, str]) -> V
     for folder in ancestors:
         if is_legacy_vault(folder):
             return _configured_vault(folder, cwd, "ancestor")
+    env_vault = env.get("TOW_VAULT")
+    if env_vault:
+        return _configured_vault(env_vault, cwd, "TOW_VAULT")
+    user_vault = read_user_config()
+    if user_vault is not None:
+        return _configured_vault(user_vault, cwd, "user")
     raise ConfigError("no vault found; run tow-setup")
 
 

@@ -568,6 +568,44 @@ def test_read_commands_work_from_another_project(
     capsys.readouterr()
 
 
+def test_project_status_inside_vault_uses_normal_project_validation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    vault_root = tmp_path / "vault"
+    (vault_root / ".tow").mkdir(parents=True)
+    (vault_root / ".tow/config.json").write_text('{"kind": "vault"}', encoding="utf-8")
+    monkeypatch.chdir(vault_root)
+
+    assert tow.main(["project", "status"]) == 2
+
+    assert "not a TOW project" in capsys.readouterr().err
+
+
+def test_lookup_inside_another_git_vault_has_no_project_unavailable_entry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    current_vault = tmp_path / "current-vault"
+    (current_vault / ".tow").mkdir(parents=True)
+    (current_vault / ".tow/config.json").write_text('{"kind": "vault"}', encoding="utf-8")
+    (current_vault / ".tow/tag-dictionary.json").write_text('{"rag": {}}', encoding="utf-8")
+    connected_vault = tmp_path / "connected-vault"
+    (connected_vault / ".tow").mkdir(parents=True)
+    (connected_vault / ".tow/config.json").write_text('{"kind": "vault"}', encoding="utf-8")
+    subprocess.run(["git", "init", str(current_vault)], check=True, capture_output=True)
+    fake_cli(
+        tmp_path,
+        monkeypatch,
+        scan_of(),
+        {"show": json.dumps({"schemaVersion": 1, "command": "show", "ok": True, "tag": "rag", "noteMatches": []})},
+    )
+    monkeypatch.chdir(current_vault)
+    monkeypatch.setenv("TOW_VAULT", str(connected_vault))
+
+    assert tow.main(["lookup", "rag"]) == 0
+
+    assert json.loads(capsys.readouterr().out)["unavailable"] == []
+
+
 # command line, against a stand-in for the tag-ontology CLI
 
 
@@ -754,7 +792,7 @@ def test_category_add_refuses_duplicates_invalid_values_and_markdown_dictionarie
     assert 'run "tow migrate"' in capsys.readouterr().err
 
 
-def test_config_warns_when_current_folder_is_inside_a_different_vault(
+def test_config_uses_the_current_vault_without_warning(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     connected = tmp_path / "connected"
@@ -770,10 +808,8 @@ def test_config_warns_when_current_folder_is_inside_a_different_vault(
 
     output = capsys.readouterr()
     assert json.loads(output.out) == tow.TOW_DEFAULTS
-    assert (
-        f"warning: the current folder is inside the vault {current}, but TOW uses {connected} "
-        "(from TOW_VAULT); pass --root or run tow connect"
-    ) in output.err
+    assert f"tow: vault {current} (from ancestor, tow)" in output.err
+    assert "warning: the current folder is inside the vault" not in output.err
 
 
 def test_main_config_prints_the_merged_settings(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -938,6 +974,39 @@ def test_init_creates_para_folders_for_plain_layout(
         assert (tmp_path / folder).is_dir()
 
 
+@pytest.mark.parametrize("tag_path", ["./meta/tags.json", "meta\\\\tags.json"])
+def test_init_normalizes_configured_dictionary_paths_before_writing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tag_path: str
+) -> None:
+    (tmp_path / ".tow").mkdir()
+    (tmp_path / ".tow/config.json").write_text(
+        json.dumps({"kind": "vault", "scope": "vault", "tagDictionary": tag_path}), encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["--root", str(tmp_path), "init", "--dictionaries", "--apply"]) == 0
+
+    capsys.readouterr()
+    assert (tmp_path / "meta/tags.json").read_text(encoding="utf-8") == "{\n}\n"
+
+
+def test_init_uses_markdown_starter_for_a_configured_markdown_dictionary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / ".tow").mkdir()
+    (tmp_path / ".tow/config.json").write_text(
+        '{"kind": "vault", "scope": "vault", "categoryDictionary": "meta/categories.md"}', encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["--root", str(tmp_path), "init", "--dictionaries", "--apply"]) == 0
+
+    capsys.readouterr()
+    content = (tmp_path / "meta/categories.md").read_text(encoding="utf-8")
+    assert content.startswith("---\nupdated: ")
+    assert "# Category Dictionary" in content
+
+
 def test_init_uses_configured_dictionary_paths_in_tow_layout(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -956,6 +1025,25 @@ def test_init_uses_configured_dictionary_paths_in_tow_layout(
     assert "would create meta/categories.json" in output
     assert "would create .tow/tag-dictionary.json" not in output
     assert "would create .tow/category-dictionary.json" not in output
+
+
+def test_init_uses_tow_layout_for_an_empty_plugin_dictionary_without_deleting_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    plugin_dictionary = tmp_path / "Tag-Dictionary.json"
+    plugin_dictionary.write_text("{\n}\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["--root", str(tmp_path), "init", "--apply"]) == 0
+
+    output = capsys.readouterr()
+    assert output.err.strip() == (
+        "tow: Tag-Dictionary.json is the plugin's empty starter; the plugin switches to "
+        ".tow/tag-dictionary.json once it exists, and you can delete the root file"
+    )
+    assert (tmp_path / ".tow/config.json").is_file()
+    assert (tmp_path / ".tow/tag-dictionary.json").read_text(encoding="utf-8") == "{\n}\n"
+    assert plugin_dictionary.read_text(encoding="utf-8") == "{\n}\n"
 
 
 def test_init_creates_the_dot_tow_starter_bundle_once(
@@ -1002,7 +1090,8 @@ def test_migrate_creates_empty_dictionary_when_a_legacy_dictionary_is_missing(
     assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 0
 
     output = capsys.readouterr().out
-    assert f"missing; created empty dictionary {missing}" in output
+    target = ".tow/tag-dictionary.json" if missing == "Tag-Dictionary.json" else ".tow/category-dictionary.json"
+    assert f"missing; created empty dictionary {target}" in output
     assert json.loads((tmp_path / ".tow/tag-dictionary.json").read_text()) == (
         {} if missing == "Tag-Dictionary.json" else {"tag": {"description": "Tag"}}
     )
@@ -1012,6 +1101,72 @@ def test_migrate_creates_empty_dictionary_when_a_legacy_dictionary_is_missing(
     assert (tmp_path / ".tow/tag-dictionary.json").read_text() == (
         "{\n}\n" if missing == "Tag-Dictionary.json" else (tmp_path / "Tag-Dictionary.json").read_text()
     )
+
+
+def test_migrate_remove_legacy_does_not_report_missing_default_dictionary_as_kept(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text("{}\n", encoding="utf-8")
+    (tmp_path / "Category-Dictionary.md").write_text("- `ai` : AI\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 0
+    capsys.readouterr()
+    (tmp_path / ".tow/tag-dictionary.json").write_text('{\n"custom": {"description": "Custom"}\n}\n', encoding="utf-8")
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--remove-legacy"]) == 0
+    output = capsys.readouterr().out
+
+    assert "kept legacy original Tag-Dictionary.json" not in output
+    assert "Tag-Dictionary.json because it differs" not in output
+
+
+def test_migrate_reports_only_sources_created_during_this_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text("{}\n", encoding="utf-8")
+    (tmp_path / "Category-Dictionary.md").write_text("- `ai` : AI\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 0
+    output = capsys.readouterr().out
+
+    assert "Tag-Dictionary.json" not in output
+    assert not (tmp_path / "Tag-Dictionary.json").exists()
+
+
+def test_migrate_does_not_report_an_existing_target_as_created_for_a_missing_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text("{}\n", encoding="utf-8")
+    (tmp_path / "Category-Dictionary.md").write_text("- `ai` : AI\n", encoding="utf-8")
+    existing_tag_target = tmp_path / ".tow/tag-dictionary.json"
+    existing_tag_target.parent.mkdir()
+    existing_tag_target.write_text("{\n}\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 0
+
+    assert "missing; created empty dictionary .tow/tag-dictionary.json" not in capsys.readouterr().out
+
+
+def test_migrate_does_not_claim_a_dictionary_was_created_when_its_write_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text("{}\n", encoding="utf-8")
+    (tmp_path / "Category-Dictionary.md").write_text("- `ai` : AI\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    def fail_dictionary_write(path: Path, text: str, *, exclusive: bool = False) -> None:
+        if path == tmp_path / ".tow/tag-dictionary.json":
+            raise OSError("simulated write failure")
+        tow_core.write_text_atomic(path, text, exclusive=exclusive)
+
+    monkeypatch.setattr(tow, "write_text_atomic", fail_dictionary_write)
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 2
+
+    assert "missing; created empty dictionary" not in capsys.readouterr().out
 
 
 def test_migrate_previews_then_copies_and_converts(
@@ -1191,7 +1346,43 @@ def test_migrate_remove_legacy_succeeds_when_tow_json_is_absent(
     assert (tmp_path / ".tow/config.json").exists()
 
 
-def test_migrate_remove_legacy_keeps_custom_tag_dictionary_after_verification(
+def test_migrate_remove_legacy_keeps_customized_default_category_markdown_dictionary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "tow.json").write_text("{}\n", encoding="utf-8")
+    (tmp_path / "Tag-Dictionary.json").write_text('{"tag": {"description": "Tag"}}\n', encoding="utf-8")
+    (tmp_path / "Category-Dictionary.md").write_text("- `ai` : AI\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 0
+    capsys.readouterr()
+    (tmp_path / ".tow/category-dictionary.json").write_text('{\n"web": {"description": "Web"}\n}\n')
+    assert tow.main(["--root", str(tmp_path), "migrate", "--remove-legacy", "--apply"]) == 0
+    output = capsys.readouterr().out
+
+    assert (tmp_path / "Category-Dictionary.md").is_file()
+    assert "deleted Category-Dictionary.md" not in output
+
+
+def test_migrate_remove_legacy_keeps_custom_category_markdown_dictionary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "meta").mkdir()
+    (tmp_path / "tow.json").write_text('{"categoryDictionary": "meta/categories.md"}', encoding="utf-8")
+    (tmp_path / "Tag-Dictionary.json").write_text("{\n}\n", encoding="utf-8")
+    (tmp_path / "meta/categories.md").write_text("- `ai` : AI\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["--root", str(tmp_path), "migrate", "--apply"]) == 0
+    capsys.readouterr()
+    assert tow.main(["--root", str(tmp_path), "migrate", "--remove-legacy", "--apply"]) == 0
+    output = capsys.readouterr().out
+
+    assert (tmp_path / "meta/categories.md").is_file()
+    assert "deleted Category-Dictionary.md" not in output
+
+
+def test_migrate_remove_legacy_keeps_custom_dictionaries_after_verification(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     (tmp_path / "meta").mkdir()
@@ -1213,7 +1404,7 @@ def test_migrate_remove_legacy_keeps_custom_tag_dictionary_after_verification(
         "categoryDictionary": ".tow/category-dictionary.json",
     }
     assert (tmp_path / "meta/tags.json").exists()
-    assert not (tmp_path / "meta/categories.md").exists()
+    assert (tmp_path / "meta/categories.md").is_file()
 
 
 def test_migrate_remove_legacy_deletes_only_after_verification(

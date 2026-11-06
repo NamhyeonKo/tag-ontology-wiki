@@ -4,7 +4,7 @@ An agent skill plugin for working across an Obsidian vault and a coding project:
 
 [English](README.md) · [한국어](readme/README.ko.md) · [简体中文](readme/README.zh-CN.md) · [繁體中文](readme/README.zh-TW.md) · [日本語](readme/README.ja.md) · [Español](readme/README.es.md) · [Français](readme/README.fr.md)
 
-> **Version:** 0.5.0.
+> **Version:** 0.5.1.
 
 ## Overview
 
@@ -135,13 +135,13 @@ connected vault, read matching notes before summarizing them, and return their
 source, paths, match reasons, and count. Do not modify files.
 ```
 
-Search works without project registration or dictionaries; project tagging requires project `.tow/` metadata. The personal connection lives in `$TOW_VAULT` or `~/.tow/config.json`, never in project files. Inside a vault, queries remain vault-only. For optional vault organization, `tow-setup` asks whether you want PARA and preserves your existing layout/schema. New vault settings live in `.tow/config.json`; legacy 0.4.x vaults with root `tow.json` remain readable until migrated. See the [setup guide](docs/installation.md#configure-the-vault) and [project connection instructions](docs/installation.md#connect-a-vault-to-a-project).
+Search works without project registration or dictionaries; project tagging requires project `.tow/` metadata. The personal connection lives in `$TOW_VAULT` or `~/.tow/config.json`, never in project files. A vault containing the current directory takes precedence over either personal connection; use `--root` to select explicitly. Inside a vault, queries remain vault-only. For optional vault organization, `tow-setup` asks whether you want PARA and preserves your existing layout/schema. New vault settings live in `.tow/config.json`; legacy 0.4.x vaults with root `tow.json` remain readable until migrated. See the [setup guide](docs/installation.md#configure-the-vault) and [project connection instructions](docs/installation.md#connect-a-vault-to-a-project).
 
 ## CLI and setup checks
 
 The helper uses `npx --yes tag-ontology@0.2.0`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path. For project commands, run it from the project; vault-targeted commands may use `--root <vault>`.
 
-Neither TOW 0.5.0 nor `tag-ontology` 0.2.0 has a `doctor` command. Start with:
+Neither TOW 0.5.1 nor `tag-ontology` 0.2.0 has a `doctor` command. Start with:
 
 ```bash
 python3 --version
