@@ -8,8 +8,8 @@
 
 ## Candidate verification (0.5.1) — 2026-11-06
 
-- `uv run ruff check`: passed. `uv run ruff format --check`: 62 files already formatted. `uv run pyright`: 0 errors, warnings, or informations.
-- `uv run pytest`: 284 passed, 9 skipped. The exact local-engine integration command passed all 9 tests. `uv lock --check` and `git diff --check` passed; documentation parity/link checks passed in the full suite.
+- Final committed candidate checks: `uv run ruff check` passed; `uv run ruff format --check` reported 62 files already formatted; `uv run pyright` reported 0 errors, warnings, or informations.
+- `uv run pytest`: 284 passed, 9 skipped. The exact local-engine integration command passed all 9 tests. `uv lock --check` and committed-diff whitespace checks passed; documentation parity/link checks passed in the full suite.
 - Model-backed skill application, installed-host checks, post-merge CI, and publication remain separate gates. The 0.5.1 release archive must be built from its committed candidate; no tag, release, or publication was made here.
 
 ---
