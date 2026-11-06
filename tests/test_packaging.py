@@ -145,7 +145,9 @@ def release_assets(out: Path, version: str) -> subprocess.CompletedProcess[str]:
 
 @needs_git
 def test_release_assets_build_the_portable_and_native_antigravity_archives(tmp_path: Path) -> None:
-    version = json.loads((ROOT / "plugin.json").read_text())["version"]
+    version = json.loads(
+        subprocess.run(["git", "show", "HEAD:plugin.json"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    )["version"]
     result = release_assets(tmp_path, version)
     assert result.returncode == 0, result.stderr
     names = [f"tow-{version}.zip", f"tow-antigravity-{version}.zip"]

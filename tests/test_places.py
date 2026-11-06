@@ -62,6 +62,34 @@ def test_env_wins_over_user_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     assert resolved.source == "TOW_VAULT"
 
 
+def test_nearest_vault_beats_environment_connection(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    set_home(tmp_path, monkeypatch)
+    current = tmp_path / "current"
+    (current / ".tow").mkdir(parents=True)
+    (current / ".tow/config.json").write_text('{"kind": "vault"}', encoding="utf-8")
+    connected = tmp_path / "connected"
+    (connected / ".tow").mkdir(parents=True)
+    (connected / ".tow/config.json").write_text('{"kind": "vault"}', encoding="utf-8")
+
+    resolved = resolve_vault(current, None, {"TOW_VAULT": str(connected)})
+
+    assert (resolved.root, resolved.source) == (current, "ancestor")
+
+
+def test_nearest_vault_beats_user_connection(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    home = set_home(tmp_path, monkeypatch)
+    current = tmp_path / "current"
+    (current / ".tow").mkdir(parents=True)
+    (current / ".tow/config.json").write_text('{"kind": "vault"}', encoding="utf-8")
+    connected = tmp_path / "connected"
+    connected.mkdir()
+    write_user_config(home, connected)
+
+    resolved = resolve_vault(current, None, {})
+
+    assert (resolved.root, resolved.source) == (current, "ancestor")
+
+
 def test_user_file_names_the_vault_with_spaces_and_korean(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     home = set_home(tmp_path, monkeypatch)
     vault = tmp_path / "내 vault 2"
@@ -100,7 +128,7 @@ def test_legacy_markers_count_as_a_vault(tmp_path: Path, monkeypatch: pytest.Mon
     vault = tmp_path / "vault"
     project_dir = vault / "nested"
     project_dir.mkdir(parents=True)
-    (vault / marker).write_text("{}", encoding="utf-8")
+    (vault / marker).write_text('{"tag": {}}' if marker == "Tag-Dictionary.json" else "{}", encoding="utf-8")
 
     resolved = resolve_vault(project_dir, None, {})
 
@@ -108,6 +136,18 @@ def test_legacy_markers_count_as_a_vault(tmp_path: Path, monkeypatch: pytest.Mon
     assert resolved.layout == "legacy"
     assert resolved.source == "ancestor"
     assert is_legacy_vault(vault)
+
+
+def test_empty_plugin_starter_dictionary_is_not_a_legacy_vault(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    set_home(tmp_path, monkeypatch)
+    vault = tmp_path / "vault"
+    nested = vault / "nested"
+    nested.mkdir(parents=True)
+    (vault / "Tag-Dictionary.json").write_text("{\n}\n", encoding="utf-8")
+
+    assert not is_legacy_vault(vault)
+    with pytest.raises(ConfigError, match="no vault found"):
+        resolve_vault(nested, None, {})
 
 
 def test_obsidian_folder_alone_is_not_a_vault(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -312,6 +352,38 @@ def test_connect_refuses_a_folder_that_is_not_a_vault(
     assert not (home / ".tow" / "config.json").exists()
 
 
+def test_exclusive_atomic_write_fallback_removes_partial_target_when_writing_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "created.txt"
+
+    def unavailable_link(source: str | Path, target: str | Path) -> None:
+        raise OSError(errno.ENOTSUP, "operation not supported")
+
+    class FailingFile:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def write(self, text: str) -> None:
+            raise OSError("simulated write failure")
+
+    monkeypatch.setattr(tow_core.os, "link", unavailable_link)
+
+    def fail_fdopen(_fd: int, mode: str) -> FailingFile:
+        assert mode == "wb"
+        return FailingFile()
+
+    monkeypatch.setattr(tow_core.os, "fdopen", fail_fdopen)
+
+    with pytest.raises(OSError, match="simulated write failure"):
+        tow_core.write_text_atomic(path, "created", exclusive=True)
+
+    assert not path.exists()
+
+
 def test_exclusive_atomic_write_falls_back_when_hard_links_are_unavailable(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -328,16 +400,16 @@ def test_exclusive_atomic_write_falls_back_when_hard_links_are_unavailable(
     assert list(tmp_path.iterdir()) == [path]
 
 
-def test_exclusive_atomic_write_fallback_still_refuses_existing_target(
+def test_exclusive_atomic_write_fallback_refuses_a_target_created_after_the_initial_check(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     path = tmp_path / "existing.txt"
-    path.write_text("original", encoding="utf-8")
 
-    def unavailable_link(source: str | Path, target: str | Path) -> None:
+    def create_target_then_disable_link(_source: str | Path, target: str | Path) -> None:
+        Path(target).write_text("original", encoding="utf-8")
         raise OSError(errno.ENOTSUP, "operation not supported")
 
-    monkeypatch.setattr(tow_core.os, "link", unavailable_link)
+    monkeypatch.setattr(tow_core.os, "link", create_target_then_disable_link)
 
     with pytest.raises(FileExistsError):
         tow_core.write_text_atomic(path, "replacement", exclusive=True)

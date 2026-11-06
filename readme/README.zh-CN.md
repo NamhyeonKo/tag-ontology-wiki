@@ -4,7 +4,7 @@
 
 [English](../README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-> **版本：** 0.5.0。
+> **版本：** 0.5.1。
 
 ## 概述
 
@@ -134,13 +134,13 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 并返回来源、路径、匹配原因和数量。不要修改文件。
 ```
 
-无需注册项目或词典即可搜索；项目标签功能需要 `.tow/` 元数据。个人连接保存在 `$TOW_VAULT` 或 `~/.tow/config.json` 中，不写入项目文件。在 vault 内执行查询时只搜索该 vault。配置 vault 时，`tow-setup` 会询问是否采用 PARA，并保留现有结构和模式。新 vault 设置位于 `.tow/config.json`；旧版 0.4.x vault 的根目录 `tow.json` 在迁移前仍可读取。详见[设置指南](../docs/installation.md#configure-the-vault)和[项目连接说明](../docs/installation.md#connect-a-vault-to-a-project)。
+无需注册项目或词典即可搜索；项目标签功能需要 `.tow/` 元数据。个人连接保存在 `$TOW_VAULT` 或 `~/.tow/config.json` 中，不写入项目文件。如果当前目录位于某个 vault 内，该 vault 优先于个人连接；如需明确选择，请使用 `--root`。在 vault 内执行查询时只搜索该 vault。配置 vault 时，`tow-setup` 会询问是否采用 PARA，并保留现有结构和模式。新 vault 设置位于 `.tow/config.json`；旧版 0.4.x vault 的根目录 `tow.json` 在迁移前仍可读取。详见[设置指南](../docs/installation.md#configure-the-vault)和[项目连接说明](../docs/installation.md#connect-a-vault-to-a-project)。
 
 ## CLI 与设置检查
 
 辅助脚本使用 `npx --yes tag-ontology@0.2.0`；npm 在需要时下载该确切版本。手动运行辅助命令时，使用已安装的 `scripts/tow.py` 路径。约定中的 `tow` 是该路径的简写。
 
-TOW 0.5.0 和 `tag-ontology` 0.2.0 均没有 `doctor` 命令。先运行：
+TOW 0.5.1 和 `tag-ontology` 0.2.0 均没有 `doctor` 命令。先运行：
 
 ```bash
 python3 --version
