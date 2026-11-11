@@ -16,10 +16,12 @@ Before any write, run `tow config` and verify the vault root it prints contains 
 
 Read-only review and post-curation planning by default. Read the [conventions](../../docs/methodology.md), [post-curation contract](../../docs/post-curation.md), `tow config` and [concept ownership](references/concept-ownership.md). A review/cleanup request never creates a hub, rewrites bodies, splits/merges notes or adds metadata automatically.
 
+`tow` is not a command on your PATH: run the executable `scripts/tow.py` two directories above this file by its absolute path (with `python3` if the host can't execute it), for example `"<plugin-root>/scripts/tow.py" config`.
+
 ## Workflow
 
 1. **Scope and rules.** Use named notes/domain/folder/project; ask if unspecified. Discover user instructions/templates within the authorized scope. Apply confirmed history/private exclusions before reads. Generic vaults need neither PARA nor frontmatter/dictionaries. If no rules exist, report content/navigation observations; request a rule only before a transformation needing it.
-2. **Read every scoped note.** Inspect complete bodies, structure and existing metadata/navigation. Use CLI-first discovery and scoped file fallback, plus applicable `tow-check` report-mode findings. Keep read-only review free of backup/scratch/note writes.
+2. **Read every scoped note.** Inspect complete bodies, structure and existing metadata/navigation. Use the shared search policy for discovery, plus applicable `tow-check` report-mode findings. Keep read-only review free of backup/scratch/note writes.
 3. **Analyze ownership/cohesion.** Identify independent topics, duplicate explanations, mixed notes and source fragments. Base findings on read content and the user's established organization, not a mandatory Resource/Area model. Ambiguous canonical choices remain unresolved.
 4. **Inspect navigation.** Consider actual inbound/outbound links, hubs, body/frontmatter tags and meaningful custom properties. Missing TOW fields alone are not isolation. A domain with several independent notes or a requested map can justify a hub proposal, never automatic creation or copied/rewritten bodies. List relevant existing templates and ask for a missing one only when the user chooses that operation.
 5. **Check project direction where applicable.** Use the actual project's direction/history rules. No forced banner, status table, move or completion inference. Report unrelated project conventions as inapplicable.

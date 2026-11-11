@@ -14,6 +14,8 @@ Translate natural language into reproducible searches: **concept lookup first â†
 
 From a project, search both the connected vault and the current project, unless the user names only one of them ("in my vault", "in this repo"); then search only that source and skip the other's file listing. Inside the vault, search the vault only; never search project documents from there. Results state their source (`vault` or `project`) and path. This skill is read-only.
 
+`tow` is not a command on your PATH: run the executable `scripts/tow.py` two directories above this file by its absolute path (with `python3` if the host can't execute it), for example `"<plugin-root>/scripts/tow.py" config`.
+
 ## Workflow
 
 1. **Establish scope before reading.** Run `tow config` and use the vault root/source it reports; never infer the vault from Obsidian's active vault. From a project, resolve the project scope and its `.tow/` configuration when present. Follow the conventions' private/ignored rules before content reads. Inside the vault, search only its authorized scope. Never search the project from a vault session.

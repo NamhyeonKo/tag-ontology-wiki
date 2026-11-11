@@ -42,6 +42,8 @@ All six `draft` fields are required. An `edit` item also needs `tag` (the existi
 
 For every selected note-metadata edit, follow the [preservation contract](../../docs/preservation.md): keep independent before/candidate copies, verify only selected metadata values, and require `tow verify-body <before> <candidate>` to pass before replacing the note. This operation does not authorize fixing body format, rewriting prose or invoking post-curation. Dictionary files are verified separately by their own rules.
 
+`tow` is not a command on your PATH: run the executable `scripts/tow.py` two directories above this file by its absolute path (with `python3` if the host can't execute it), for example `"<plugin-root>/scripts/tow.py" config`.
+
 ## Workflow
 
 1. **Compare**: follow the conventions' scope rule before `tow ontology usage [path] --json` or any `show`: both read the whole configured scope minus exclusions, even with positional usage paths or without `--notes`. If those reads are not authorized, use exact-path `scan` plus relevant dictionary entries and report aggregate checks unavailable. If `usage` stops because the search scope is empty, no note was read: resolve the scope through `tow-setup`, or pass the user's exact folders, before judging any tag. `usage` returns unregistered tags with their notes and similar tags (`unregistered`), alias/case variants (`nonCanonical`), unused entries (`unused`), broader + narrower pairs on one note to review (`redundant`), and dictionary warnings (`issues`). Identify each finding's frontmatter/body origin before proposing note edits. Helper lint counts frontmatter tags only. Never remove an entry solely from a partial-scope `unused` result.

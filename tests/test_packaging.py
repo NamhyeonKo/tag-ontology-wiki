@@ -55,6 +55,27 @@ def test_vault_only_skills_say_so() -> None:
         assert any(statement in line for line in text.splitlines()[:15]), skill
 
 
+TOW_PATH_SENTENCE = (
+    "`tow` is not a command on your PATH: run the executable `scripts/tow.py` two directories above this file "
+    "by its absolute path (with `python3` if the host can't execute it), "
+    'for example `"<plugin-root>/scripts/tow.py" config`.'
+)
+
+
+def test_every_skill_says_how_to_run_tow() -> None:
+    for skill in SKILLS:
+        text = (ROOT / "skills" / skill / "SKILL.md").read_text()
+        assert TOW_PATH_SENTENCE in text, skill
+        assert text.index(TOW_PATH_SENTENCE) < text.index("\n## "), skill
+
+
+def test_shared_search_policy_is_named_consistently() -> None:
+    for skill in ("tow-link", "tow-merge", "tow-ingest", "tow-review"):
+        text = (ROOT / "skills" / skill / "SKILL.md").read_text()
+        assert "shared search policy" in text and "CLI-first" not in text, skill
+    assert "How many notes to open is each skill's own rule" in (ROOT / "docs/methodology.md").read_text()
+
+
 def test_workflows_have_no_private_vault_dependencies() -> None:
     documents = [ROOT / "docs/methodology.md", ROOT / "docs/recipe.md", *(ROOT / "skills").rglob("*.md")]
     for document in documents:
