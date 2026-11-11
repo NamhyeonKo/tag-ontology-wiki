@@ -752,6 +752,7 @@ def test_lookup_inside_another_git_vault_has_no_project_unavailable_entry(
     connected_vault = tmp_path / "connected-vault"
     (connected_vault / ".tow").mkdir(parents=True)
     (connected_vault / ".tow/config.json").write_text('{"kind": "vault"}', encoding="utf-8")
+    (current_vault / "03_Resources").mkdir()
     subprocess.run(["git", "init", str(current_vault)], check=True, capture_output=True)
     fake_cli(
         tmp_path,
@@ -2011,7 +2012,7 @@ def test_main_warns_when_the_para_scope_has_no_folders(
     (tmp_path / "notes").mkdir()
     fake_cli(tmp_path, monkeypatch, scan_of())
     assert tow.main(["--root", str(tmp_path), "find", "--tag", "rag"]) == 0
-    assert '"scope": "vault"' in capsys.readouterr().err
+    assert '"tow init --scope vault"' in capsys.readouterr().err
     (tmp_path / "tow.json").write_text('{"scope": "vault"}')
     tow.main(["--root", str(tmp_path), "find", "--tag", "rag"])
     assert capsys.readouterr().err == ""
@@ -2024,3 +2025,196 @@ def test_main_points_to_init_when_the_tag_dictionary_is_missing(
     (root / "Tag-Dictionary.json").unlink()
     assert tow.main(["--root", str(root), "ontology", "check", "--json"]) == 2
     assert "tow init" in capsys.readouterr().err
+
+
+def plugin_vault(tmp_path: Path) -> Path:
+    """A vault that only the Tag Ontology plugin has used: a root dictionary and notes outside PARA folders."""
+    root = tmp_path / "vault"
+    (root / "Notes").mkdir(parents=True)
+    (root / "Notes/AES.md").write_text("---\ntags:\n  - aes\n---\n# AES\n")
+    (root / "Tag-Dictionary.json").write_text('{\n"aes": {"description": "A block cipher.", "broader": []}\n}\n')
+    return root
+
+
+def test_usage_stops_instead_of_reporting_every_tag_unused_in_an_empty_scope(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = plugin_vault(tmp_path)
+    fake = fake_cli(tmp_path, monkeypatch, scan_of())
+
+    assert tow.main(["--root", str(root), "ontology", "usage", "--json"]) == 2
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "search scope is empty" in captured.err
+    assert '"tow migrate --scope vault"' in captured.err
+    assert not (fake / "calls.json").exists()
+
+
+def test_usage_with_a_named_folder_runs_in_an_empty_scope(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = plugin_vault(tmp_path)
+    fake = fake_cli(tmp_path, monkeypatch, scan_of())
+
+    assert tow.main(["--root", str(root), "ontology", "usage", "Notes", "--json"]) == 0
+
+    assert capsys.readouterr().err == ""
+    assert json.loads((fake / "args.json").read_text())[:2] == ["usage", "Notes"]
+
+
+def test_show_still_runs_with_a_warning_in_an_empty_scope(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = plugin_vault(tmp_path)
+    fake = fake_cli(tmp_path, monkeypatch, scan_of())
+
+    assert tow.main(["--root", str(root), "ontology", "show", "aes", "--json"]) == 0
+
+    assert "tow: warning: no PARA folders" in capsys.readouterr().err
+    assert json.loads((fake / "args.json").read_text())[0] == "show"
+
+
+def test_lint_does_not_print_ok_when_no_note_was_checked(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = plugin_vault(tmp_path)
+    (root / "Category-Dictionary.md").write_text("- `ai` : AI\n")
+    fake_cli(tmp_path, monkeypatch, scan_of())
+
+    assert tow.main(["--root", str(root), "lint"]) == 0
+
+    captured = capsys.readouterr()
+    assert captured.out == "no notes checked\n"
+    assert "search scope is empty" in captured.err
+
+
+def test_init_scope_vault_writes_the_scope_and_creates_no_para_folders(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = tmp_path / "vault"
+    (root / "Notes").mkdir(parents=True)
+    monkeypatch.chdir(root)
+
+    assert tow.main(["--root", str(root), "init"]) == 0
+    captured = capsys.readouterr()
+    assert "would create 01_Projects/" in captured.out
+    assert '"tow init --scope vault"' in captured.err
+
+    assert tow.main(["--root", str(root), "init", "--scope", "vault"]) == 0
+    captured = capsys.readouterr()
+    assert captured.out.splitlines() == [
+        "would create tow/config.json",
+        "would create tow/tags.md",
+        "would create tow/categories.md",
+        "run again with --apply to create these",
+    ]
+    assert captured.err == ""
+    assert not (root / "tow").exists()
+
+    assert tow.main(["--root", str(root), "init", "--scope", "vault", "--apply"]) == 0
+    assert json.loads((root / "tow/config.json").read_text()) == {"kind": "vault", "scope": "vault"}
+    assert sorted(path.name for path in root.iterdir()) == ["Notes", "tow"]
+    assert tow.read_config(root)["scope"] == "vault"
+
+
+def test_init_without_scope_keeps_the_starter_config_and_stays_quiet_in_an_empty_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = tmp_path / "vault"
+    root.mkdir()
+    monkeypatch.chdir(root)
+
+    assert tow.main(["--root", str(root), "init", "--apply"]) == 0
+
+    assert capsys.readouterr().err == ""
+    assert (root / "tow/config.json").read_text() == '{"kind": "vault"}\n'
+    assert (root / "01_Projects").is_dir()
+
+
+def test_init_scope_refuses_to_change_an_existing_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = tmp_path / "vault"
+    (root / "tow").mkdir(parents=True)
+    (root / "tow/config.json").write_text('{"kind": "vault"}\n')
+    monkeypatch.chdir(root)
+
+    assert tow.main(["--root", str(root), "init", "--scope", "vault", "--apply"]) == 2
+
+    assert '"scope": "vault" in tow/config.json' in capsys.readouterr().err
+    assert (root / "tow/config.json").read_text() == '{"kind": "vault"}\n'
+    assert tow.main(["--root", str(root), "init", "--scope", "para"]) == 0
+
+
+def test_migrate_warns_about_an_empty_scope_and_scope_vault_fixes_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = plugin_vault(tmp_path)
+    monkeypatch.chdir(root)
+
+    assert tow.main(["--root", str(root), "migrate"]) == 0
+    assert 'add "--scope vault"' in capsys.readouterr().err
+    assert not (root / "tow").exists()
+
+    assert tow.main(["--root", str(root), "migrate", "--scope", "vault", "--apply"]) == 0
+    captured = capsys.readouterr()
+    assert "migration complete" in captured.out
+    assert captured.err == ""
+    assert json.loads((root / "tow/config.json").read_text()) == {
+        "kind": "vault",
+        "categoryDictionary": "tow/category-dictionary.json",
+        "scope": "vault",
+    }
+    assert (root / "tow/tag-dictionary.json").read_bytes() == (root / "Tag-Dictionary.json").read_bytes()
+    assert not tow.scope_is_empty(root, tow.read_config(root))
+
+    assert tow.main(["--root", str(root), "migrate", "--remove-legacy"]) == 0
+    assert "would delete Tag-Dictionary.json" in capsys.readouterr().out
+
+
+def test_migrate_without_scope_still_warns_after_apply(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = plugin_vault(tmp_path)
+    monkeypatch.chdir(root)
+
+    assert tow.main(["--root", str(root), "migrate", "--apply"]) == 0
+    assert "migrated vault's search scope is empty" in capsys.readouterr().err
+    assert "scope" not in json.loads((root / "tow/config.json").read_text())
+
+    assert tow.main(["--root", str(root), "migrate"]) == 0
+    assert '"scope": "vault" in tow/config.json' in capsys.readouterr().err
+
+
+def test_migrate_scope_is_refused_where_a_config_already_decides_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = plugin_vault(tmp_path)
+    (root / "tow.json").write_text('{"scope": "para"}')
+    monkeypatch.chdir(root)
+
+    assert tow.main(["--root", str(root), "migrate", "--scope", "vault", "--apply"]) == 2
+    assert 'tow.json already sets "scope"' in capsys.readouterr().err
+    assert not (root / "tow").exists()
+
+    assert tow.main(["--root", str(root), "migrate", "--scope", "vault", "--remove-legacy"]) == 2
+    assert "not with --remove-legacy" in capsys.readouterr().err
+
+    (root / "tow.json").unlink()
+    (root / ".tow").mkdir()
+    (root / ".tow/config.json").write_text('{"kind": "vault"}')
+    assert tow.main(["--root", str(root), "migrate", "--scope", "vault"]) == 2
+    assert '"scope": "vault" in .tow/config.json' in capsys.readouterr().err
+
+
+def test_migrate_keeps_quiet_about_scope_when_a_para_folder_exists(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = plugin_vault(tmp_path)
+    (root / "03_Resources").mkdir()
+    monkeypatch.chdir(root)
+
+    assert tow.main(["--root", str(root), "migrate"]) == 0
+
+    assert capsys.readouterr().err == ""
