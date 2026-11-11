@@ -1,13 +1,16 @@
-"""Query grammar: OR < AND (implicit space) < unary NOT, with fields and groups."""
+"""Query grammar, candidate discovery, and evaluation for ``tow search``."""
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Literal, TypedDict
+from typing import Any, Literal, TypedDict, cast
+
+from tow_core import CliError, ConfigError, body_bytes, run_cli
 
 FIELDS = ("tag", "title", "heading", "text", "path", "category", "type", "status", "kind", "source")
 PARA = ("projects", "areas", "resources", "archives")
@@ -454,3 +457,341 @@ def parse_query(text: str) -> tuple[Node | None, list[QueryWarning], str]:
         for _, code, message in sorted(repairs, key=lambda repair: repair[0])
     ]
     return node, warnings, interpreted
+
+
+def _flatten(node: Node) -> list[Term]:
+    if isinstance(node, Term):
+        return [node]
+    if isinstance(node, Not):
+        return _flatten(node.node)
+    return [term for child in node.nodes for term in _flatten(child)]
+
+
+def _title(path: str) -> str:
+    return PurePosixPath(path).stem
+
+
+def _headings(text: str) -> list[str]:
+    result: list[str] = []
+    fenced = False
+    for line in text.splitlines():
+        if line.startswith("```"):
+            fenced = not fenced
+        elif not fenced and line.startswith("#"):
+            result.append(line)
+    return result
+
+
+def _strings(value: object) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [item for item in cast(list[object], value) if isinstance(item, str)]
+    return []
+
+
+def _add_unavailable(unavailable: list[str], item: str) -> None:
+    group = item.partition(":")[0]
+    if not any(existing.partition(":")[0] == group for existing in unavailable):
+        unavailable.append(item)
+
+
+def cmd_search(vault: Path, cfg: Mapping[str, str], project: Path | None, query: str, vault_args: list[str]) -> int:
+    """Evaluate a query over visible vault notes and documents in the current TOW project."""
+    from tow import PARA as TOW_PARA
+    from tow import scan as scan_notes
+    from tow import scope_is_empty
+    from tow_project import lookup_results, project_files, tag_is_known
+
+    node, warnings, interpreted = parse_query(query)
+    scope = [cfg[key] for key in TOW_PARA if (vault / cfg[key]).is_dir()] if cfg["scope"] == "para" else ["."]
+    candidates = vault_candidates(vault, cfg)
+    unavailable = list(candidates.unavailable)
+    vault_skipped = (
+        "search scope is empty (no PARA folders); no vault notes were searched" if scope_is_empty(vault, cfg) else None
+    )
+    if not query.strip() or node is None:
+        print(
+            json.dumps(
+                {
+                    "query": {"input": query, "interpreted": interpreted},
+                    "scope": scope,
+                    "results": [],
+                    "warnings": warnings,
+                    "unavailable": unavailable,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 2
+
+    project_paths: list[str] = []
+    project_tracked: set[str] = set()
+    if project is not None:
+        try:
+            project_root = project.resolve()
+            files = project_files(project_root)
+            project_paths = [path for _, path in files]
+            project_tracked = {path for status, path in files if status == "tracked"}
+            project = project_root
+        except (ConfigError, OSError, ValueError) as error:
+            _add_unavailable(unavailable, f"project: {error}")
+            project = None
+
+    sources_paths = [("vault", path) for path in candidates.paths] + [("project", path) for path in project_paths]
+    results: dict[tuple[str, str], dict[str, Any]] = {
+        (source, path): {
+            "path": path,
+            "title": _title(path),
+            "source": source,
+            "reasons": [],
+        }
+        for source, path in sources_paths
+    }
+    terms = _flatten(node)
+
+    def lookup_concept(tag: str, exact: bool) -> dict[tuple[str, str], str]:
+        args = [vault_args[0], tag]
+        if exact:
+            args.append("--exact")
+        args.extend(vault_args[1:])
+        try:
+            matched, failures = lookup_results(
+                vault,
+                cfg,
+                project,
+                tag,
+                exact,
+                args,
+                vault_skipped if scope_is_empty(vault, cfg) else None,
+            )
+            for failure in failures:
+                _add_unavailable(unavailable, f"concepts: {failure}")
+        except (CliError, ConfigError, OSError, ValueError) as error:
+            _add_unavailable(unavailable, f"concepts: {error}")
+            return {}
+        matches: dict[tuple[str, str], str] = {}
+        for item in matched:
+            source = item.get("source")
+            path = item.get("path")
+            raw_matches = item.get("matches")
+            if source not in ("vault", "project") or not isinstance(path, str) or not isinstance(raw_matches, list):
+                continue
+            kinds = [
+                cast(str, cast(dict[str, Any], match)["kind"])
+                for match in cast(list[object], raw_matches)
+                if isinstance(match, dict) and cast(dict[str, Any], match).get("kind") in ("exact", "narrower")
+            ]
+            if kinds:
+                matches[(cast(str, source), path)] = "exact" if "exact" in kinds else "narrower"
+        return matches
+
+    concept_cache: dict[tuple[str, bool], dict[tuple[str, str], str]] = {}
+    warning_values: set[str] = set()
+    for term in terms:
+        if term.field == "tag" or term.field is None:
+            cache_key = (term.value, term.exact if term.field == "tag" else False)
+            if cache_key not in concept_cache:
+                concept_cache[cache_key] = lookup_concept(*cache_key)
+            if (
+                term.field == "tag"
+                and not concept_cache[cache_key]
+                and not any(failure.startswith("concepts:") for failure in unavailable)
+            ):
+                try:
+                    known = tag_is_known(vault, cfg, project, term.value)
+                except (CliError, ConfigError, OSError, ValueError) as error:
+                    _add_unavailable(unavailable, f"concepts: {error}")
+                    known = True
+                if not known and term.value not in warning_values:
+                    suggestion_args = [
+                        "suggest",
+                        term.value,
+                        "--json",
+                        "--limit",
+                        "5",
+                        "--root",
+                        str(vault),
+                        "--dictionary",
+                        cfg["tagDictionary"],
+                        "--names",
+                        "kebab",
+                    ]
+                    labels: list[str] = []
+                    try:
+                        suggestion_result = run_cli(suggestion_args, capture=True)
+                        if suggestion_result.returncode not in (0, 1):
+                            raise CliError(suggestion_result.stderr.strip() or "tag-ontology suggest failed")
+                        suggestion_data: object = json.loads(suggestion_result.stdout)
+                        suggestions: object = (
+                            cast(dict[str, Any], suggestion_data).get("suggestions", [])
+                            if isinstance(suggestion_data, dict)
+                            else []
+                        )
+                        for suggestion in cast(list[object], suggestions):
+                            if not isinstance(suggestion, dict):
+                                continue
+                            suggestion = cast(dict[str, Any], suggestion)
+                            if not isinstance(suggestion.get("tag"), str):
+                                continue
+                            label = cast(str, suggestion["tag"])
+                            alias = suggestion.get("alias")
+                            labels.append(f"{label} (alias: {alias})" if isinstance(alias, str) else label)
+                            if len(labels) == 5:
+                                break
+                    except (CliError, OSError, ValueError) as error:
+                        _add_unavailable(unavailable, f"concepts: {error}")
+                    message = f"Unknown tag '{term.value}'"
+                    if labels:
+                        message += "; suggestions: " + ", ".join(labels)
+                    warnings.append({"code": "unknown-tag", "message": message + ".", "retry": None})
+                    warning_values.add(term.value)
+
+    needs_fields = any(term.field in {"category", "type", "status", "kind"} for term in terms)
+    metadata: dict[str, dict[str, Any]] = {}
+    if needs_fields and candidates.paths:
+        extra = [] if cfg["scope"] == "vault" else ["--exclude", f"**/{cfg['projectArchive']}"]
+        try:
+            data = scan_notes(vault, dict(cfg), candidates.paths, extra)
+            notes = data.get("notes")
+            if not isinstance(notes, list):
+                raise CliError("invalid tag-ontology scan result")
+            for raw_note in cast(list[object], notes):
+                if isinstance(raw_note, dict) and isinstance(cast(dict[str, Any], raw_note).get("path"), str):
+                    metadata[cast(str, cast(dict[str, Any], raw_note)["path"])] = cast(dict[str, Any], raw_note)
+        except (CliError, OSError, ValueError) as error:
+            _add_unavailable(unavailable, f"fields: {error}")
+
+    needs_body = any(term.field in (None, "heading", "text") for term in terms)
+    if needs_body and not candidates.contents_ok:
+        _add_unavailable(unavailable, GIT_UNAVAILABLE)
+    contents: dict[tuple[str, str], str] = {}
+    if needs_body:
+        for source, path in sources_paths:
+            if source == "vault" and not candidates.contents_ok:
+                continue
+            if source == "project" and path not in project_tracked:
+                continue
+            base = vault if source == "vault" else project
+            if base is None:
+                continue
+            try:
+                contents[(source, path)] = (base / path).read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                contents[(source, path)] = ""
+            else:
+                if source == "vault":
+                    try:
+                        raw_contents = contents[(source, path)].encode("utf-8", errors="replace")
+                        contents[(source, path)] = body_bytes(raw_contents).decode("utf-8", errors="replace")
+                    except ConfigError:
+                        contents[(source, path)] = ""
+
+    field_values: dict[tuple[str, str], dict[str, list[str]]] = {}
+    for source, path in sources_paths:
+        if source == "project":
+            field_values[(source, path)] = {}
+            continue
+        raw_note = metadata.get(path, {})
+        raw_frontmatter = raw_note.get("frontmatter")
+        frontmatter = cast(dict[str, Any], raw_frontmatter) if isinstance(raw_frontmatter, dict) else {}
+        field_values[(source, path)] = {
+            "category": _strings(frontmatter.get("category")),
+            "type": _strings(frontmatter.get("type")),
+            "status": _strings(frontmatter.get("status")),
+            "kind": _strings(frontmatter.get("kind")),
+        }
+
+    def evaluate(term: Term, source: str, path: str) -> tuple[bool, str | None]:
+        key = (source, path)
+        field = term.field
+        folded = term.value.casefold()
+        if field == "source":
+            if term.value.casefold() in ("vault", "project"):
+                return term.value.casefold() == source, "source"
+            return False, None
+        if field == "path":
+            return folded in path.casefold(), "path"
+        if field == "title":
+            return folded in _title(path).casefold(), "title"
+        if field == "heading":
+            text = contents.get(key)
+            return (text is not None and any(folded in heading.casefold() for heading in _headings(text)), "heading")
+        if field == "text":
+            text = contents.get(key)
+            return (text is not None and folded in text.casefold(), "text")
+        if field == "category":
+            categories = field_values[key].get("category", [])
+            matched = any(item.casefold() == folded or item.casefold().startswith(folded + "/") for item in categories)
+            return matched, "category"
+        if field in {"type", "status", "kind"}:
+            return any(item.casefold() == folded for item in field_values[key].get(field, [])), field
+        if field == "tag":
+            kind = concept_cache.get((term.value, term.exact), {}).get(key)
+            return kind is not None, kind
+        if field is None:
+            kind = concept_cache.get((term.value, False), {}).get(key)
+            if kind is not None:
+                return True, kind
+            title = _title(path).casefold()
+            if folded in title:
+                return True, "title"
+            text = contents.get(key)
+            if text is not None:
+                if any(folded in heading.casefold() for heading in _headings(text)):
+                    return True, "heading"
+                if folded in text.casefold():
+                    return True, "text"
+        return False, None
+
+    def matches(current: Node, source: str, path: str) -> tuple[bool, list[dict[str, str]]]:
+        if isinstance(current, Term):
+            matched, kind = evaluate(current, source, path)
+            clause = f"{current.field + ':' if current.field else ''}{'=' if current.exact else ''}{current.value}"
+            return matched, [{"clause": clause, "kind": kind or current.field or "term"}] if matched else []
+        if isinstance(current, Not):
+            matched, _ = matches(current.node, source, path)
+            return not matched, []
+        if isinstance(current, And):
+            reasons: list[dict[str, str]] = []
+            for child in current.nodes:
+                matched, child_reasons = matches(child, source, path)
+                if not matched:
+                    return False, []
+                reasons.extend(child_reasons)
+            return True, reasons
+        reasons = []
+        matched_any = False
+        for child in current.nodes:
+            matched, child_reasons = matches(child, source, path)
+            if matched:
+                matched_any = True
+                reasons.extend(child_reasons)
+        return matched_any, reasons
+
+    matching_keys: set[tuple[str, str]] = set()
+    for source, path in sources_paths:
+        matched, reasons = matches(node, source, path)
+        if matched:
+            matching_keys.add((source, path))
+            results[(source, path)]["reasons"] = reasons
+
+    ordered = sorted(
+        (results[key] for key in matching_keys),
+        key=lambda item: (item["source"], item["path"]),
+    )
+    print(
+        json.dumps(
+            {
+                "query": {"input": query, "interpreted": interpreted},
+                "scope": scope,
+                "results": ordered,
+                "warnings": warnings,
+                "unavailable": unavailable,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0 if ordered else 1

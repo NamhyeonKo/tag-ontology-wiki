@@ -386,7 +386,30 @@ def cmd_project_tag(project: Path, vault: Path, vault_cfg: Mapping[str, str], ch
     return 0
 
 
-def cmd_lookup(
+def _known_tag(dictionary: Mapping[str, Any], tag: str) -> bool:
+    query = tag.lower()
+    return any(
+        tag == name or query == name.lower() or query in {alias.lower() for alias in _strings(entry, "aliases")}
+        for name, entry in dictionary.items()
+    )
+
+
+def tag_is_known(vault: Path, cfg: Mapping[str, str], project: Path | None, tag: str) -> bool:
+    """Whether a tag or alias is registered in the vault or current project dictionary."""
+    vault_dictionary = _read_object(vault.resolve() / cfg["tagDictionary"])
+    if _known_tag(vault_dictionary, tag):
+        return True
+    if project is None:
+        return False
+    try:
+        project_root = _project_root(project)
+        project_dictionary = _read_object(project_root / PROJECT_DICTIONARY, missing_ok=True)
+    except (CliError, ConfigError, OSError, ValueError):
+        return False
+    return _known_tag({**project_dictionary, **vault_dictionary}, tag)
+
+
+def lookup_results(
     vault: Path,
     cfg: Mapping[str, str],
     project: Path | None,
@@ -394,8 +417,8 @@ def cmd_lookup(
     exact: bool,
     vault_args: list[str],
     vault_skipped: str | None = None,
-) -> int:
-    """Print one concept's matching notes from the connected vault and current project.
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Return one concept's matching notes from the connected vault and current project.
 
     `vault_skipped` is why the vault has no notes to search; it is reported instead of an empty vault result.
     """
@@ -403,14 +426,6 @@ def cmd_lookup(
     vault_dictionary = _read_object(vault_root / cfg["tagDictionary"])
     results: list[dict[str, Any]] = []
     unavailable: list[str] = []
-    answered = False
-    query = tag.lower()
-
-    def known(dictionary: Mapping[str, Any]) -> bool:
-        return any(
-            tag == name or query == name.lower() or query in {alias.lower() for alias in _strings(entry, "aliases")}
-            for name, entry in dictionary.items()
-        )
 
     def lookup(
         source: Literal["vault", "project"],
@@ -418,7 +433,6 @@ def cmd_lookup(
         docs: list[str] | None = None,
         excludes: list[str] | None = None,
     ) -> None:
-        nonlocal answered
         try:
             ok, data = _cli_json(args)
         except (CliError, OSError) as e:
@@ -477,9 +491,8 @@ def cmd_lookup(
                 }
             )
         results.extend(sorted(place_results, key=lambda result: result["path"]))
-        answered = True
 
-    if known(vault_dictionary):
+    if _known_tag(vault_dictionary, tag):
         if vault_skipped is None:
             lookup("vault", vault_args)
         else:
@@ -495,7 +508,7 @@ def cmd_lookup(
             unavailable.append(f"project: {e}")
         else:
             merged_dictionary = {**project_dictionary, **vault_dictionary}
-            if known(merged_dictionary):
+            if _known_tag(merged_dictionary, tag):
                 with tempfile.TemporaryDirectory() as folder:
                     dictionary_path = Path(folder) / "tag-dictionary.json"
                     dictionary_path.write_text(serialize_entries(merged_dictionary), encoding="utf-8")
@@ -511,6 +524,25 @@ def cmd_lookup(
                             args += ["--tags-file", str(overlay)]
                     lookup("project", args, docs, excludes)
 
+    return results, unavailable
+
+
+def cmd_lookup(
+    vault: Path,
+    cfg: Mapping[str, str],
+    project: Path | None,
+    tag: str,
+    exact: bool,
+    vault_args: list[str],
+    vault_skipped: str | None = None,
+) -> int:
+    """Print one concept's matching notes from the connected vault and current project."""
+    results, unavailable = lookup_results(vault, cfg, project, tag, exact, vault_args, vault_skipped)
+    vault_known = _known_tag(_read_object(vault.resolve() / cfg["tagDictionary"]), tag)
+    project_known = project is not None and tag_is_known(vault, cfg, project, tag)
+    answered = (
+        vault_known and vault_skipped is None and not any(item.startswith("vault: ") for item in unavailable)
+    ) or (project_known and not any(item.startswith("project: ") for item in unavailable))
     print(json.dumps({"tag": tag, "results": results, "unavailable": unavailable}, ensure_ascii=False, indent=2))
     return 0 if answered else 1
 

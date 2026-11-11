@@ -12,6 +12,7 @@
   tow.py [--root DIR] find [PREFIX] [--type T] [--status S] [--kind K] [--tag TAG] [--all]
                                              notes that meet every condition (--all: with project archives)
   tow.py [--root DIR] lookup TAG [--exact]    notes matching one concept in the vault and current project
+  tow.py [--root DIR] search "<query>"        search notes with a query
   tow.py [--root DIR] ontology CMD [ARG...]  run the tag-ontology CLI with the vault's settings
   tow.py [--root DIR] project init --mode {local,shared} [--exclude GLOB] [--apply]
                                              initialize project metadata
@@ -63,6 +64,7 @@ from tow_project import cmd_project_init as cmd_project_init
 from tow_project import cmd_project_status as cmd_project_status
 from tow_project import cmd_project_tag as cmd_project_tag
 from tow_project import cmd_send as cmd_send
+from tow_search import cmd_search as cmd_search
 
 DEFAULTS: Final[dict[str, str]] = {
     "projects": "01_Projects",
@@ -1263,6 +1265,16 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("lookup", help="find notes matching one concept in the vault and current project")
     p.add_argument("tag", help="tag name or alias")
     p.add_argument("--exact", action="store_true", help="match only this tag, not narrower concepts")
+    p = sub.add_parser("search", help="search notes with a query")
+    p.add_argument(
+        "query",
+        nargs="?",
+        default="",
+        help=(
+            "search notes with a query: terms, tag:, title:, heading:, text:, path:, category:, type:, status:, kind:, "
+            "source:; AND by space, OR, -NOT, ( ), quotes"
+        ),
+    )
     p = sub.add_parser("find", help="find notes by category prefix, frontmatter fields and tag")
     p.add_argument("prefix", nargs="?", help="category prefix: matches the category and everything below it")
     for key in FIND_FILTERS:
@@ -1301,7 +1313,7 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_project_concepts(args.project_path, vault, read_config(vault))
         vault_ref = resolve_vault(Path.cwd(), args.root, os.environ)
         root = vault_ref.root
-        if args.command == "lookup":
+        if args.command in ("lookup", "search"):
             cfg = read_config(root)
             project = resolve_project(Path.cwd(), root)
             if (
@@ -1310,16 +1322,20 @@ def main(argv: list[str] | None = None) -> int:
                 and not (project / ".tow" / "config.json").is_file()
             ):
                 project = None
-            show_args = [args.tag, "--notes", "--json"]
-            if args.exact:
-                show_args.append("--exact")
-            vault_args = ontology_args("show", show_args, str(root), cfg, scope_excludes(root, cfg, []))
-            skipped = (
-                "search scope is empty (no PARA folders); no vault notes were searched"
-                if warn_if_scope_is_empty(root, cfg, vault_ref.layout)
-                else None
-            )
-            return cmd_lookup(root, cfg, project, args.tag, args.exact, vault_args, skipped)
+            if args.command == "lookup":
+                show_args = [args.tag, "--notes", "--json"]
+                if args.exact:
+                    show_args.append("--exact")
+                vault_args = ontology_args("show", show_args, str(root), cfg, scope_excludes(root, cfg, []))
+                skipped = (
+                    "search scope is empty (no PARA folders); no vault notes were searched"
+                    if warn_if_scope_is_empty(root, cfg, vault_ref.layout)
+                    else None
+                )
+                return cmd_lookup(root, cfg, project, args.tag, args.exact, vault_args, skipped)
+            query = args.query
+            vault_args = ontology_args("show", ["--notes", "--json"], str(root), cfg, scope_excludes(root, cfg, []))
+            return cmd_search(root, cfg, project, query, vault_args)
         if args.command == "verify-body":
             return cmd_verify_body(root, args.before, args.after)
         cfg = read_config(root)

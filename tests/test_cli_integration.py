@@ -246,3 +246,19 @@ def test_real_cli_project_tag_refreshes_the_subset_and_validates_it(
     run(real_vault, "project", "tag", str(changes), "--apply", code=2)
     assert snapshot(project / ".tow") == project_before
     assert snapshot(real_vault) == vault_before
+
+
+def test_real_cli_search_matches_tag_and_title(real_vault: Path) -> None:
+    before = snapshot(real_vault)
+    result = json.loads(run(real_vault, "search", "tag:rag title:search"))
+
+    assert [(item["path"], item["reasons"]) for item in result["results"]] == [
+        (
+            "Projects/Search.md",
+            [
+                {"clause": "tag:rag", "kind": "exact"},
+                {"clause": "title:search", "kind": "title"},
+            ],
+        )
+    ]
+    assert snapshot(real_vault) == before
