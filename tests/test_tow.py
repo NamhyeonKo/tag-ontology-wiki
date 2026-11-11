@@ -1,4 +1,5 @@
 import json
+import shlex
 import subprocess
 import sys
 from collections.abc import Sequence
@@ -534,6 +535,35 @@ def test_workflow_root_folders_reject_nested_paths(key: str, value: str) -> None
 
 def test_default_cli_is_pinned_to_tag_ontology_0_2_0() -> None:
     assert tow_core.DEFAULT_CLI == "npx --yes tag-ontology@0.2.0"
+
+
+def test_run_cli_turns_off_npm_retries_unless_the_user_set_them(monkeypatch: pytest.MonkeyPatch) -> None:
+    code = "import os; print(os.environ.get('npm_config_fetch_retries'))"
+    monkeypatch.setenv("TOW_TAG_ONTOLOGY", f"{shlex.quote(sys.executable)} -c {shlex.quote(code)}")
+    monkeypatch.delenv("npm_config_fetch_retries", raising=False)
+
+    assert tow_core.run_cli([], capture=True).stdout == "0\n"
+
+    monkeypatch.setenv("npm_config_fetch_retries", "3")
+    assert tow_core.run_cli([], capture=True).stdout == "3\n"
+
+
+def test_run_cli_explains_a_network_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    code = "import sys; sys.stderr.write('npm error code ENOTFOUND\\n'); sys.exit(1)"
+    monkeypatch.setenv("TOW_TAG_ONTOLOGY", f"{shlex.quote(sys.executable)} -c {shlex.quote(code)}")
+
+    result = tow_core.run_cli([], capture=True)
+
+    assert result.stderr.startswith(tow_core.NETWORK_HINT)
+
+
+def test_run_cli_leaves_other_failures_alone(monkeypatch: pytest.MonkeyPatch) -> None:
+    code = "import sys; sys.stderr.write('boom\\n'); sys.exit(1)"
+    monkeypatch.setenv("TOW_TAG_ONTOLOGY", f"{shlex.quote(sys.executable)} -c {shlex.quote(code)}")
+
+    result = tow_core.run_cli([], capture=True)
+
+    assert result.stderr == "boom\n"
 
 
 def test_scope_excludes_visible_tow_folder_from_para_and_vault_scans(tmp_path: Path) -> None:

@@ -12,6 +12,8 @@ description: >-
 
 Before starting, read the [TOW conventions](../../docs/methodology.md), which define `tow`, and the [TOW recipe](../../docs/recipe.md), whose §3 "Concept tags" holds the selection rules. Project work reads rules from project `.tow/tags.md` and follows the project's explicit file scope.
 
+`tow` is not a command on your PATH: run the executable `scripts/tow.py` two directories above this file by its absolute path (with `python3` if the host can't execute it), for example `"<plugin-root>/scripts/tow.py" config`.
+
 ## Workflow
 
 1. **Scope.** For a vault note, work only on the notes the user names, or the folder they explicitly select. For project documents, use `tow project files` to discover the configured document set. List untracked and ignored file names before reading any contents; include those files only when the user selects them. Never edit project document bytes/frontmatter. Edit vault frontmatter only when the vault root reported by `tow config` contains both the current folder and every target note; otherwise stop. From a project, tag project documents with `tow project tag` or offer `tow-send-vault` for an approved new vault note.

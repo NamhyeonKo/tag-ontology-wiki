@@ -10,7 +10,7 @@
 
 Un plugin de compétences pour agents qui relie un coffre Obsidian à un projet de développement : recherche par concept dans les deux, étiquette les documents du projet au moyen des métadonnées `.tow/` et envoie le contenu sélectionné dans le coffre sous forme de nouvelle note. Il ne modifie pas les documents du projet et préserve le contenu lors de la maintenance du coffre. Il fonctionne dans Claude Code, Codex et Google Antigravity.
 
-> **Version :** 0.5.5.
+> **Version :** 0.5.6.
 
 ## Présentation
 
@@ -20,7 +20,7 @@ La maintenance courante préserve le texte, le contenu des formules et du code, 
 - **Champs de classification** dans le frontmatter : `category`, `type`, `status`, `kind`.
 - **Une ontologie de tags conceptuels** : un dictionnaire de tags avec des alias et des relations entre concepts plus généraux et plus spécifiques.
 
-Choisissez PARA lors de la configuration ou conservez vos propres dossiers. La recherche courante et le travail sur le corps des notes ne nécessitent ni dictionnaires ni nettoyage des métadonnées. Les requêtes utilisent d'abord Obsidian CLI, puis une recherche de fichiers à périmètre limité si nécessaire, avant de vérifier le contenu ; les propriétés disponibles améliorent la précision. Les conventions complètes figurent dans [docs/methodology.md](../docs/methodology.md).
+Choisissez PARA lors de la configuration ou conservez vos propres dossiers. La recherche courante et le travail sur le corps des notes ne nécessitent ni dictionnaires ni nettoyage des métadonnées. Lorsqu'un dictionnaire de tags existe, les requêtes recherchent d'abord les concepts qu'il contient (`tow lookup`), puis le texte dans les dossiers autorisés, et n'ouvrent que les notes qu'elles décrivent dans la réponse ; les propriétés disponibles améliorent la précision. Les conventions complètes figurent dans [docs/methodology.md](../docs/methodology.md).
 
 TOW installe douze workflows dans l'environnement local de votre agent. Les workflows réservés au coffre gèrent les notes Obsidian ; depuis un projet, `tow-query` recherche à la fois dans le coffre connecté et dans le projet actuel, et `tow-send-vault` crée une nouvelle note dans le coffre avec le contenu sélectionné après votre approbation. Les tags et empreintes du projet sont stockés dans les métadonnées `.tow/` du projet ; les documents du projet ne sont pas modifiés.
 
@@ -42,7 +42,7 @@ votre coffre Obsidian
 | --- | --- | --- |
 | `tow-setup` | Configurer un coffre, le connecter pour un projet ou enregistrer les métadonnées du projet | Inspecte d'abord les noms ; écrit uniquement les métadonnées `.tow/` approuvées ou la connexion personnelle |
 | `tow-send-vault` | Envoyer le contenu sélectionné du projet vers le coffre connecté | Crée une nouvelle note après approbation ; préserve le corps sélectionné sauf transformation demandée |
-| `tow-query` | Trouver des documents à partir de conditions en langage naturel, de propriétés personnalisées, de tags ou de texte | Lecture seule ; CLI en premier, recherche de fichiers à périmètre limité en repli ; correspondances vérifiées et candidats déduits présentés séparément |
+| `tow-query` | Trouver des documents à partir de conditions en langage naturel, de propriétés personnalisées, de tags ou de texte | Lecture seule ; recherche des concepts d'abord, puis du texte dans un périmètre limité ; liste les correspondances et n'ouvre que les notes qu'elle décrit dans la réponse |
 | `tow-check` | Vérifier le frontmatter, Markdown, les formules, le code, les tableaux et les références | Produit d'abord un rapport ; les corrections de syntaxe sélectionnées préservent le texte, le contenu et les valeurs |
 | `tow-tag-suggest` | Recommander des tags conceptuels pour les notes sélectionnées | Applique uniquement les ajouts ou suppressions que vous sélectionnez |
 | `tow-tag-sync` | Enregistrer de nouveaux tags, résoudre les alias ou réconcilier le dictionnaire | Propose d'abord ; applique les modifications approuvées du dictionnaire et des tags |
@@ -147,7 +147,7 @@ La recherche est possible sans enregistrer le projet ni disposer de dictionnaire
 
 L'utilitaire utilise `npx --yes tag-ontology@0.2.0` ; npm récupère cette version exacte lorsque c'est nécessaire. Les commandes manuelles de l'utilitaire utilisent le chemin du fichier `scripts/tow.py` installé. Dans les conventions, le nom `tow` est une abréviation de ce chemin.
 
-Ni TOW 0.5.5 ni `tag-ontology` 0.2.0 ne possèdent de commande `doctor`. Commencez par :
+Ni TOW 0.5.6 ni `tag-ontology` 0.2.0 ne possèdent de commande `doctor`. Commencez par :
 
 ```bash
 python3 --version

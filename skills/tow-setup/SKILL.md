@@ -11,6 +11,8 @@ description: >-
 
 Read the [conventions](../../docs/methodology.md) and the [TOW recipe](../../docs/recipe.md) (§1–2 PARA layout). Branch on the current location: run `tow config` and use its reported vault root/layout; if no vault is resolved yet, use `tow --root <vault> config` only for a vault path the user identifies. In a project, register the project and vault connection without changing host configuration. Current vault files live in visible `tow/`; project metadata remains in `.tow/`.
 
+`tow` is not a command on your PATH: run the executable `scripts/tow.py` two directories above this file by its absolute path (with `python3` if the host can't execute it), for example `"<plugin-root>/scripts/tow.py" config`.
+
 ## Workflow
 
 1. **Inspect names and settings first.** Determine whether the current folder is inside a `tow/` vault, an older `.tow/` vault, a legacy vault (`tow.json`, a non-empty `Tag-Dictionary.json` or `Category-Dictionary.md` at its root), or a project. An empty root `Tag-Dictionary.json` (`{}`) by itself is the plugin's starter, not a legacy marker; if `tow init` reports it, initialize the `tow/` layout and do not delete the root file. Inspect folder/file names and configuration; don't read project document contents as setup input. Never infer a vault from `.obsidian` or the active Obsidian vault.

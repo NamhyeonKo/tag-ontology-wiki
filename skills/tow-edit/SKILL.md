@@ -16,6 +16,8 @@ Before any write, run `tow config` and verify the vault root it prints contains 
 
 Optional, user-guided body aftercare. Read the [conventions](../../docs/methodology.md), [post-curation contract](../../docs/post-curation.md) and [preservation contract](../../docs/preservation.md), then resolve `tow config`. Routine metadata/format requests use their owning skills; they never trigger body generation here.
 
+`tow` is not a command on your PATH: run the executable `scripts/tow.py` two directories above this file by its absolute path (with `python3` if the host can't execute it), for example `"<plugin-root>/scripts/tow.py" config`.
+
 ## Workflow
 
 1. **Establish inputs.** Identify the exact note/section, operation, user rule/template/source and protected content. Read existing authorized instructions/templates before asking. If a required writing/restructuring rule is missing, ask for it and leave the note unchanged; do not substitute the bundled structure/prose recipe.

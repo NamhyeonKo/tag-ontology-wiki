@@ -14,10 +14,12 @@ Before any write, run `tow config` and verify the vault root it prints contains 
 
 Wrap existing mentions of other notes in `[[wikilinks]]` for navigation. Read the [conventions](../../docs/methodology.md) and `tow config` first. Tags/categories/dictionaries are not prerequisites for navigation. Preserve words, sentences, headings, sections and existing metadata (including custom `related:`). Use existing target files, once per target at its first eligible body mention.
 
+`tow` is not a command on your PATH: run the executable `scripts/tow.py` two directories above this file by its absolute path (with `python3` if the host can't execute it), for example `"<plugin-root>/scripts/tow.py" config`.
+
 ## Workflow
 
 1. **Scope.** Use the note, folder/domain or vault the user names; ask if unspecified.
-2. **Target index.** Discover actual filenames and any existing aliases across the eligible vault using the shared CLI-first search policy. No frontmatter is required. Apply adopted workflow exclusions and private/ignored rules under the conventions; default PARA/support folder names do not exclude custom-vault notes. Targets may be outside the edit scope, but stay inside the authorized read scope.
+2. **Target index.** Discover actual filenames and any existing aliases across the eligible vault using the shared search policy. No frontmatter is required. Apply adopted workflow exclusions and private/ignored rules under the conventions; default PARA/support folder names do not exclude custom-vault notes. Targets may be outside the edit scope, but stay inside the authorized read scope.
 3. **Scan.** Apply the matching rules below. Inspect existing wikilinks too: an alias-only target is broken and needs a canonical filename with its original display text. Report missing targets for the user's remove/create/keep decision; do not create a note automatically.
 4. **Plan and wait for approval.** Show the table below, then separate skipped, ambiguous and missing-target lists.
 5. **Apply selected positions only.** Wrap or correct targets, preserve displayed words/metadata, and follow the adopted date policy without adding new metadata fields.
