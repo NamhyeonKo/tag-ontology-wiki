@@ -46,11 +46,11 @@ Run the relevant command in your terminal:
 | Codex | `codex plugin list --json` | Use `$` or `/skills` and select `tow-query` |
 | Antigravity | `agy plugin list --json` | `/tow-query` |
 
-Confirm `tow`, version `0.5.3`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-send-vault`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (twelve total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
+Confirm `tow`, version `0.5.4`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-send-vault`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (twelve total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
 
 ## Configure the vault
 
-TOW 0.5.3 reads `<vault>/tow/config.json` with `"kind": "vault"`. Existing `<vault>/.tow/config.json` and legacy vaults remain readable until migrated. Without a config file, the effective legacy-compatible defaults are:
+TOW 0.5.4 reads `<vault>/tow/config.json` with `"kind": "vault"`. Existing `<vault>/.tow/config.json` and legacy vaults remain readable until migrated. Without a config file, the effective legacy-compatible defaults are:
 
 ```json
 {
@@ -103,16 +103,17 @@ Installation creates no vault files. Search/body work can start immediately with
 | Your choice | Setup |
 | --- | --- |
 | PARA | Reuse/map existing folders or propose missing ones; select optional inbox/dictionaries separately |
-| Own layout, including an empty vault | Keep folders and notes; propose only `{"scope": "vault"}` for helper searches |
+| Own layout, including an empty vault | Keep folders and notes; propose only `{"scope": "vault"}` for helper searches (`init --scope vault` writes it) |
 
 Nothing is written before approval. PARA, the TOW metadata schema and tag ontology are independent choices. Setup does not move notes or add properties. Filing into a selected destination belongs to `tow-ingest` in either layout.
 
-The helper retains the PARA starter bundle for compatibility. In a free-form vault (`scope: vault`), plain `init` has nothing to create; `--dictionaries` explicitly includes the two starter dictionaries, without an inbox or PARA folders:
+The helper retains the PARA starter bundle for compatibility: plain `init` in a vault without settings previews the PARA folders. For your own layout, `init --scope vault` records `"scope": "vault"` in the new `tow/config.json` and creates no inbox or PARA folders; `--dictionaries` explicitly adds the two starter dictionaries. `--scope` only applies while the vault has no TOW settings; afterwards, change `scope` in the config file.
 
 ```bash
-"$TOW" --root "$VAULT" init                       # preview; no writes
-"$TOW" --root "$VAULT" init --dictionaries        # opt-in dictionary preview
-"$TOW" --root "$VAULT" init --dictionaries --apply
+"$TOW" --root "$VAULT" init                                # PARA preview; no writes
+"$TOW" --root "$VAULT" init --scope vault                  # own-layout preview; no writes
+"$TOW" --root "$VAULT" init --scope vault --dictionaries   # opt-in dictionary preview
+"$TOW" --root "$VAULT" init --scope vault --dictionaries --apply
 ```
 
 Run `--apply` only after approving every previewed item. To create a smaller subset, use the skill's exact approved file plan instead of initializing extra assets.
@@ -144,11 +145,11 @@ Skills and TOW do not provide an OS-level access boundary. Their guarantees cove
 
 ## Move vault files to `tow/`
 
-Vaults using `.tow/` or legacy 0.4.x root files remain readable without moving. Before migrating, update the Tag Ontology Obsidian plugin to **0.10.1 on every device** so it finds `tow/tag-dictionary.json`. Preview with `tow --root <vault> migrate`; after reviewing the complete plan, apply with `tow --root <vault> migrate --apply`. Migration copies/converts files into visible `tow/`, appends root `Tag-Dictionary.md` and Markdown category rule-document text into `tow/tags.md` and `tow/categories.md`, and keeps the old files. After removal, update notes that link to those original Markdown files. Only after the user confirms the plugin is 0.10.1 on every device, removal is a separate approved operation: preview `migrate --remove-legacy`, then apply only after verifying the copies. This includes `.tow/` originals and any legacy root files.
+Vaults using `.tow/` or legacy 0.4.x root files remain readable without moving. Before migrating, update the Tag Ontology Obsidian plugin to **0.10.1 on every device** so it finds `tow/tag-dictionary.json`. Preview with `tow --root <vault> migrate`; after reviewing the complete plan, apply with `tow --root <vault> migrate --apply`. Migration copies/converts files into visible `tow/`, appends root `Tag-Dictionary.md` and Markdown category rule-document text into `tow/tags.md` and `tow/categories.md`, and keeps the old files. If the vault has no PARA folders (for example, one used only with the Tag Ontology plugin), the preview warns that the migrated search scope is empty; choose `migrate --scope vault` to record `"scope": "vault"` in the new `tow/config.json`, or create the PARA folders with `init` afterwards. `--scope` applies to a root-file vault whose `tow.json` does not already set it; in a `.tow/` or `tow/` vault, edit `scope` in its config file. After removal, update notes that link to those original Markdown files. Only after the user confirms the plugin is 0.10.1 on every device, removal is a separate approved operation: preview `migrate --remove-legacy`, then apply only after verifying the copies. This includes `.tow/` originals and any legacy root files.
 
 ## Check the setup
 
-TOW 0.5.3 and `tag-ontology` 0.2.0 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
+TOW 0.5.4 and `tag-ontology` 0.2.0 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
 
 **1. Runtime versions — terminal (Node/npm only for ontology/parsing):**
 
@@ -180,13 +181,13 @@ VAULT="/absolute/path/to/vault"
 | --- | --- |
 | `--help` | The Python helper starts and lists vault and project commands, including `connect`, `project`, `send`, `lookup`, and `migrate` |
 | `config` | Prints merged settings; compare them with actual folders/dictionaries. This command does not validate that those files exist. |
-| `lint` | Parses notes through the CLI and checks classification values, field scope, duplicate tags, and tag counts; prints `OK` when clean |
+| `lint` | Parses notes through the CLI and checks classification values, field scope, duplicate tags, and tag counts; prints `OK` when clean, or `no notes checked` when the scan read none |
 | `ontology check --json` | Checks the tag dictionary; a clean result has `ok: true` and empty `issues` |
 | `ontology usage --json` | Reads the configured scope minus exclusions and compares frontmatter/body tags with the dictionary; inspect findings and actual read coverage |
 
 These commands do not edit the vault. npm may write its package cache. Convention/tag findings concern the vault contents and do not by themselves mean plugin installation failed. Notes without frontmatter are skipped by the helper's convention lint; `tow-check` inspects them directly. Formatting, links, and the meaning of a tag hierarchy still need the skill's review.
 
-The pathless checks above scan the configured search scope (PARA folders by default). With `scope: para` and no PARA folders, they warn instead of silently finding nothing. The CLI does not apply `.gitignore` automatically. Use exact approved paths for `lint` and `ontology scan`. `usage <paths>` still reads the whole configured scope minus exclusions for unused-tag detection, and `show` does so even without `--notes`; run them only when that full read scope is authorized or safely excluded beforehand. Otherwise inspect scoped `scan` and relevant dictionary entries, and report aggregate checks unavailable. `find` has no path/exclusion option; use scoped `ontology scan` when the whole search scope is not authorized. See [scope rules](methodology.md#scope-before-reading-note-contents).
+The pathless checks above scan the configured search scope (PARA folders by default). With `scope: para` and no PARA folders, that scope is empty: `lint`, `find`, `ontology show` and `ontology scan` warn and name the fix for the vault's layout, pathless `ontology usage` stops with exit code 2 instead of listing every tag as unused, and `lookup` lists the vault under `unavailable` instead of returning no results. Naming a folder or note still works. The CLI does not apply `.gitignore` automatically. Use exact approved paths for `lint` and `ontology scan`. `usage <paths>` still reads the whole configured scope minus exclusions for unused-tag detection, and `show` does so even without `--notes`; run them only when that full read scope is authorized or safely excluded beforehand. Otherwise inspect scoped `scan` and relevant dictionary entries, and report aggregate checks unavailable. `find` has no path/exclusion option; use scoped `ontology scan` when the whole search scope is not authorized. See [scope rules](methodology.md#scope-before-reading-note-contents).
 
 You can ask the host to run the same checks:
 
@@ -284,6 +285,7 @@ After updating, start a new host session and [confirm the plugin loaded](#confir
 | Host has no plugin command | Check the host's help/version and use a client with plugin support |
 | Skill does not appear | Confirm TOW is enabled, start a new session, and explicitly select it |
 | Missing dictionary / unexpected search results | Check vault targeting and scope; missing optional dictionaries do not block search. Preview selected dictionary setup with `tow init --dictionaries` |
+| `search scope is empty` warning or error | The default `para` scope found no PARA folder. Keep your layout with `"scope": "vault"` (`init --scope vault`, `migrate --scope vault`, or the config file), or preview the PARA folders with `tow init` |
 | `npx` not found / npm failure | Check Node/npm on the host's `PATH`, registry access, and cache permissions; read the npm error before changing anything |
 | Host quota or permission denial | Resolve it in the host; keep approval scoped to the intended vault and command |
 

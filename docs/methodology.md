@@ -55,8 +55,8 @@ TOW="<plugin-root>/scripts/tow.py"
 | `tow connect [<vault>] [--apply]` | Show the personal connection, preview a connection, or save it after approval in `~/.tow/config.json` |
 | `tow config` | Print effective vault settings and their source; warn if the Tag Ontology plugin dictionary path differs |
 | `tow category add <value> <description> [--apply]` | Preview/register a category dictionary entry; `--apply` writes it after approval |
-| `tow init [--dictionaries] [--apply]` | Preview/create missing vault files at the configured dictionary paths; in a free-form vault, `--dictionaries` opts into starter dictionaries. `--apply` never overwrites |
-| `tow migrate [--apply] [--remove-legacy]` | Preview/migrate a legacy or `.tow/` vault into `tow/`, carrying Markdown rule documents into the manuals; removal of verified originals is separately approved |
+| `tow init [--scope {para,vault}] [--dictionaries] [--apply]` | Preview/create missing vault files at the configured dictionary paths; in a vault without settings, `--scope vault` records the free-form scope and creates no PARA folders; in a free-form vault, `--dictionaries` opts into starter dictionaries. `--apply` never overwrites |
+| `tow migrate [--scope {para,vault}] [--apply] [--remove-legacy]` | Preview/migrate a legacy or `.tow/` vault into `tow/`, carrying Markdown rule documents into the manuals; `--scope` records the search scope in the `tow/config.json` a legacy migration creates; removal of verified originals is separately approved |
 | `tow project init --mode {local,shared} [--exclude GLOB] [--apply]` | Preview/register project `.tow/` metadata; local mode uses Git's repository-local exclude file; shared mode leaves metadata commit-able |
 | `tow project tag <changes> [--apply]` | Preview/apply approved document tags and project-only concepts; writes only project `.tow/` files |
 | `tow project status` / `tow project files` | Report stale project metadata or list scoped Markdown paths by Git status (names only) |
@@ -64,7 +64,7 @@ TOW="<plugin-root>/scripts/tow.py"
 | `tow lookup <tag> [--exact]` | Find notes matching a concept in the vault and current project; `--exact` excludes narrower concepts |
 | `tow send <draft> <dest> --source <source> [--transformed] [--apply]` | Preview/create a new note under a configured vault note folder; never overwrite, and check the body against the source unless explicitly transformed |
 | `tow verify-body <before> <after>` | Read-only exact body-byte comparison of two vault-local snapshots after metadata-only changes; no CLI/dictionary required |
-| `tow lint [path…]` | Check classification fields and tag counts (§3, §4). Prints `OK` when clean |
+| `tow lint [path…]` | Check classification fields and tag counts (§3, §4). Prints `OK` when clean, `no notes checked` when the scan read no note |
 | `tow find [<prefix>] [--type …] [--status …] [--kind …] [--tag …] [--all]` | Find vault notes matching every condition: category prefix, frontmatter fields and/or tag |
 | `tow ontology <command> [arg…]` | Run the [`tag-ontology` CLI](https://github.com/NamhyeonKo/obsidian-tag-ontology) with the vault's settings |
 
@@ -103,6 +103,8 @@ Values that differ between vaults live in `tow/config.json`. A missing file or k
 ```
 
 Resolve configured workflow paths from `tow config` and the supplied vault root; defaults are suggestions until their roles are confirmed in a custom vault. `inbox` is the capture queue, `attachments` stores note-specific media, `dailyNotes` is the daily-note subtree, and `misc` holds support files. Helper searches use `"scope": "para"` by default for compatibility. `"scope": "vault"` includes every note folder (including inbox/support/history), excluding only the category dictionary unless explicitly selected. It does not adopt the TOW schema. Without setup, native CLI/file search still uses the user's authorized scope; do not constrain it to nonexistent default folders.
+
+**An empty scope is not a result.** With `"scope": "para"` and no PARA folder, pathless helper scans read no note. `lint`, `find`, `ontology show` and `ontology scan` then print a `search scope is empty` warning, pathless `ontology usage` exits 2 without reading anything, and `lookup` lists `vault: search scope is empty…` under `unavailable`. Never report "no matches", `OK` or `unused` from such a run. The message names the fix for the vault's layout (`init --scope vault`, `migrate --scope vault`, or `scope` in the config file); which layout to use is the user's choice through `tow-setup`. Until then, pass exact approved paths or use scoped file search.
 
 Before a move, inspect the vault's ignore/private rules. Ignored capture inputs require explicit path selection; include any change in tracked/public visibility in the plan before approval. Apply this rule to intake candidates and existing-note searches. In an adopted PARA layout, link targets and edits normally exclude inbox, daily notes, project history, misc and attachments. In a custom layout, use confirmed role exclusions and the user's scope; default names alone exclude nothing. Explicitly selected ordinary workflow exclusions may be included; private/ignored inputs still require explicit selection. If an attachment store overlaps a note root, exclude only the attachment subtree.
 
