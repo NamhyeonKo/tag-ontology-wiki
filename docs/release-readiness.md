@@ -5,11 +5,14 @@
 - Stop an empty default search scope (`"scope": "para"` with no PARA folder) from giving false or silent results: pathless `ontology usage` exits 2, `lookup` lists the vault under `unavailable`, and `lint` prints `no notes checked`.
 - Add `init --scope {para,vault}` and `migrate --scope {para,vault}` so a vault that keeps its own folders, such as one used only with the Tag Ontology plugin, gets `"scope": "vault"` without hand-editing JSON. Existing config files are never rewritten.
 - Name the fix for the vault's layout in every empty-scope warning; update `tow-setup`, `tow-tag-sync`, `tow-query`, the conventions and the installation guide.
+- Name the allowed folders and the config change in the `tow send` destination error; state the limit in `tow-send-vault` and the installation guide. The accepted destinations are unchanged.
+- After a migration that copied files, say that the kept originals no longer change and how to remove them.
+- Say Tag Ontology plugin "0.10.1 or later" in helper messages, `tow-setup` and the installation guide; describe `tow find` in `tow-query`.
 - Update host manifests, Python metadata, lockfile and README editions to 0.5.4. Keep `tag-ontology@0.2.0` pinned.
 
 ## Candidate verification (0.5.4) — 2026-11-11
 
-- Local checks on Python 3.13 with Node.js 22: Ruff lint/format and strict Pyright passed; `pytest` passed 333 tests with 9 real-CLI tests skipped, and all 342 passed with `TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.2.0"`.
+- Local checks on Python 3.13 with Node.js 22: Ruff lint/format and strict Pyright passed; `pytest` passed 335 tests with 9 real-CLI tests skipped, and all 344 passed with `TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.2.0"`.
 - Helper scenario on a copy of the Tag Ontology plugin's sample vault (root `Tag-Dictionary.json`, six notes under `Notes/`): before migration, `ontology usage` exited 2 and `lookup python` exited 1 with the vault under `unavailable`; after `migrate --scope vault --apply`, `usage` scanned six notes and `lookup python` returned `Notes/Python basics.md`.
 - Not run: model-backed skill application and installed-host checks for the changed skill text. No tag, release or publication is made by these candidate checks.
 

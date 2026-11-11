@@ -51,7 +51,11 @@ def cmd_send(
         or relative.suffix != ".md"
         or any(part.startswith(".") for part in relative.parts)
     ):
-        raise ConfigError("send destination must be a vault-relative file under a configured note folder")
+        folders = ", ".join(cfg[key] for key in NOTE_FOLDERS)
+        raise ConfigError(
+            f"send destination must be a vault-relative .md file under a configured note folder ({folders}); "
+            "to send elsewhere, set projects, areas, resources or inbox to that folder in the vault config"
+        )
     target = root / relative
     note_folder = (root / relative.parts[0]).resolve()
     if (

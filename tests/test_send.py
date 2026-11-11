@@ -98,7 +98,9 @@ def test_send_refuses_a_destination_outside_the_note_folders(
     assert (
         tow.main(["--root", str(vault), "send", str(draft), "outside/note.md", "--source", str(source), "--apply"]) == 2
     )
-    assert "configured note folder" in capsys.readouterr().err
+    error = capsys.readouterr().err
+    assert "configured note folder (01_Projects, 02_Areas, 03_Resources, 00_Inbox)" in error
+    assert "set projects, areas, resources or inbox" in error
     assert not (vault / "outside").exists()
 
 

@@ -459,7 +459,7 @@ def test_plugin_dictionary_warning_recommends_update_for_old_plugin_with_tow_dic
     (plugin / "manifest.json").write_text(json.dumps({"version": version}))
 
     assert tow.plugin_dictionary_warning(tmp_path, tow.TOW_DEFAULTS) == (
-        "update the Tag Ontology plugin to 0.10.1 so it finds tow/tag-dictionary.json"
+        "update the Tag Ontology plugin to 0.10.1 or later so it finds tow/tag-dictionary.json"
     )
 
 
@@ -1538,7 +1538,7 @@ def test_migrate_remove_legacy_from_dot_warns_then_removes_verified_files_and_fo
     assert tow.main(["migrate", "--remove-legacy", "--apply"]) == 0
 
     output = capsys.readouterr().out
-    assert output.index("update the Tag Ontology plugin to 0.10.1 on every device first") < output.index(
+    assert output.index("update the Tag Ontology plugin to 0.10.1 or later on every device first") < output.index(
         "deleted .tow/"
     )
     assert not (tmp_path / ".tow").exists()
@@ -2160,7 +2160,7 @@ def test_migrate_warns_about_an_empty_scope_and_scope_vault_fixes_it(
     assert tow.main(["--root", str(root), "migrate", "--scope", "vault", "--apply"]) == 0
     captured = capsys.readouterr()
     assert "migration complete" in captured.out
-    assert captured.err == ""
+    assert captured.err == tow.KEPT_ORIGINALS + "\n"
     assert json.loads((root / "tow/config.json").read_text()) == {
         "kind": "vault",
         "categoryDictionary": "tow/category-dictionary.json",
@@ -2218,3 +2218,39 @@ def test_migrate_keeps_quiet_about_scope_when_a_para_folder_exists(
     assert tow.main(["--root", str(root), "migrate"]) == 0
 
     assert capsys.readouterr().err == ""
+
+
+def test_migrate_says_the_kept_originals_no_longer_change_only_when_it_copied_them(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = plugin_vault(tmp_path)
+    (root / "03_Resources").mkdir()
+    monkeypatch.chdir(root)
+
+    assert tow.main(["--root", str(root), "migrate"]) == 0
+    assert capsys.readouterr().err == ""
+
+    assert tow.main(["--root", str(root), "migrate", "--apply"]) == 0
+    assert capsys.readouterr().err == tow.KEPT_ORIGINALS + "\n"
+    assert (root / "Tag-Dictionary.json").is_file()
+
+    assert tow.main(["--root", str(root), "migrate", "--apply"]) == 0
+    assert capsys.readouterr().err == ""
+
+
+def test_dot_migrate_says_the_kept_originals_no_longer_change(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = tmp_path / "vault"
+    (root / ".tow").mkdir(parents=True)
+    (root / "03_Resources").mkdir()
+    (root / ".tow/config.json").write_text('{"kind": "vault"}\n')
+    (root / ".tow/tag-dictionary.json").write_text("{\n}\n")
+    monkeypatch.chdir(root)
+
+    assert tow.main(["--root", str(root), "migrate", "--apply"]) == 0
+
+    captured = capsys.readouterr()
+    assert "migration complete" in captured.out
+    assert captured.err == tow.KEPT_ORIGINALS + "\n"
+    assert (root / ".tow/tag-dictionary.json").is_file()

@@ -122,6 +122,12 @@ DOT_BUNDLE_STARTER_FILES: Final = {
     path.replace("tow/", ".tow/", 1): name for path, name in TOW_BUNDLE_STARTER_FILES.items()
 }
 
+KEPT_ORIGINALS: Final = (
+    "tow: kept the original files; TOW now reads and writes tow/, so they no longer change. "
+    'Preview "tow migrate --remove-legacy" to delete the verified originals once every device runs '
+    "Tag Ontology plugin 0.10.1 or later"
+)
+
 NOTE_COMMANDS: Final = frozenset({"scan", "usage", "show"})
 PATH_COMMANDS: Final = frozenset({"scan", "usage"})
 VALUE_OPTIONS: Final = frozenset({"--root", "--dictionary", "--exclude", "--tags-file", "--names", "--base"})
@@ -460,7 +466,7 @@ def plugin_dictionary_warning(root: Path, cfg: Mapping[str, str]) -> str | None:
         except (AttributeError, OSError, ValueError):
             parts = None
         if parts is not None and parts < (0, 10, 1):
-            return "update the Tag Ontology plugin to 0.10.1 so it finds tow/tag-dictionary.json"
+            return "update the Tag Ontology plugin to 0.10.1 or later so it finds tow/tag-dictionary.json"
     if dictionary == tow_dictionary:
         return None
     return f"plugin dictionary path differs: TOW uses {tow_dictionary}, Tag Ontology plugin uses {dictionary}"
@@ -740,7 +746,7 @@ def cmd_migrate_dot(root: Path, apply: bool, remove_legacy: bool) -> int:
             return 0
         if verified:
             print(
-                "update the Tag Ontology plugin to 0.10.1 on every device first; older plugins read "
+                "update the Tag Ontology plugin to 0.10.1 or later on every device first; older plugins read "
                 "the root or .tow/ file"
             )
         for source in verified:
@@ -763,16 +769,20 @@ def cmd_migrate_dot(root: Path, apply: bool, remove_legacy: bool) -> int:
                 print(f"would create {target.relative_to(root)}")
         print("run again with --apply to create tow/")
         return 0
+    created = False
     for target, content in expected.items():
         if not target.exists():
             target.parent.mkdir(parents=True, exist_ok=True)
             write_text_atomic(target, content.decode("utf-8"), exclusive=True)
             print(f"created {target.relative_to(root)}")
+            created = True
         elif target in appended_targets:
             write_text_atomic(target, content.decode("utf-8"))
     if any(not target.is_file() or target.read_bytes() != content for target, content in expected.items()):
         raise ConfigError("migration verification failed; dot-layout files were kept")
     print("migration complete")
+    if created:
+        print(KEPT_ORIGINALS, file=sys.stderr)
     return 0
 
 
@@ -972,6 +982,8 @@ def cmd_migrate_legacy(root: Path, apply: bool, remove_legacy: bool, scope: str 
         except OSError as e:
             raise ConfigError(f"migration verification failed: {e}") from e
         print("nothing to migrate" if complete_before else "migration complete")
+        if not complete_before:
+            print(KEPT_ORIGINALS, file=sys.stderr)
     elif all(target.is_file() for target in expected):
         print("nothing to migrate")
     else:
