@@ -19,13 +19,8 @@ NETWORK_HINT: Final[str] = (
     "the tag-ontology CLI could not be fetched from npm, often because a sandbox blocks network access; "
     "allow network for this command, or set TOW_TAG_ONTOLOGY to a local CLI such as 'node <path>/dist/cli/main.js'"
 )
-NETWORK_ERROR_CODES: Final = (
-    "ENOTFOUND",  # npm retries unreachable registries for about a minute, which looks like a hang in a sandbox.
-    "EAI_AGAIN",  # npm retries unreachable registries for about a minute, which looks like a hang in a sandbox.
-    "ECONNREFUSED",  # npm retries unreachable registries for about a minute, which looks like a hang in a sandbox.
-    "ETIMEDOUT",  # npm retries unreachable registries for about a minute, which looks like a hang in a sandbox.
-    "ENOTCACHED",  # npm retries unreachable registries for about a minute, which looks like a hang in a sandbox.
-)
+# npm retries an unreachable registry for about a minute, which looks like a hang in a sandbox; these codes mark that case.  # noqa: E501
+NETWORK_ERROR_CODES: Final = ("ENOTFOUND", "EAI_AGAIN", "ECONNREFUSED", "ETIMEDOUT", "ENOTCACHED")
 VaultSource = Literal["--root", "TOW_VAULT", "user", "ancestor"]
 VaultLayout = Literal["tow", "dot", "legacy", "plain"]
 
