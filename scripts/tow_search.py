@@ -138,7 +138,12 @@ def _decode(raw: str) -> str:
 
 def _term_from_token(token: _Token, warnings: list[tuple[int, str, str]]) -> Term | None:
     prefix, separator, raw_value = token.value.partition(":")
-    is_field = bool(separator) and prefix.isascii() and prefix.replace("_", "a").replace("-", "a").isalnum()
+    is_field = (
+        not token.value.startswith('"')
+        and bool(separator)
+        and prefix.isascii()
+        and prefix.replace("_", "a").replace("-", "a").isalnum()
+    )
     field: str | None = None
     exact = False
     if is_field:
@@ -337,7 +342,12 @@ class _Parser:
 
 
 def _quote_value(value: str) -> str:
-    if value == "OR" or value.startswith("-") or any(character.isspace() or character in '()"' for character in value):
+    if (
+        value == "OR"
+        or value.startswith("-")
+        or ":" in value
+        or any(character.isspace() or character in '()"' for character in value)
+    ):
         escaped = value.replace("\\", "\\\\").replace('"', '\\"')
         return f'"{escaped}"'
     return value

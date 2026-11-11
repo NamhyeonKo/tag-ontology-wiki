@@ -17,6 +17,9 @@ from tow_search import FIELDS, And, Node, Not, Or, Term, parse_query, render
         ("or", Term(None, "or")),
         ('"OR"', Term(None, "OR")),
         ('"-term"', Term(None, "-term")),
+        ('"a(b)"', Term(None, "a(b)")),
+        ('"a\\"b"', Term(None, 'a"b')),
+        ('"foo:bar"', Term(None, "foo:bar")),
         ("graph-rag", Term(None, "graph-rag")),
         ("tag:graph-rag", Term("tag", "graph-rag")),
     ],
@@ -30,6 +33,12 @@ def test_parse_query_builds_the_expected_ast(query: str, expected: Node) -> None
     assert render(node) == interpreted
 
 
+def assert_retry_is_fixed_point(retry: str) -> None:
+    _, warnings, interpreted = parse_query(retry)
+    assert warnings == []
+    assert interpreted == retry
+
+
 @pytest.mark.parametrize(
     ("query", "codes", "interpreted"),
     [
@@ -41,7 +50,8 @@ def test_parse_query_builds_the_expected_ast(query: str, expected: Node) -> None
         ('"graph rag', ["unclosed-quote"], '"graph rag"'),
         ("tag:", ["empty-value"], ""),
         ("()", ["empty-value"], ""),
-        ("foo:bar", ["unknown-field"], "foo:bar"),
+        ("foo:bar", ["unknown-field"], '"foo:bar"'),
+        ('foo:bar "graph rag', ["unknown-field", "unclosed-quote"], '"foo:bar" "graph rag"'),
     ],
 )
 def test_parse_query_repairs_invalid_input(query: str, codes: list[str], interpreted: str) -> None:
@@ -55,6 +65,10 @@ def test_parse_query_repairs_invalid_input(query: str, codes: list[str], interpr
         assert actual_interpreted == ""
     else:
         assert render(node) == actual_interpreted
+    retry_query, retry_warnings, retry_interpreted = parse_query(actual_interpreted)
+    assert retry_warnings == []
+    assert retry_interpreted == actual_interpreted
+    assert retry_query is None if node is None else retry_query is not None
 
 
 def test_parse_query_returns_none_when_only_repairs_remain() -> None:
@@ -64,6 +78,7 @@ def test_parse_query_returns_none_when_only_repairs_remain() -> None:
     assert [warning["code"] for warning in warnings] == ["dangling-operator", "empty-value"]
     assert all(warning["retry"] == "" for warning in warnings)
     assert interpreted == ""
+    assert_retry_is_fixed_point(interpreted)
 
 
 def test_parse_query_orders_warnings_by_input_position() -> None:
@@ -115,11 +130,11 @@ def test_parse_query_keeps_term_case() -> None:
         {
             "code": "unknown-field",
             "message": "Treated unknown field 'Tag' as a bare term at position 0.",
-            "retry": "Tag:GraphRAG",
+            "retry": '"Tag:GraphRAG"',
         }
     ]
     assert node == Term(None, "Tag:GraphRAG")
-    assert interpreted == "Tag:GraphRAG"
+    assert interpreted == '"Tag:GraphRAG"'
 
 
 def test_declared_fields_match_the_query_contract() -> None:
