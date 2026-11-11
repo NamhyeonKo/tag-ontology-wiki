@@ -1,10 +1,11 @@
 ---
 name: tow-ingest
 description: >-
-  Use when the user explicitly selects vault-internal filing or source-note aftercare under
-  their own destination, template and preservation rules. Triggers: "process my inbox",
-  "file these captures", "intake", "derive concept notes from this source". For bringing
-  project documents into the vault, use tow-send-vault.
+  Use when the user wants captures or source notes inside the vault filed to destinations
+  they choose. Plans first and moves notes verbatim by default; adding metadata, rewriting
+  or deriving concept notes happens only for the steps the user selects. Triggers: "process
+  my inbox", "file these captures", "intake", "derive concept notes from this source". For
+  bringing project documents into the vault, use tow-send-vault.
 ---
 
 # tow-ingest

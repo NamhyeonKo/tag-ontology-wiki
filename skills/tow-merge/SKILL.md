@@ -1,9 +1,10 @@
 ---
 name: tow-merge
 description: >-
-  Use when the user explicitly requests post-curation of overlapping notes under their
-  chosen canonical destination and preservation rules. Triggers: "merge this with the
-  existing note", "these notes are duplicates", "which note should be canonical?",
+  Use when the user asks to merge, split or pick a canonical note among overlapping vault
+  notes. Proposes one strategy per case and moves content verbatim after the user chooses;
+  nothing is summarized or discarded without a separate confirmation. Triggers: "merge this
+  with the existing note", "these notes are duplicates", "which note should be canonical?",
   "split this note in two".
 ---
 
