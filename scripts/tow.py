@@ -12,6 +12,7 @@
   tow.py [--root DIR] find [PREFIX] [--type T] [--status S] [--kind K] [--tag TAG] [--all]
                                              notes that meet every condition (--all: with project archives)
   tow.py [--root DIR] lookup TAG [--exact]    notes matching one concept in the vault and current project
+  tow.py [--root DIR] search "<query>"        search notes with a query
   tow.py [--root DIR] ontology CMD [ARG...]  run the tag-ontology CLI with the vault's settings
   tow.py [--root DIR] project init --mode {local,shared} [--exclude GLOB] [--apply]
                                              initialize project metadata
@@ -22,7 +23,7 @@
                                              print additions for project-only concepts (from inside the vault)
 
 Note metadata is parsed through `tag-ontology scan --json`. `verify-body` only separates a leading frontmatter block.
-Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.2.0).
+Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.3.0).
 """
 
 from __future__ import annotations
@@ -63,6 +64,7 @@ from tow_project import cmd_project_init as cmd_project_init
 from tow_project import cmd_project_status as cmd_project_status
 from tow_project import cmd_project_tag as cmd_project_tag
 from tow_project import cmd_send as cmd_send
+from tow_search import cmd_search as cmd_search
 
 DEFAULTS: Final[dict[str, str]] = {
     "projects": "01_Projects",
@@ -446,27 +448,10 @@ def plugin_dictionary_warning(root: Path, cfg: Mapping[str, str]) -> str | None:
     if not isinstance(raw, dict):
         return "plugin settings not checked (invalid .obsidian/plugins/tag-ontology/data.json)"
     settings = cast(dict[str, object], raw)
-    dictionary = settings.get("dictionaryPath", "Tag-Dictionary.json")
-    if not isinstance(dictionary, str):
-        return "plugin settings not checked (invalid dictionaryPath in .obsidian/plugins/tag-ontology/data.json)"
-    explicit = settings.get("dictionaryPathExplicit")
-    if explicit is not True and explicit is not False:
-        explicit = dictionary != "Tag-Dictionary.json"
-    if not explicit:
-        if (root / "tow" / "tag-dictionary.json").is_file():
-            dictionary = "tow/tag-dictionary.json"
-        elif (root / ".tow" / "tag-dictionary.json").is_file():
-            dictionary = ".tow/tag-dictionary.json"
+    dictionary = settings.get("dictionaryPath")
+    if settings.get("dictionaryPathExplicit") is not True or not isinstance(dictionary, str):
+        return None
     tow_dictionary = cfg["tagDictionary"]
-    if tow_dictionary == "tow/tag-dictionary.json" and not explicit:
-        manifest = root / ".obsidian" / "plugins" / "tag-ontology" / "manifest.json"
-        try:
-            version = json.loads(manifest.read_text(encoding="utf-8")).get("version")
-            parts = tuple(int(part) for part in str(version).split("."))
-        except (AttributeError, OSError, ValueError):
-            parts = None
-        if parts is not None and parts < (0, 10, 1):
-            return "update the Tag Ontology plugin to 0.10.1 or later so it finds tow/tag-dictionary.json"
     if dictionary == tow_dictionary:
         return None
     return f"plugin dictionary path differs: TOW uses {tow_dictionary}, Tag Ontology plugin uses {dictionary}"
@@ -996,9 +981,16 @@ def cmd_migrate_legacy(root: Path, apply: bool, remove_legacy: bool, scope: str 
 def cmd_find(
     root: Path, cfg: dict[str, str], prefix: str | None, filters: dict[str, str], include_archive: bool
 ) -> int:
+    from tow_search import find_query, matches_scan_query, parse_query
+
     extra = [] if include_archive or cfg["scope"] == "vault" else ["--exclude", f"**/{cfg['projectArchive']}"]
-    for path in find(scan(root, cfg, [], extra)["notes"], prefix, filters):
-        print(path)
+    notes = scan(root, cfg, [], extra)["notes"]
+    query, warnings, _ = parse_query(find_query(prefix, filters))
+    if warnings or query is None:
+        raise ConfigError("could not translate find options into a search query")
+    for note_result in notes:
+        if note_result["frontmatter"] and matches_scan_query(query, note_result):
+            print(note_result["path"])
     return 0
 
 
@@ -1260,9 +1252,22 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("verify-body", help="compare exact body bytes after a metadata-only edit (read-only)")
     p.add_argument("before", type=Path, help="independent snapshot inside the vault")
     p.add_argument("after", type=Path, help="candidate note inside the vault")
-    p = sub.add_parser("lookup", help="find notes matching one concept in the vault and current project")
+    p = sub.add_parser(
+        "lookup",
+        help="find notes matching one concept in the vault and current project; shortcut of tow search tag:<tag>",
+    )
     p.add_argument("tag", help="tag name or alias")
     p.add_argument("--exact", action="store_true", help="match only this tag, not narrower concepts")
+    p = sub.add_parser("search", help="search notes with a query")
+    p.add_argument(
+        "query",
+        nargs="?",
+        default="",
+        help=(
+            "search notes with a query: terms, tag:, title:, heading:, text:, path:, category:, type:, status:, kind:, "
+            "source:; AND by space, OR, -NOT, ( ), quotes"
+        ),
+    )
     p = sub.add_parser("find", help="find notes by category prefix, frontmatter fields and tag")
     p.add_argument("prefix", nargs="?", help="category prefix: matches the category and everything below it")
     for key in FIND_FILTERS:
@@ -1271,12 +1276,36 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("ontology", help="run the tag-ontology CLI with the vault's settings")
     p.add_argument("cli_command")
     p.add_argument("cli_args", nargs=argparse.REMAINDER)
-    args = parser.parse_args(argv)
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    command_index = 0
+    while command_index < len(arguments):
+        if arguments[command_index] == "--root":
+            command_index += 2
+        elif arguments[command_index].startswith("--root=") or arguments[command_index].startswith("-"):
+            command_index += 1
+        else:
+            break
+    if command_index < len(arguments) and arguments[command_index] == "search":
+        query_arguments = arguments[command_index + 1 :]
+        if query_arguments == ["-h"] or query_arguments == ["--help"]:
+            args = parser.parse_args(arguments[: command_index + 1] + query_arguments)
+            search_query = None
+        else:
+            if query_arguments[:1] == ["--"]:
+                query_arguments = query_arguments[1:]
+            search_query = " ".join(query_arguments)
+            args = parser.parse_args(arguments[: command_index + 1])
+    else:
+        args = parser.parse_args(arguments)
+        search_query = None
     filters: dict[str, str] = {}
     if args.command == "find":
         filters = {key: value for key in FIND_FILTERS if (value := getattr(args, key)) is not None}
         if args.prefix is None and not filters:
             parser.error("find needs a category prefix or at least one of --type, --status, --kind, --tag")
+
+    if args.command == "search" and not search_query:
+        parser.error("search needs a query")
 
     try:
         if args.command == "connect":
@@ -1301,7 +1330,7 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_project_concepts(args.project_path, vault, read_config(vault))
         vault_ref = resolve_vault(Path.cwd(), args.root, os.environ)
         root = vault_ref.root
-        if args.command == "lookup":
+        if args.command in ("lookup", "search"):
             cfg = read_config(root)
             project = resolve_project(Path.cwd(), root)
             if (
@@ -1310,16 +1339,20 @@ def main(argv: list[str] | None = None) -> int:
                 and not (project / ".tow" / "config.json").is_file()
             ):
                 project = None
-            show_args = [args.tag, "--notes", "--json"]
-            if args.exact:
-                show_args.append("--exact")
-            vault_args = ontology_args("show", show_args, str(root), cfg, scope_excludes(root, cfg, []))
-            skipped = (
-                "search scope is empty (no PARA folders); no vault notes were searched"
-                if warn_if_scope_is_empty(root, cfg, vault_ref.layout)
-                else None
-            )
-            return cmd_lookup(root, cfg, project, args.tag, args.exact, vault_args, skipped)
+            if args.command == "lookup":
+                show_args = [args.tag, "--notes", "--json"]
+                if args.exact:
+                    show_args.append("--exact")
+                vault_args = ontology_args("show", show_args, str(root), cfg, scope_excludes(root, cfg, []))
+                skipped = (
+                    "search scope is empty (no PARA folders); no vault notes were searched"
+                    if warn_if_scope_is_empty(root, cfg, vault_ref.layout)
+                    else None
+                )
+                return cmd_lookup(root, cfg, project, args.tag, args.exact, vault_args, skipped)
+            query = search_query if search_query is not None else args.query
+            vault_args = ontology_args("show", ["--notes", "--json"], str(root), cfg, scope_excludes(root, cfg, []))
+            return cmd_search(root, cfg, project, query, vault_args)
         if args.command == "verify-body":
             return cmd_verify_body(root, args.before, args.after)
         cfg = read_config(root)

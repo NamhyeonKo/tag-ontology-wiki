@@ -1,6 +1,6 @@
 [project]
 name = "tag-ontology-wiki"
-version = "0.5.6"
+version = "0.5.7"
 description = "TOW: content-preserving workflows across an Obsidian vault and coding projects."
 readme = "README.md"
 license = "MIT"

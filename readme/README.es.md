@@ -10,7 +10,7 @@
 
 Un plugin de habilidades para agentes que conecta una bóveda de Obsidian con un proyecto de programación: busca en ambos por concepto, etiqueta documentos del proyecto mediante metadatos `.tow/` y envía el contenido seleccionado a la bóveda como una nota nueva. No modifica los documentos del proyecto y conserva el contenido en el mantenimiento de la bóveda. Funciona en Claude Code, Codex y Google Antigravity.
 
-> **Versión:** 0.5.6.
+> **Versión:** 0.5.7.
 
 ## Descripción general
 
@@ -20,7 +20,7 @@ El mantenimiento habitual conserva la prosa, el contenido de las fórmulas y del
 - **Campos de clasificación** en el frontmatter: `category`, `type`, `status`, `kind`.
 - **Una ontología de etiquetas conceptuales**: un diccionario de etiquetas con alias y relaciones entre conceptos más amplios y más específicos.
 
-Elige PARA durante la configuración o conserva tus propias carpetas. Las búsquedas habituales y el trabajo sobre el cuerpo de las notas no requieren diccionarios ni limpieza de metadatos. Si existe un diccionario de etiquetas, las consultas buscan primero conceptos en él (`tow lookup`); después buscan texto en las carpetas permitidas y solo abren las notas que describen en la respuesta; las propiedades disponibles mejoran la precisión. Las convenciones completas están en [docs/methodology.md](../docs/methodology.md).
+Elige PARA durante la configuración o conserva tus propias carpetas. Las búsquedas habituales y el trabajo sobre el cuerpo de las notas no requieren diccionarios ni limpieza de metadatos. Las consultas ejecutan una sola búsqueda con `tow search`, que combina conceptos del diccionario de etiquetas, títulos, encabezados, texto y propiedades mediante AND, OR y NOT; después solo abren las notas que describen en la respuesta. Las propiedades disponibles mejoran la precisión. Las convenciones completas están en [docs/methodology.md](../docs/methodology.md).
 
 TOW instala doce flujos de trabajo en el entorno local de tu agente. Los flujos exclusivos de la bóveda gestionan notas de Obsidian; desde un proyecto, `tow-query` busca tanto en la bóveda conectada como en el proyecto actual, y `tow-send-vault` crea una nota nueva en la bóveda con el contenido seleccionado tras tu aprobación. Las etiquetas y los hashes del proyecto se guardan en los metadatos `.tow/` del proyecto; los documentos del proyecto no se modifican.
 
@@ -29,7 +29,7 @@ El paquete contiene habilidades, convenciones compartidas y el auxiliar de Pytho
 TOW utiliza la CLI de Tag Ontology para consultar etiquetas y validar o gestionar diccionarios. Instala el [plugin Tag Ontology para Obsidian](https://github.com/NamhyeonKo/obsidian-tag-ontology) ([página del plugin de la comunidad](https://community.obsidian.md/plugins/tag-ontology)) junto con TOW para explorar visualmente, en un grafo, la jerarquía de etiquetas y las relaciones que gestionas.
 
 ```text
-tag-ontology@0.2.0        comprobaciones del diccionario, consultas, ediciones, análisis de notas
+tag-ontology@0.3.0        comprobaciones del diccionario, consultas, ediciones, análisis de notas
       ▲  npx tag-ontology … --json
 tow (este plugin)         comprobaciones de las convenciones de la bóveda, habilidades
       ▲  Claude Code / Codex / Antigravity
@@ -42,7 +42,7 @@ tu bóveda de Obsidian
 | --- | --- | --- |
 | `tow-setup` | Configurar una bóveda, conectarla para usarla desde un proyecto o registrar metadatos del proyecto | Inspecciona primero los nombres; solo escribe metadatos `.tow/` aprobados o la conexión personal |
 | `tow-send-vault` | Enviar contenido seleccionado del proyecto a la bóveda conectada | Crea una nota nueva tras la aprobación; conserva el cuerpo seleccionado salvo que se pida transformarlo |
-| `tow-query` | Buscar documentos mediante condiciones en lenguaje natural, propiedades personalizadas, etiquetas o texto | Solo lectura; primero busca conceptos y después texto con alcance delimitado; muestra coincidencias y abre solo las notas que describe en la respuesta |
+| `tow-query` | Buscar documentos mediante condiciones en lenguaje natural, propiedades personalizadas, etiquetas o texto | Solo lectura; una consulta de `tow search` (AND, OR, NOT) sobre conceptos, títulos, texto y campos; muestra coincidencias y solo abre las notas que describe en la respuesta |
 | `tow-check` | Comprobar frontmatter, Markdown, fórmulas, código, tablas y referencias | Primero informa; las correcciones de sintaxis seleccionadas conservan la prosa, el contenido y los valores |
 | `tow-tag-suggest` | Recomendar etiquetas conceptuales para las notas seleccionadas | Aplica solo las adiciones o eliminaciones que selecciones |
 | `tow-tag-sync` | Registrar nuevas etiquetas, resolver alias o conciliar el diccionario | Primero propone; aplica los cambios aprobados en el diccionario y las etiquetas |
@@ -145,14 +145,14 @@ Puedes buscar sin registrar el proyecto ni tener diccionarios; para etiquetar el
 
 ## CLI y comprobaciones de configuración
 
-El auxiliar utiliza `npx --yes tag-ontology@0.2.0`; npm obtiene esa versión exacta cuando hace falta. Los comandos manuales del auxiliar utilizan la ruta de `scripts/tow.py` instalado. El nombre `tow` en las convenciones es una abreviatura de esa ruta.
+El auxiliar utiliza `npx --yes tag-ontology@0.3.0`; npm obtiene esa versión exacta cuando hace falta. Los comandos manuales del auxiliar utilizan la ruta de `scripts/tow.py` instalado. El nombre `tow` en las convenciones es una abreviatura de esa ruta.
 
-Ni TOW 0.5.6 ni `tag-ontology` 0.2.0 tienen un comando `doctor`. Empieza con:
+Ni TOW 0.5.7 ni `tag-ontology` 0.3.0 tienen un comando `doctor`. Empieza con:
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.2.0 --version
+npx --yes tag-ontology@0.3.0 --version
 ```
 
 Ejecuta `lint` de TOW solo para los metadatos de TOW que hayas adoptado; las comprobaciones del diccionario se aplican solo a las funciones de ontología inicializadas. La ausencia de metadatos o diccionarios opcionales no es un fallo de instalación. Después sigue las [comprobaciones de configuración](../docs/installation.md#check-the-setup) para verificar el plugin instalado, la configuración, los diccionarios y las etiquetas de las notas. `lint` cubre los campos de clasificación y el recuento de etiquetas; la habilidad de comprobación añade la revisión del formato y las referencias nota por nota. Un resultado limpio de lint por sí solo no cubre todas las comprobaciones de las habilidades.

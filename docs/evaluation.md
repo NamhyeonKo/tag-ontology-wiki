@@ -202,3 +202,20 @@ After the npm fast-fail fix, one run per host with the candidate skill and the s
 | Answer | exact tag match labeled; opened notes marked; the rest listed by title and path | same; related-concept matches listed next to the tag match | same |
 
 Flash and Sonnet read only the skill, not the conventions where the scope rules live; naming the scope folders in step 4 fixed both. A first Sonnet attempt stopped before searching because Claude Code's automatic permission check was temporarily unavailable; the skill reported the blocked step instead of guessing a vault.
+
+## tow search — 0.5.7 candidate (2026-11-12)
+
+Same prompt and hosts as the 0.5.6 cross-provider runs, with the candidate `tow-query` that runs one `tow search` query (CLI `tag-ontology@0.3.0`).
+
+| | Gemini 3.8 Flash, medium | GPT-6 Luna, xhigh | Claude Sonnet 5.5, medium |
+| --- | --- | --- | --- |
+| 0.5.6 skill (after the scope fix) | 90 s, 12 tool calls | 508 s, 31 commands | 58 s, 13 turns |
+| 0.5.7 candidate | 104 s, 11 tool calls | 399 s, 24 commands | 35 s, 10 turns |
+| Search calls | 3 `tow search` (refined `ontology`, the alias, then `ontology OR <alias>`) | 1 `tow search` with four OR terms | 1 `tow search` |
+| Scope | PARA folders (enforced by the helper) | PARA folders | PARA folders |
+| Note bodies opened | 5 | 5 | 5 |
+| `unavailable` | none | concepts (npm blocked in the read-only sandbox); recovered with a local CLI | none |
+
+- No run searched outside the scope; the helper now applies scope, project archives and Git ignore rules, which two of three models got wrong from skill text alone in 0.5.6.
+- A first Sonnet run loaded the installed 0.5.6 skill through Claude Code's skill tool instead of the candidate file; the run above disallowed that tool.
+- Malformed query: Flash ran `tow search '(tag:rag OR title:graph'` as instructed, read the `unclosed-group` warning, saw that `query.interpreted` (`tag:rag OR title:graph`) matched the intent, did not rerun, and reported the repair in its answer (78 s).
