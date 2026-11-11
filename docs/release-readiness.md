@@ -1,6 +1,23 @@
-# Release readiness: TOW 0.5.7
+# Release readiness: TOW 0.5.8
 
-## Release scope (0.5.7)
+## Release scope (0.5.8)
+
+- `tow search` accepts Obsidian's `tag:#x` form: a leading `#` in a `tag:` value is dropped, so `tag:#ontology` searches the tag `ontology` and `query.interpreted` shows `tag:ontology`. In 0.5.7 it was an unknown tag whose `retry` searched the word `#ontology`.
+- An unknown tag gets its similar tags from one `tag-ontology suggest` run; the CLI shortens the term itself (tag-ontology 0.3.1). In 0.5.7 the helper ran the CLI once per shortened prefix.
+- `tow-query` no longer tells agents to consult the tag dictionary before searching: `tow search` resolves tags and answers unknown ones, so the dictionary is not opened or grepped; `tow ontology show` is used only for broader concepts the user asks about.
+- Pin `tag-ontology@0.3.1` (published); update host manifests, Python metadata, lockfile, README editions and the installation guide.
+
+## Candidate verification (0.5.8) — 2026-11-12
+
+- Local checks: Ruff lint/format and strict Pyright pass; `pytest` 401 passed with 10 real-CLI tests skipped; all 411 pass with `TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.3.1"`.
+- On the maintainer's vault with the published CLI, run from outside the vault: `tag:#ontology` and `tag:=#ontology` find the same note as `tag:ontology` with no warning and `query.interpreted` `tag:ontology` (0.5.7: no match, 4.1 s); `tag:ontolgy` suggests `ontology` in 1.0 s (0.5.7: 2.1 s); a 20-character misspelling still suggests `ontology` in 0.9 s.
+- Not run: model-backed runs (the skill change removes one instruction) and installed-host checks after release.
+
+---
+
+## Historical release readiness: TOW 0.5.7
+
+### Release scope (0.5.7)
 
 - New `tow search "<query>"`: one query over concepts (tags, aliases, narrower tags), titles, headings, body text, paths and TOW fields (`category:`, `type:`, `status:`, `kind:`), with `source:vault`/`source:project`; space = AND, `OR`, `-` = NOT, `( )` groups, `"…"` phrases. It applies the configured scope, project archives and Git ignore rules itself (`git ls-files` inside a Git repository; no `.gitignore` outside one; body and heading search skipped when the vault is a Git repository and `git` is missing).
 - Malformed queries never fail: `query.interpreted` shows what ran, and every warning carries a `retry` query that runs as-is (a fixed point). An unknown tag gets similar dictionary tags (through `tag-ontology suggest`, shortening the term when needed) and a `retry` with the closest tag or the plain word.
@@ -10,7 +27,7 @@
 - `facet` is set in the draft of a changes file (tag-ontology 0.3.0).
 - Pin `tag-ontology@0.3.0` (published); update host manifests, Python metadata, lockfile, README editions and the installation guide.
 
-## Candidate verification (0.5.7) — 2026-11-12
+### Candidate verification (0.5.7) — 2026-11-12
 
 - Local checks: Ruff lint/format and strict Pyright pass; `pytest` 397 passed with 10 real-CLI tests skipped; all pass with `TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.3.0"`.
 - On the maintainer's vault with the published CLI: intersection, union, exclusion, field and phrase queries answer in one to two seconds; `(tag:rag OR title:graph` repairs to `tag:rag OR title:graph`; `tag:ontolgy` suggests `ontology` with `retry: tag:ontology`; `tow find ai --type resource` returns the same 121 paths as 0.5.6; ignored files and project archives are never candidates.

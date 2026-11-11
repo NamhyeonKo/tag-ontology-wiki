@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final, Literal, cast
 
-DEFAULT_CLI: Final = "npx --yes tag-ontology@0.3.0"
+DEFAULT_CLI: Final = "npx --yes tag-ontology@0.3.1"
 NETWORK_HINT: Final[str] = (
     "the tag-ontology CLI could not be fetched from npm, often because a sandbox blocks network access; "
     "allow network for this command, or set TOW_TAG_ONTOLOGY to a local CLI such as 'node <path>/dist/cli/main.js'"

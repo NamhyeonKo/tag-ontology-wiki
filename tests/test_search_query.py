@@ -22,6 +22,9 @@ from tow_search import FIELDS, And, Node, Not, Or, Term, find_query, matches_sca
         ('"foo:bar"', Term(None, "foo:bar")),
         ("graph-rag", Term(None, "graph-rag")),
         ("tag:graph-rag", Term("tag", "graph-rag")),
+        ("tag:#graph-rag", Term("tag", "graph-rag")),
+        ("tag:=#x", Term("tag", "x", exact=True)),
+        ("-tag:#x", Not(Term("tag", "x"))),
     ],
 )
 def test_parse_query_builds_the_expected_ast(query: str, expected: Node) -> None:
@@ -72,6 +75,7 @@ def assert_retry_is_fixed_point(retry: str) -> None:
         ("a OR OR b", ["dangling-operator"], "a OR b"),
         ('"graph rag', ["unclosed-quote"], '"graph rag"'),
         ("tag:", ["empty-value"], ""),
+        ("tag:#", ["empty-value"], ""),
         ("()", ["empty-value"], ""),
         ("foo:bar", ["unknown-field"], '"foo:bar"'),
         ('foo:bar "graph rag', ["unknown-field", "unclosed-quote"], '"foo:bar" "graph rag"'),
