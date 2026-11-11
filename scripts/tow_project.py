@@ -27,6 +27,15 @@ from tow_core import (
 NOTE_FOLDERS = ("projects", "areas", "resources", "inbox")
 DOCUMENTS = ".tow/documents.json"
 LOCAL_DOCUMENTS = ".tow/documents.local.json"
+# Project init writes this file inside .tow/, so the project's own .gitignore and Git's exclude files stay untouched.
+GITIGNORE_LOCAL = (
+    "# Created by TOW: keeps .tow/ out of Git (local mode).\n"
+    "# To commit .tow/ (shared mode), replace the line below with: documents.local.json\n"
+    "*\n"
+)
+GITIGNORE_SHARED = (
+    "# Created by TOW: keeps the tags of untracked documents out of Git (shared mode).\ndocuments.local.json\n"
+)
 PROJECT_DICTIONARY = ".tow/tag-dictionary.json"
 
 
@@ -160,26 +169,6 @@ def _git_files(cwd: Path, *args: str) -> list[str]:
     return [path for path in result.stdout.split("\0") if path]
 
 
-def exclude_target(project: Path) -> tuple[Path, str] | None:
-    """Return the repository-local exclude file and a root-relative pattern for this project's .tow folder."""
-    toplevel = _git_root(project)
-    if toplevel is None:
-        return None
-    exclude_text = git(project, "rev-parse", "--git-path", "info/exclude")
-    if exclude_text is None:
-        raise ConfigError("Git failed while resolving the repository-local exclude file")
-    project_root = project.resolve()
-    try:
-        relative = project_root.relative_to(toplevel)
-    except ValueError as e:
-        raise ConfigError(f"project root is outside its Git repository: {project_root}") from e
-    pattern = f"/{relative.as_posix() + '/' if relative.parts else ''}.tow/"
-    exclude_path = Path(exclude_text)
-    if not exclude_path.is_absolute():
-        exclude_path = project_root / exclude_path
-    return exclude_path.resolve(), pattern
-
-
 def project_mode(project: Path) -> Literal["local", "shared", "none"]:
     """Return local when config is ignored, shared in Git otherwise, or none outside Git."""
     if _git_root(project) is None:
@@ -223,6 +212,7 @@ def cmd_project_init(
     except (OSError, UnicodeError) as e:
         raise ConfigError(f"can't read vault tag manual: {e}") from e
     outputs = {
+        project_root / ".tow" / ".gitignore": GITIGNORE_LOCAL if mode == "local" else GITIGNORE_SHARED,
         project_root / ".tow" / "config.json": config_text,
         project_root / ".tow" / "documents.json": serialize_entries({}),
         project_root / ".tow" / "tag-dictionary.json": serialize_entries({}),
@@ -235,8 +225,8 @@ def cmd_project_init(
         if not path.resolve().is_relative_to(project_root):
             raise ConfigError(f"project init path must stay inside the project: {path}")
 
-    target = exclude_target(project_root)
-    if target is not None:
+    in_git = _git_root(project_root) is not None
+    if in_git:
         for path in outputs:
             result = _git_run(project_root, "check-ignore", "-q", path.relative_to(project_root).as_posix())
             if result is None:
@@ -246,40 +236,15 @@ def cmd_project_init(
                 raise ConfigError(f"Git failed while checking project metadata ignores: {cause}")
             if mode == "shared" and result.returncode == 0:
                 raise ConfigError("shared project metadata is ignored by Git; remove the conflicting ignore rule first")
-    if mode == "local" and target is not None:
+    if mode == "local" and in_git:
         tracked = _git_files(project_root, "-c", "core.quotepath=false", "ls-files", "-z", ".tow")
         if tracked:
             raise ConfigError("local mode is unavailable while .tow contains tracked files")
-    pattern: str | None = None
-    exclude_original: str | None = None
-    if target is not None:
-        pattern = target[1]
-        if mode == "shared":
-            pattern = f"{pattern.rstrip('/')}/documents.local.json"
-        try:
-            exclude_original = target[0].read_text(encoding="utf-8")
-        except FileNotFoundError:
-            pass
-        except OSError as e:
-            raise ConfigError(f"can't read Git exclude file: {e}") from e
-        existing = exclude_original or ""
-        exclude_append = (
-            ("" if not existing or existing.endswith("\n") else "\n") + pattern + "\n"
-            if pattern not in existing.splitlines()
-            else ""
-        )
-    else:
-        exclude_append = None
-
     if not apply:
         for path in outputs:
             print(f"would create {path.relative_to(project_root)}")
         if manual_text is None:
             print("vault has no tow/tags.md (run tow migrate)")
-        if target is None:
-            print("not in a Git repository; no exclude change")
-        elif exclude_append:
-            print(f"would add {pattern} to Git exclude")
         return 0
 
     created: list[Path] = []
@@ -297,28 +262,14 @@ def cmd_project_init(
         raise
     if manual_text is None:
         print("vault has no tow/tags.md (run tow migrate)")
-    if target is None:
-        print("not in a Git repository; no exclude change")
-    else:
-        try:
-            if exclude_append:
-                target[0].parent.mkdir(parents=True, exist_ok=True)
-                with target[0].open("a", encoding="utf-8", newline="") as exclude_file:
-                    exclude_file.write(exclude_append)
-                print(f"added {pattern} to Git exclude")
-            check_path = ".tow/config.json" if mode == "local" else ".tow/documents.local.json"
-            if git(project_root, "check-ignore", "-q", check_path) is None:
-                raise ConfigError(f"Git exclude verification failed for {check_path}")
-        except BaseException:
+    if in_git:
+        check_path = ".tow/config.json" if mode == "local" else ".tow/documents.local.json"
+        if git(project_root, "check-ignore", "-q", check_path) is None:
             for path in reversed(created):
                 path.unlink(missing_ok=True)
             with contextlib.suppress(OSError):
                 (project_root / ".tow").rmdir()
-            if exclude_original is None:
-                target[0].unlink(missing_ok=True)
-            else:
-                write_text_atomic(target[0], exclude_original)
-            raise
+            raise ConfigError(f".tow/.gitignore verification failed for {check_path}")
     return 0
 
 
@@ -382,8 +333,8 @@ def cmd_project_tag(project: Path, vault: Path, vault_cfg: Mapping[str, str], ch
         and git(project_root, "check-ignore", "-q", LOCAL_DOCUMENTS) is None
     ):
         raise ConfigError(
-            f"{LOCAL_DOCUMENTS} is not ignored by Git; add it to the Git exclude file "
-            "(git rev-parse --git-path info/exclude) before tagging untracked or ignored files"
+            f"{LOCAL_DOCUMENTS} is not ignored by Git; add the line documents.local.json to .tow/.gitignore "
+            "before tagging untracked or ignored files"
         )
 
     # Shared mode: vault concepts enter the shared dictionary only through documents.json, so tags of local
