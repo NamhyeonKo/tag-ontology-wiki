@@ -384,13 +384,11 @@ def test_dot_vault_config_hints_once_to_migrate(tmp_path: Path, capsys: pytest.C
     assert captured.err.count(hint) == 1
 
 
-def test_config_warns_when_the_plugin_uses_another_dictionary(
+def test_config_warns_when_the_plugin_uses_an_explicit_custom_dictionary(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     config = {**tow.DOT_DEFAULTS}
-    assert tow.plugin_dictionary_warning(tmp_path, config) == (
-        "plugin settings not checked (no .obsidian/plugins/tag-ontology/data.json)"
-    )
+
     (tmp_path / ".tow").mkdir()
     (tmp_path / ".tow/config.json").write_text('{"kind": "vault"}')
     (tmp_path / ".tow/tag-dictionary.json").write_text("{}")
@@ -419,49 +417,13 @@ def test_plugin_dictionary_warning_honors_an_explicit_false_flag(tmp_path: Path)
     assert tow.plugin_dictionary_warning(tmp_path, tow.TOW_DEFAULTS) is None
 
 
-def test_plugin_dictionary_warning_treats_unflagged_custom_path_as_explicit(tmp_path: Path) -> None:
-    (tmp_path / ".tow").mkdir()
-    (tmp_path / ".tow/tag-dictionary.json").write_text("{}")
+def test_plugin_dictionary_warning_ignores_unflagged_custom_path(tmp_path: Path) -> None:
     plugin = tmp_path / ".obsidian/plugins/tag-ontology/data.json"
     plugin.parent.mkdir(parents=True)
     plugin.write_text('{"dictionaryPath": "custom/tags.json"}')
+    (plugin.parent / "manifest.json").write_text('{"version": "0.9.9"}')
 
-    assert tow.plugin_dictionary_warning(tmp_path, tow.DOT_DEFAULTS) == (
-        "plugin dictionary path differs: TOW uses .tow/tag-dictionary.json, Tag Ontology plugin uses custom/tags.json"
-    )
-
-
-@pytest.mark.parametrize(
-    ("tow_dictionary", "make_tow_dictionary"),
-    [("tow/tag-dictionary.json", True), ("Tag-Dictionary.json", False)],
-)
-def test_plugin_dictionary_warning_uses_automatic_default_without_flag(
-    tmp_path: Path, tow_dictionary: str, make_tow_dictionary: bool
-) -> None:
-    if make_tow_dictionary:
-        (tmp_path / "tow").mkdir()
-        (tmp_path / "tow/tag-dictionary.json").write_text("{}")
-    plugin = tmp_path / ".obsidian/plugins/tag-ontology/data.json"
-    plugin.parent.mkdir(parents=True)
-    plugin.write_text('{"dictionaryPath": "Tag-Dictionary.json"}')
-
-    assert tow.plugin_dictionary_warning(tmp_path, {**tow.TOW_DEFAULTS, "tagDictionary": tow_dictionary}) is None
-
-
-@pytest.mark.parametrize("version", ["0.10.0", "0.9.9"])
-def test_plugin_dictionary_warning_recommends_update_for_old_plugin_with_tow_dictionary(
-    tmp_path: Path, version: str
-) -> None:
-    (tmp_path / "tow").mkdir()
-    (tmp_path / "tow/tag-dictionary.json").write_text("{}")
-    plugin = tmp_path / ".obsidian/plugins/tag-ontology"
-    plugin.mkdir(parents=True)
-    (plugin / "data.json").write_text('{"dictionaryPath": "Tag-Dictionary.json"}')
-    (plugin / "manifest.json").write_text(json.dumps({"version": version}))
-
-    assert tow.plugin_dictionary_warning(tmp_path, tow.TOW_DEFAULTS) == (
-        "update the Tag Ontology plugin to 0.10.1 or later so it finds tow/tag-dictionary.json"
-    )
+    assert tow.plugin_dictionary_warning(tmp_path, tow.DOT_DEFAULTS) is None
 
 
 @pytest.mark.parametrize(
@@ -533,8 +495,8 @@ def test_workflow_root_folders_reject_nested_paths(key: str, value: str) -> None
 # tag-ontology arguments
 
 
-def test_default_cli_is_pinned_to_tag_ontology_0_2_0() -> None:
-    assert tow_core.DEFAULT_CLI == "npx --yes tag-ontology@0.2.0"
+def test_default_cli_is_pinned_to_tag_ontology_0_3_0() -> None:
+    assert tow_core.DEFAULT_CLI == "npx --yes tag-ontology@0.3.0"
 
 
 def test_run_cli_turns_off_npm_retries_unless_the_user_set_them(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -887,6 +849,22 @@ def test_main_find_skips_project_archives_unless_all(
     assert "**/archive" not in json.loads((fake / "args.json").read_text())
 
 
+def test_find_keeps_scan_order_and_exact_tag_matching(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = vault(tmp_path)
+    notes = [
+        note("03_Resources/z.md", {"tags": ["ragged"]}),
+        note("03_Resources/a.md", {"tags": ["RAG"]}),
+        note("03_Resources/m.md", {"tags": ["rag"]}),
+    ]
+    fake_cli(tmp_path, monkeypatch, scan_of(*notes))
+
+    assert tow.main(["--root", str(root), "find", "--tag", "rag"]) == 0
+
+    assert capsys.readouterr().out.splitlines() == ["03_Resources/a.md", "03_Resources/m.md"]
+
+
 def test_main_find_filters_without_a_prefix(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -895,6 +873,14 @@ def test_main_find_filters_without_a_prefix(
     fake_cli(tmp_path, monkeypatch, scan_of(*notes))
     assert tow.main(["--root", str(root), "find", "--type", "project"]) == 0
     assert capsys.readouterr().out.strip() == "03_Resources/a.md"
+
+
+def test_lookup_help_describes_search_shortcut(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as error:
+        tow.main(["--help"])
+
+    assert error.value.code == 0
+    assert "shortcut of tow search tag:<tag>" in capsys.readouterr().out
 
 
 def test_main_find_needs_a_prefix_or_a_filter(tmp_path: Path) -> None:
