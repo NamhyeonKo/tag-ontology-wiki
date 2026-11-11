@@ -160,7 +160,7 @@ A thesaurus that lightly follows the core of W3C **SKOS** (Simple Knowledge Orga
 
 ### Writing
 
-- **The user tags notes**; the agent checks the tags with `tow ontology usage` and registers them through `tow ontology plan`/`apply`, which keeps one concept per line, sorted. Agents change the dictionary file only this way; the Tag Ontology plugin's sidebar editor writes the same layout. A changes file cannot set `facet`: set that field in the dictionary file itself, keeping the entry on its one line.
+- **The user tags notes**; the agent checks the tags with `tow ontology usage` and registers them through `tow ontology plan`/`apply`, which keeps one concept per line, sorted. Agents change the dictionary file only this way; the Tag Ontology plugin's sidebar editor writes the same layout. A changes file cannot set `facet`: set it in the Facet field of the plugin's edit form (0.11.0 or later), or in the dictionary file itself, keeping the entry on its one line.
 - **Every new concept gets a place.** Find the broader concept to attach it to first (`show`, `grep`); if none fits, create a nearby grouping node. Registering without `broader` raises an `unplaced` warning.
 - Tag notes with the **most specific (leaf) concept** they explain. The dictionary already knows its broader concepts, so a broader tag goes on as well only when the note explains that concept directly too (§3 "Broader and narrower tags together").
 - What to tag, how many, and in what priority is defined in §3 "Concept tags". In short: tag only concepts that could be a node of the domain's taxonomy.
