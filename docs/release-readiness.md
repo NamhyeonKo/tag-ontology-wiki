@@ -1,6 +1,27 @@
-# Release readiness: TOW 0.5.6
+# Release readiness: TOW 0.5.7
 
-## Release scope (0.5.6)
+## Release scope (0.5.7)
+
+- New `tow search "<query>"`: one query over concepts (tags, aliases, narrower tags), titles, headings, body text, paths and TOW fields (`category:`, `type:`, `status:`, `kind:`), with `source:vault`/`source:project`; space = AND, `OR`, `-` = NOT, `( )` groups, `"…"` phrases. It applies the configured scope, project archives and Git ignore rules itself (`git ls-files` inside a Git repository; no `.gitignore` outside one; body and heading search skipped when the vault is a Git repository and `git` is missing).
+- Malformed queries never fail: `query.interpreted` shows what ran, and every warning carries a `retry` query that runs as-is (a fixed point). An unknown tag gets similar dictionary tags (through `tag-ontology suggest`, shortening the term when needed) and a `retry` with the closest tag or the plain word.
+- `tow lookup` and `tow find` are shortcuts over the same code with unchanged output; a query starting with `-` works without `--`.
+- `tow-query` runs one `tow search`, follows `retry` when the interpretation differs from the intent, and uses host file search only for what the helper reports as unavailable.
+- `tow config` no longer reads the plugin's `manifest.json` or copies its discovery order; it warns only about an explicit custom plugin dictionary path that differs from TOW's.
+- `facet` is set in the draft of a changes file (tag-ontology 0.3.0).
+- Pin `tag-ontology@0.3.0` (published); update host manifests, Python metadata, lockfile, README editions and the installation guide.
+
+## Candidate verification (0.5.7) — 2026-11-12
+
+- Local checks: Ruff lint/format and strict Pyright pass; `pytest` 397 passed with 10 real-CLI tests skipped; all pass with `TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.3.0"`.
+- On the maintainer's vault with the published CLI: intersection, union, exclusion, field and phrase queries answer in one to two seconds; `(tag:rag OR title:graph` repairs to `tag:rag OR title:graph`; `tag:ontolgy` suggests `ontology` with `retry: tag:ontology`; `tow find ai --type resource` returns the same 121 paths as 0.5.6; ignored files and project archives are never candidates.
+- Model-backed runs (counts in [evaluation](evaluation.md)): Gemini 3.8 Flash 104 s, GPT-6 Luna 399 s (0.5.6: 508 s), Claude Sonnet 5.5 35 s (0.5.6: 58 s); all used `tow search`, stayed in scope and opened five notes; Flash handled a malformed query from its warning.
+- Not run: installed-host checks after release.
+
+---
+
+## Historical release readiness: TOW 0.5.6
+
+### Release scope (0.5.6)
 
 - `tow-query` looks up concepts first: before any text search it runs `tow lookup` for likely concepts when the vault has a tag dictionary; an empty result or a missing dictionary leads to text search, not to "no matches".
 - `tow-query` lists matches first (title, path, source, reason) and, for a topic request, opens at most five notes; a specific recollection is opened until confirmed, and every note reported as meeting a predicate is checked. Text search lists file names first and stays in the configured scope folders, never `tow/` or `.tow/`.
@@ -10,7 +31,7 @@
 - The helper turns npm's fetch retries off (unless the user set them) and explains an npm network failure, so a sandbox without network fails in about a second instead of a minute.
 - README editions describe the lookup-first search order; update host manifests, Python metadata, lockfile and README editions to 0.5.6. Keep `tag-ontology@0.2.0` pinned.
 
-## Candidate verification (0.5.6) — 2026-11-11
+### Candidate verification (0.5.6) — 2026-11-11
 
 - Local checks on Python 3.13 with Node.js 22: Ruff lint/format and strict Pyright passed; `pytest` passed 342 tests with 9 real-CLI tests skipped, and all 351 passed with `TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.2.0"`.
 - Under `codex sandbox` (no network), `tow lookup ontology` returned in under a second with the network hint under `unavailable` (0.5.5: 70 s).

@@ -10,7 +10,7 @@
 
 An agent skill plugin for working across an Obsidian vault and a coding project: search both by concept, tag project documents in `.tow/` metadata without editing them, and send selected content to the vault as a new note. Vault-maintenance workflows preserve note content. Runs in Claude Code, Codex, and Google Antigravity.
 
-> **Version:** 0.5.6.
+> **Version:** 0.5.7.
 
 ## Overview
 
@@ -29,7 +29,7 @@ The package contains skills, shared conventions, and the Python helper [`scripts
 TOW uses the Tag Ontology CLI to query tags and validate/manage dictionaries. Install the [Tag Ontology plugin for Obsidian](https://github.com/NamhyeonKo/obsidian-tag-ontology) ([community plugin page](https://community.obsidian.md/plugins/tag-ontology)) alongside TOW to visually explore the tag hierarchy and relationships you manage in a graph.
 
 ```text
-tag-ontology@0.2.0        dictionary checks, queries, edits, note parsing
+tag-ontology@0.3.0        dictionary checks, queries, edits, note parsing
       ▲  npx tag-ontology … --json
 tow (this plugin)         vault convention checks, skills
       ▲  Claude Code / Codex / Antigravity
@@ -145,14 +145,14 @@ Search works without project registration or dictionaries; project tagging requi
 
 ## CLI and setup checks
 
-The helper uses `npx --yes tag-ontology@0.2.0`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path. For project commands, run it from the project; vault-targeted commands may use `--root <vault>`.
+The helper uses `npx --yes tag-ontology@0.3.0`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path. For project commands, run it from the project; vault-targeted commands may use `--root <vault>`.
 
-Neither TOW 0.5.6 nor `tag-ontology` 0.2.0 has a `doctor` command. Start with:
+Neither TOW 0.5.7 nor `tag-ontology` 0.3.0 has a `doctor` command. Start with:
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.2.0 --version
+npx --yes tag-ontology@0.3.0 --version
 ```
 
 Run TOW `lint` only for adopted TOW metadata; dictionary checks apply only to initialized ontology features. Missing optional metadata/dictionaries are not installation failures. Then follow the [setup checks](docs/installation.md#check-the-setup) to verify the installed plugin, configuration, dictionaries, and note tags. `lint` covers classification fields and tag counts; the check skill adds the note-by-note formatting/reference review. A clean lint result alone does not cover every skill check.
