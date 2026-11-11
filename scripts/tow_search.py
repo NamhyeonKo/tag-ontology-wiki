@@ -221,6 +221,8 @@ def _term_from_token(token: _Token, warnings: list[tuple[int, str, str]]) -> Ter
             raw_value = raw_value[1:]
             exact = True
         value = _decode(raw_value)
+        if prefix == "tag":
+            value = value.removeprefix("#")  # Obsidian writes tag:#work
         if not value:
             _warn(
                 warnings,
@@ -668,33 +670,24 @@ def cmd_search(vault: Path, cfg: Mapping[str, str], project: Path | None, query:
                     ]
                     labels: list[str] = []
                     try:
-                        for candidate in [
-                            term.value,
-                            *(term.value[:length] for length in range(len(term.value) - 1, 2, -1)),
-                        ]:
-                            suggestion_args[1] = candidate
-                            suggestion_result = run_cli(suggestion_args, capture=True)
-                            if suggestion_result.returncode not in (0, 1):
-                                raise CliError(suggestion_result.stderr.strip() or "tag-ontology suggest failed")
-                            suggestion_data: object = json.loads(suggestion_result.stdout)
-                            suggestions: object = (
-                                cast(dict[str, Any], suggestion_data).get("suggestions", [])
-                                if isinstance(suggestion_data, dict)
-                                else []
-                            )
-                            for suggestion in cast(list[object], suggestions):
-                                if not isinstance(suggestion, dict):
-                                    continue
-                                suggestion = cast(dict[str, Any], suggestion)
-                                if not isinstance(suggestion.get("tag"), str):
-                                    continue
-                                label = cast(str, suggestion["tag"])
-                                alias = suggestion.get("alias")
-                                labels.append(f"{label} (alias: {alias})" if isinstance(alias, str) else label)
-                                if len(labels) == 5:
-                                    break
-                            if labels:
-                                break
+                        suggestion_result = run_cli(suggestion_args, capture=True)
+                        if suggestion_result.returncode not in (0, 1):
+                            raise CliError(suggestion_result.stderr.strip() or "tag-ontology suggest failed")
+                        suggestion_data: object = json.loads(suggestion_result.stdout)
+                        suggestions: object = (
+                            cast(dict[str, Any], suggestion_data).get("suggestions", [])
+                            if isinstance(suggestion_data, dict)
+                            else []
+                        )
+                        for suggestion in cast(list[object], suggestions):
+                            if not isinstance(suggestion, dict):
+                                continue
+                            suggestion = cast(dict[str, Any], suggestion)
+                            if not isinstance(suggestion.get("tag"), str):
+                                continue
+                            label = cast(str, suggestion["tag"])
+                            alias = suggestion.get("alias")
+                            labels.append(f"{label} (alias: {alias})" if isinstance(alias, str) else label)
                     except (CliError, OSError, ValueError) as error:
                         _add_unavailable(unavailable, f"concepts: {error}")
                     similar = labels[0].split(" (alias:", 1)[0] if labels else None
