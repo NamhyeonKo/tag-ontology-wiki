@@ -26,7 +26,7 @@ These are the checks used by [CI](.github/workflows/ci.yml). The runtime helper 
 
 ### Real CLI integration
 
-The helper calls `npx --yes tag-ontology@0.2.0`. The exact version makes the downloaded executable reproducible. Set `TOW_TAG_ONTOLOGY` to run integration tests:
+The helper calls `npx --yes tag-ontology@0.2.0`. The exact version makes the downloaded executable reproducible. It turns npm's fetch retries off (unless you set `npm_config_fetch_retries`), so an unreachable registry fails in about a second. Set `TOW_TAG_ONTOLOGY` to run integration tests:
 
 ```bash
 TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.2.0" uv run pytest

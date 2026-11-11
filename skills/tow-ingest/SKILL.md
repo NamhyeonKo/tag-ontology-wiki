@@ -16,12 +16,14 @@ Before any write, run `tow config` and verify the vault root it prints contains 
 
 Optional post-curation for a selected capture/source batch, including notes `tow-send-vault` left in the inbox. Read the [conventions](../../docs/methodology.md), [post-curation contract](../../docs/post-curation.md), [preservation contract](../../docs/preservation.md) and `tow config`; read the [TOW recipe](../../docs/recipe.md) only when a selected step applies PARA folders or the TOW schema. Filing can be a verbatim move; it does not imply adding frontmatter, rewriting prose, deriving concepts or adopting PARA.
 
+`tow` is not a command on your PATH: run the executable `scripts/tow.py` two directories above this file by its absolute path (with `python3` if the host can't execute it), for example `"<plugin-root>/scripts/tow.py" config`.
+
 ## Workflow
 
 **Read/plan first. Backups, candidates, configuration and note writes begin only after the relevant approval.**
 
 1. **Select inputs and rules.** Use the named batch; an ordinary inbox request selects only top-level Markdown in the user's confirmed inbox. Resolve the chosen destination and applicable user template/rules. A named destination plus a verbatim move is sufficient. Ask about a missing rule needed for a transformation; never default to bundled Resource/Area/paper prose. Inspect private/ignore policy before content reads; ignored inputs need explicit selection. Disclose moves into tracked/public scope.
-2. **Inspect every selected source.** Read its original metadata/body, attachments and actual provenance. Use the shared CLI-first policy over eligible paths to find existing owners by title, aliases and concepts. Read adopted dictionaries only when relevant. Obtain `tow-check` report-mode findings; ambiguous format/source/classification remains a choice, not an inferred value.
+2. **Inspect every selected source.** Read its original metadata/body, attachments and actual provenance. Use the shared search policy over eligible paths to find existing owners by title, aliases and concepts. Read adopted dictionaries only when relevant. Obtain `tow-check` report-mode findings; ambiguous format/source/classification remains a choice, not an inferred value.
 3. **Plan exact changes.** List source→destination, rule/template source, selected metadata changes, literal format/link/path patches and preserved body regions. Empty TOW-specific fields remain unused in a custom schema. Overlaps are separate `tow-merge` cases. Concept derivation, source rewriting, new hubs and removal of temporary Date/Tag/hint lines require their own explicit selected scope, not implied intake permission. Explain every source fact's destination before any deletion.
 4. **Obtain approval.** The batch covers only its listed changes, categories and link positions. Merge cases still need their own strategy choices, discard confirmation and independent destination verification; retroactive classification remains separate. Prior explicit selections settle only their stated decisions.
 5. **Execute selected steps.**

@@ -19,6 +19,8 @@ Use the adopted vault rules, category dictionary and this workflow as classifica
 
 For every selected note-metadata edit, follow the [preservation contract](../../docs/preservation.md): keep independent before/candidate copies, verify only selected metadata values, and require `tow verify-body <before> <candidate>` to pass before replacing the note. This operation does not authorize fixing body format, rewriting prose or invoking post-curation. Dictionary files are verified separately by their own rules.
 
+`tow` is not a command on your PATH: run the executable `scripts/tow.py` two directories above this file by its absolute path (with `python3` if the host can't execute it), for example `"<plugin-root>/scripts/tow.py" config`.
+
 ## A. Register a category
 
 1. **Reuse first.** Read the configured category dictionary and `tow/categories.md` rules; search semantic equivalents, synonyms, abbreviations, and other-language spellings. If the same meaning exists, report reuse of that value and stop registration.

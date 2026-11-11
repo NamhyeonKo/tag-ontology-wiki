@@ -37,7 +37,7 @@ Body writing, merges, intake transformations and domain aftercare require an exp
 
 ## Search policy
 
-For every skill's note discovery, use **CLI first → scoped file search when unavailable or insufficient → read/verify** as detailed in [tow-query](../skills/tow-query/SKILL.md). Natural language is the user interface; query syntax is internal. Existing properties, body tags, names, links and body content all provide evidence. Missing properties stay unknown; separate exact matches from inferred candidates. Dictionary/CLI failures and partial searches are not proof of absence. All methods obey the scope rules below before reading content.
+For every skill's note discovery, apply the scope rules first, then use **concept tags through `tow lookup` when the vault has a tag dictionary, scoped file search for names and text (file names before contents), and read/verify what you report**; [tow-query](../skills/tow-query/SKILL.md) details it. How many notes to open is each skill's own rule. Natural language is the user interface; query syntax is internal. Existing properties, body tags, names, links and body content all provide evidence. Missing properties stay unknown; separate exact matches from inferred candidates. Dictionary/CLI failures and partial searches are not proof of absence. All methods obey the scope rules below before reading content.
 
 ## The `tow` command
 

@@ -10,7 +10,7 @@
 
 An agent skill plugin for working across an Obsidian vault and a coding project: search both by concept, tag project documents in `.tow/` metadata without editing them, and send selected content to the vault as a new note. Vault-maintenance workflows preserve note content. Runs in Claude Code, Codex, and Google Antigravity.
 
-> **Version:** 0.5.5.
+> **Version:** 0.5.6.
 
 ## Overview
 
@@ -20,7 +20,7 @@ Ordinary maintenance preserves prose, math/code contents and table values; only 
 - **Classification fields** in frontmatter: `category`, `type`, `status`, `kind`.
 - **A concept tag ontology**: a tag dictionary with aliases and broader/narrower relations.
 
-Choose PARA during setup or keep your own folders. Ordinary search/body work needs neither dictionaries nor metadata cleanup. Queries use Obsidian CLI first, scoped file search when needed, then content verification; available properties improve precision. The full conventions are in [docs/methodology.md](docs/methodology.md).
+Choose PARA during setup or keep your own folders. Ordinary search/body work needs neither dictionaries nor metadata cleanup. Queries look up concepts in the tag dictionary first when there is one (`tow lookup`), then search text in the allowed folders, and open only the notes they describe in the answer; available properties improve precision. The full conventions are in [docs/methodology.md](docs/methodology.md).
 
 TOW installs twelve workflows into your local agent host. Vault-only workflows manage notes in Obsidian; from a project, `tow-query` searches the connected vault and current project, and `tow-send-vault` creates a new vault note from selected content after approval. Project tags and hashes are stored in project `.tow/` metadata; project documents are not edited.
 
@@ -42,7 +42,7 @@ your Obsidian vault
 | --- | --- | --- |
 | `tow-setup` | Set up a vault, connect it for project use, or register project metadata | Inspects names first; writes only approved `.tow/` metadata or personal connection settings |
 | `tow-send-vault` | Send selected project content to the connected vault | Creates a new note after approval; preserves the selected body unless a transformation is requested |
-| `tow-query` | Find documents using natural-language conditions, custom properties, tags or text | Read-only; CLI first, scoped file fallback, verified matches and separate inferred candidates |
+| `tow-query` | Find documents using natural-language conditions, custom properties, tags or text | Read-only; concept lookup first, then scoped text search; lists matches and opens only the notes it describes in the answer |
 | `tow-check` | Check frontmatter, Markdown, math, code, tables and references | Reports first; selected syntax fixes preserve prose, payloads and values |
 | `tow-tag-suggest` | Recommend concept tags for selected notes | Applies only the additions/removals you select |
 | `tow-tag-sync` | Register new tags, resolve aliases, or reconcile the dictionary | Proposes first; applies approved dictionary/tag changes |
@@ -147,7 +147,7 @@ Search works without project registration or dictionaries; project tagging requi
 
 The helper uses `npx --yes tag-ontology@0.2.0`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path. For project commands, run it from the project; vault-targeted commands may use `--root <vault>`.
 
-Neither TOW 0.5.5 nor `tag-ontology` 0.2.0 has a `doctor` command. Start with:
+Neither TOW 0.5.6 nor `tag-ontology` 0.2.0 has a `doctor` command. Start with:
 
 ```bash
 python3 --version

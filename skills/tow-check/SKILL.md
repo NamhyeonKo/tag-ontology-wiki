@@ -15,6 +15,8 @@ Before any write, run `tow config` and verify the vault root it prints contains 
 
 Report issues first; apply only approved format changes. Read the [conventions](../../docs/methodology.md), [preservation contract](../../docs/preservation.md) and [notation rules](references/markdown-format.md); for notes using the TOW schema, also read the [TOW recipe](../../docs/recipe.md) (§4 frontmatter, §5 note body). User rules take precedence. This skill never writes missing prose, corrects formulas/code/values, summarizes, merges or splits notes.
 
+`tow` is not a command on your PATH: run the executable `scripts/tow.py` two directories above this file by its absolute path (with `python3` if the host can't execute it), for example `"<plugin-root>/scripts/tow.py" config`.
+
 ## Checks
 
 | Axis | Check | Handling |

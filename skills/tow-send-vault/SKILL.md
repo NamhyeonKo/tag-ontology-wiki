@@ -10,6 +10,8 @@ description: >-
 
 Bring selected project content into the connected vault as a new note. Read the [conventions](../../docs/methodology.md) and, for a vault using the TOW schema, the [TOW recipe](../../docs/recipe.md) (§3 tags, §4 frontmatter). Run `tow config` to resolve the effective `tagDictionary`/`categoryDictionary` paths, and read the vault's `tow/tags.md` and `tow/categories.md` manuals when present before drafting. Only `tow send` writes to the vault; it never overwrites an existing note. Use the paths from `tow config`.
 
+`tow` is not a command on your PATH: run the executable `scripts/tow.py` two directories above this file by its absolute path (with `python3` if the host can't execute it), for example `"<plugin-root>/scripts/tow.py" config`.
+
 ## Workflow
 
 1. **Select source and scope.** Use the exact Markdown file or excerpt the user selects, whether tracked or not. For a project document set, use `tow project files`; list untracked and ignored files by name before reading content, and include those only when selected. Do not send a whole file when the user selected only an excerpt. Preserve the exact selected bytes; create any scratch source copy only after approval. If the user finishes project-document organization, offer, “Shall I also put this in the vault?”

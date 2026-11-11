@@ -51,3 +51,17 @@ def test_starter_manuals_do_not_create_obsidian_tagged_notes() -> None:
         content = (ROOT / "scripts/starters" / name).read_text()
         assert not content.startswith("---\n"), name
         assert not re.search(r"(?m)^tags\s*:", content), name
+
+
+def test_tow_query_looks_up_concepts_first_and_opens_few_notes() -> None:
+    text = (ROOT / "skills/tow-query/SKILL.md").read_text()
+    assert "Before any text search, run `tow lookup" in text
+    assert "continue with text search" in text
+    assert "skip further lookups" in text
+    assert "unless the user names only one of them" in text
+    assert "only when the request names a category" in text
+    assert "rg -l" in text
+    assert "Never search `tow/` or `.tow/`" in text
+    assert "open at most five notes" in text
+    assert "until one is confirmed" in text
+    assert "of every note you report as meeting them" in text
