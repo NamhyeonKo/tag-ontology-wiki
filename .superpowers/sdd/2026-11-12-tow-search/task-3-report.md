@@ -24,6 +24,13 @@ Status: implemented and verified
 - `path:` matches the vault-relative note path for both vault and project results, not an absolute project filesystem path, following the stated field contract.
 - The existing integration test module is gated by `TOW_TAG_ONTOLOGY`; its other real-CLI coverage was preserved while adding the new search case.
 
+## Fix round 1
+
+- Search command parsing now isolates the tokens after `search` before argparse handles the command, supports leading-minus terms and tokens such as `-b`, preserves `tow search -h`, and treats no query as a usage error.
+- Unknown-tag suggestions now retry progressively shorter prefixes down to three characters; warnings provide a runnable query retry using the first similar tag or the original bare term. Updated the component-boundaries specification accordingly.
+- Added regression tests for the three query-argument cases, search help and empty-query behavior, prefix-based suggestions, and the no-suggestion retry fallback.
+- `uv run ruff check` — passed; `uv run ruff format --check` — passed (67 files formatted); `uv run pyright` — passed (0 errors, warnings, or informations); `uv run pytest -q` — passed: 397 passed, 10 skipped. The opt-in real-CLI tests remain skipped because `TOW_TAG_ONTOLOGY` is unset; `git diff --check` passed.
+
 ## Concerns
 
 - Real tag-ontology 0.3.0 integration remains unverified here because no `TOW_TAG_ONTOLOGY` command was set.

@@ -1283,12 +1283,36 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("ontology", help="run the tag-ontology CLI with the vault's settings")
     p.add_argument("cli_command")
     p.add_argument("cli_args", nargs=argparse.REMAINDER)
-    args = parser.parse_args(argv)
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    command_index = 0
+    while command_index < len(arguments):
+        if arguments[command_index] == "--root":
+            command_index += 2
+        elif arguments[command_index].startswith("--root=") or arguments[command_index].startswith("-"):
+            command_index += 1
+        else:
+            break
+    if command_index < len(arguments) and arguments[command_index] == "search":
+        query_arguments = arguments[command_index + 1 :]
+        if query_arguments == ["-h"] or query_arguments == ["--help"]:
+            args = parser.parse_args(arguments[: command_index + 1] + query_arguments)
+            search_query = None
+        else:
+            if query_arguments[:1] == ["--"]:
+                query_arguments = query_arguments[1:]
+            search_query = " ".join(query_arguments)
+            args = parser.parse_args(arguments[: command_index + 1])
+    else:
+        args = parser.parse_args(arguments)
+        search_query = None
     filters: dict[str, str] = {}
     if args.command == "find":
         filters = {key: value for key in FIND_FILTERS if (value := getattr(args, key)) is not None}
         if args.prefix is None and not filters:
             parser.error("find needs a category prefix or at least one of --type, --status, --kind, --tag")
+
+    if args.command == "search" and not search_query:
+        parser.error("search needs a query")
 
     try:
         if args.command == "connect":
@@ -1333,7 +1357,7 @@ def main(argv: list[str] | None = None) -> int:
                     else None
                 )
                 return cmd_lookup(root, cfg, project, args.tag, args.exact, vault_args, skipped)
-            query = args.query
+            query = search_query if search_query is not None else args.query
             vault_args = ontology_args("show", ["--notes", "--json"], str(root), cfg, scope_excludes(root, cfg, []))
             return cmd_search(root, cfg, project, query, vault_args)
         if args.command == "verify-body":

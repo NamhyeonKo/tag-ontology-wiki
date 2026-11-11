@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +9,7 @@ import pytest
 from conftest import fake_cli
 
 import tow
+import tow_search
 
 CFG = {
     "projects": "projects",
@@ -146,27 +148,63 @@ def test_search_unknown_tag_warns_with_cli_suggestions(
         tmp_path,
         monkeypatch,
         {"ok": True, "notes": []},
-        {
-            "suggest": json.dumps(
-                {"suggestions": [{"tag": "rag"}, {"tag": "information-retrieval", "alias": "Retrieval"}]}
-            )
-        },
     )
+
+    suggestion_calls: list[str] = []
+
+    def prefix_suggestions(arguments: list[str]) -> dict[str, Any]:
+        term = arguments[1]
+        suggestion_calls.append(term)
+        if term == "ontolgy"[:4]:
+            return {"suggestions": [{"tag": "ontology"}]}
+        return {"suggestions": []}
+
+    def run_suggest(arguments: list[str], capture: bool) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(
+            args=arguments, returncode=0, stdout=json.dumps(prefix_suggestions(arguments)), stderr=""
+        )
+
+    monkeypatch.setattr(tow_search, "run_cli", run_suggest)
     monkeypatch.chdir(root)
     capsys.readouterr()
 
-    assert tow.main(["--root", str(root), "search", "tag:retrival"]) == 1
+    assert tow.main(["--root", str(root), "search", "tag:ontolgy OR title:other"]) == 1
 
     output = json.loads(capsys.readouterr().out)
     assert output["warnings"] == [
         {
             "code": "unknown-tag",
-            "message": "Unknown tag 'retrival'; suggestions: rag, information-retrieval (alias: Retrieval).",
-            "retry": None,
+            "message": "Unknown tag 'ontolgy'. Similar dictionary tags: ontology. retry uses ontology.",
+            "retry": "tag:ontology OR title:other",
         }
     ]
     assert output["results"] == []
-    assert json.loads((tmp_path / "calls.json").read_text(encoding="utf-8"))[-1][0] == "suggest"
+    assert suggestion_calls == ["ontolgy", "ontolg", "ontol", "onto"]
+
+
+def test_search_unknown_tag_without_similar_tags_retries_as_a_bare_term(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = make_vault(tmp_path)
+    fake_cli(tmp_path, monkeypatch, {"ok": True, "notes": []})
+
+    def run_suggest(arguments: list[str], capture: bool) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(args=arguments, returncode=0, stdout='{"suggestions": []}', stderr="")
+
+    monkeypatch.setattr(tow_search, "run_cli", run_suggest)
+    monkeypatch.chdir(root)
+    capsys.readouterr()
+
+    assert tow.main(["--root", str(root), "search", "tag:xyz OR title:other"]) == 1
+
+    warning = json.loads(capsys.readouterr().out)["warnings"][0]
+    assert warning == {
+        "code": "unknown-tag",
+        "message": (
+            "Unknown tag 'xyz'. No similar dictionary tag; retry searches 'xyz' as a word in titles, headings and text."
+        ),
+        "retry": "xyz OR title:other",
+    }
 
 
 def test_search_keeps_text_results_when_concept_cli_is_unavailable(
@@ -209,8 +247,10 @@ def test_search_reports_interpreted_query_and_exit_codes(
     assert tow.main(["--root", str(root), "search", "title:absent"]) == 1
     assert json.loads(capsys.readouterr().out)["results"] == []
 
-    assert tow.main(["--root", str(root), "search"]) == 2
-    assert json.loads(capsys.readouterr().out)["results"] == []
+    with pytest.raises(SystemExit) as error:
+        tow.main(["--root", str(root), "search"])
+    assert error.value.code == 2
+    assert "search needs a query" in capsys.readouterr().err
 
 
 def test_project_path_clause_does_not_match_absolute_project_root(
@@ -228,6 +268,39 @@ def test_project_path_clause_does_not_match_absolute_project_root(
     assert tow.main(["--root", str(root), "search", f"path:{project}"]) == 1
 
     assert json.loads(capsys.readouterr().out)["results"] == []
+
+
+@pytest.mark.parametrize(
+    ("query_arguments", "expected"),
+    [(["-tag:rag"], "-tag:rag"), (["a", "-b"], "a -b"), (["--", "-x"], "-x")],
+)
+def test_search_passes_remaining_arguments_as_one_query(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    query_arguments: list[str],
+    expected: str,
+) -> None:
+    root = make_vault(tmp_path)
+    monkeypatch.chdir(root)
+    capsys.readouterr()
+    observed: list[str] = []
+
+    def record_query(vault: Path, cfg: dict[str, str], project: Path | None, query: str, vault_args: list[str]) -> int:
+        observed.append(query)
+        return 0
+
+    monkeypatch.setattr(tow, "cmd_search", record_query)
+
+    assert tow.main(["search", *query_arguments]) == 0
+    assert observed == [expected]
+
+
+def test_search_help_is_not_treated_as_query() -> None:
+    with pytest.raises(SystemExit) as error:
+        tow.main(["search", "-h"])
+
+    assert error.value.code == 0
 
 
 def test_search_accepts_a_leading_not_clause(

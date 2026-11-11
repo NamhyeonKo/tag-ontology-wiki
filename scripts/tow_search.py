@@ -459,6 +459,17 @@ def parse_query(text: str) -> tuple[Node | None, list[QueryWarning], str]:
     return node, warnings, interpreted
 
 
+def _replace_tag(node: Node, original: str, replacement: Term) -> Node:
+    if isinstance(node, Term):
+        if node.field == "tag" and node.value == original:
+            return replacement
+        return node
+    if isinstance(node, Not):
+        return Not(_replace_tag(node.node, original, replacement))
+    children = tuple(_replace_tag(child, original, replacement) for child in node.nodes)
+    return And(children) if isinstance(node, And) else Or(children)
+
+
 def _flatten(node: Node) -> list[Term]:
     if isinstance(node, Term):
         return [node]
@@ -620,32 +631,51 @@ def cmd_search(vault: Path, cfg: Mapping[str, str], project: Path | None, query:
                     ]
                     labels: list[str] = []
                     try:
-                        suggestion_result = run_cli(suggestion_args, capture=True)
-                        if suggestion_result.returncode not in (0, 1):
-                            raise CliError(suggestion_result.stderr.strip() or "tag-ontology suggest failed")
-                        suggestion_data: object = json.loads(suggestion_result.stdout)
-                        suggestions: object = (
-                            cast(dict[str, Any], suggestion_data).get("suggestions", [])
-                            if isinstance(suggestion_data, dict)
-                            else []
-                        )
-                        for suggestion in cast(list[object], suggestions):
-                            if not isinstance(suggestion, dict):
-                                continue
-                            suggestion = cast(dict[str, Any], suggestion)
-                            if not isinstance(suggestion.get("tag"), str):
-                                continue
-                            label = cast(str, suggestion["tag"])
-                            alias = suggestion.get("alias")
-                            labels.append(f"{label} (alias: {alias})" if isinstance(alias, str) else label)
-                            if len(labels) == 5:
+                        for candidate in [
+                            term.value,
+                            *(term.value[:length] for length in range(len(term.value) - 1, 2, -1)),
+                        ]:
+                            suggestion_args[1] = candidate
+                            suggestion_result = run_cli(suggestion_args, capture=True)
+                            if suggestion_result.returncode not in (0, 1):
+                                raise CliError(suggestion_result.stderr.strip() or "tag-ontology suggest failed")
+                            suggestion_data: object = json.loads(suggestion_result.stdout)
+                            suggestions: object = (
+                                cast(dict[str, Any], suggestion_data).get("suggestions", [])
+                                if isinstance(suggestion_data, dict)
+                                else []
+                            )
+                            for suggestion in cast(list[object], suggestions):
+                                if not isinstance(suggestion, dict):
+                                    continue
+                                suggestion = cast(dict[str, Any], suggestion)
+                                if not isinstance(suggestion.get("tag"), str):
+                                    continue
+                                label = cast(str, suggestion["tag"])
+                                alias = suggestion.get("alias")
+                                labels.append(f"{label} (alias: {alias})" if isinstance(alias, str) else label)
+                                if len(labels) == 5:
+                                    break
+                            if labels:
                                 break
                     except (CliError, OSError, ValueError) as error:
                         _add_unavailable(unavailable, f"concepts: {error}")
-                    message = f"Unknown tag '{term.value}'"
-                    if labels:
-                        message += "; suggestions: " + ", ".join(labels)
-                    warnings.append({"code": "unknown-tag", "message": message + ".", "retry": None})
+                    similar = labels[0].split(" (alias:", 1)[0] if labels else None
+                    replacement_term = (
+                        Term("tag", similar, term.exact) if similar is not None else Term(None, term.value)
+                    )
+                    repaired = render(_replace_tag(node, term.value, replacement_term))
+                    if similar is not None:
+                        message = (
+                            f"Unknown tag '{term.value}'. Similar dictionary tags: {', '.join(labels)}. "
+                            f"retry uses {similar}."
+                        )
+                    else:
+                        message = (
+                            f"Unknown tag '{term.value}'. No similar dictionary tag; retry searches '{term.value}' "
+                            "as a word in titles, headings and text."
+                        )
+                    warnings.append({"code": "unknown-tag", "message": message, "retry": repaired})
                     warning_values.add(term.value)
 
     needs_fields = any(term.field in {"category", "type", "status", "kind"} for term in terms)
