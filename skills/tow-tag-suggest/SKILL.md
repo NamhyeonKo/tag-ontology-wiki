@@ -10,7 +10,7 @@ description: >-
 
 **Recommends** concept-tag candidates for notes or project documents named by the user. The user decides which tags a document carries; vault tags are written only to selected note frontmatter, while project tags are written only to `.tow/` metadata.
 
-Before starting, read the [TOW conventions](../../docs/methodology.md): they define `tow` and the selection rules in §3 "Concept tags". Project work reads rules from project `.tow/tags.md` and follows the project's explicit file scope.
+Before starting, read the [TOW conventions](../../docs/methodology.md), which define `tow`, and the [TOW recipe](../../docs/recipe.md), whose §3 "Concept tags" holds the selection rules. Project work reads rules from project `.tow/tags.md` and follows the project's explicit file scope.
 
 ## Workflow
 
@@ -24,7 +24,7 @@ Before starting, read the [TOW conventions](../../docs/methodology.md): they def
 
 - **Few**: recommend within the 3–10 range, in priority order. When unsure you match the user's standard, recommend fewer.
 - **Judge reuse by the concept's nature**: ask "could another note explain or reference this concept directly?" How many notes use the tag today is not the measure (many notes have no tags yet).
-- **The most specific concept, plus broader ones the note explains**: recommend the narrower concept first. Its broader concept is recommended as well when the note explains it directly too (conventions §3 "Broader and narrower tags together": the title concept, a heading or `description` about it, a definition or comparison), and stays off when the note uses it only as background or in passing. A language note gets the language tag (`facet`) plus language-neutral concept tags.
+- **The most specific concept, plus broader ones the note explains**: recommend the narrower concept first. Its broader concept is recommended as well when the note explains it directly too (recipe §3 "Broader and narrower tags together": the title concept, a heading or `description` about it, a definition or comparison), and stays off when the note uses it only as background or in passing. A language note gets the language tag (`facet`) plus language-neutral concept tags.
 - **More narrower concepts than the limit allows**: propose splitting the note before cutting tags. A hub or overview note whose narrower concepts already have their own notes trims down to the broader concepts.
 - **Area ↔ resource**: when a tag picked for a resource note is also discussed in its source area note, suggest in one line adding it to that area note too (it goes on when the user picks that note as well).
 

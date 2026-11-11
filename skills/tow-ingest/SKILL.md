@@ -14,7 +14,7 @@ This skill works only inside the vault. From another project, stop and use `tow-
 
 Before any write, run `tow config` and verify the vault root it prints contains the current working directory and every file being edited; otherwise stop and route the request as above.
 
-Optional post-curation for a selected capture/source batch, including notes `tow-send-vault` left in the inbox. Read the [conventions](../../docs/methodology.md), [post-curation contract](../../docs/post-curation.md), [preservation contract](../../docs/preservation.md) and `tow config`. Filing can be a verbatim move; it does not imply adding frontmatter, rewriting prose, deriving concepts or adopting PARA.
+Optional post-curation for a selected capture/source batch, including notes `tow-send-vault` left in the inbox. Read the [conventions](../../docs/methodology.md), [post-curation contract](../../docs/post-curation.md), [preservation contract](../../docs/preservation.md) and `tow config`; read the [TOW recipe](../../docs/recipe.md) only when a selected step applies PARA folders or the TOW schema. Filing can be a verbatim move; it does not imply adding frontmatter, rewriting prose, deriving concepts or adopting PARA.
 
 ## Workflow
 

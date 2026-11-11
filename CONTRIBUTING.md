@@ -42,6 +42,7 @@ Python checks do not establish that an agent follows a skill correctly. For chan
 | --- | --- |
 | `skills/` | Shared agent instructions and their references/assets |
 | `docs/methodology.md` | Canonical conventions, scope rules, and installed helper resolution |
+| `docs/recipe.md` | Optional TOW organization recipe (§1–6), read only by the skills that apply it |
 | `docs/preservation.md` | Canonical content-preservation contract |
 | `docs/post-curation.md` | Canonical optional aftercare contract |
 | `docs/installation.md` | Human-facing installation, settings, and troubleshooting guide |
@@ -52,7 +53,7 @@ Python checks do not establish that an agent follows a skill correctly. For chan
 
 ### Skill references and translations
 
-Skills explicitly read `docs/methodology.md`, `docs/preservation.md`, and `docs/post-curation.md`. These English documents are runtime inputs, not just website copy. `methodology.md` also resolves the installed plugin root from its location directly under `docs/`.
+Skills explicitly read `docs/methodology.md`, `docs/preservation.md`, and `docs/post-curation.md`; those that apply the TOW recipe also read `docs/recipe.md`. These English documents are runtime inputs, not just website copy. `methodology.md` also resolves the installed plugin root from its location directly under `docs/`.
 
 Keep their paths and relative links stable. Moving them, adding a language directory to their paths, or redirecting a skill to a translation requires checking every referring skill and the relocated-package test. Do not add a directory-wide read of `docs/` or `readme/` to load translations.
 
