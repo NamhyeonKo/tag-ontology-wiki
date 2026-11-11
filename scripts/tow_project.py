@@ -438,8 +438,12 @@ def cmd_lookup(
     tag: str,
     exact: bool,
     vault_args: list[str],
+    vault_skipped: str | None = None,
 ) -> int:
-    """Print one concept's matching notes from the connected vault and current project."""
+    """Print one concept's matching notes from the connected vault and current project.
+
+    `vault_skipped` is why the vault has no notes to search; it is reported instead of an empty vault result.
+    """
     vault_root = vault.resolve()
     vault_dictionary = _read_object(vault_root / cfg["tagDictionary"])
     results: list[dict[str, Any]] = []
@@ -521,7 +525,10 @@ def cmd_lookup(
         answered = True
 
     if known(vault_dictionary):
-        lookup("vault", vault_args)
+        if vault_skipped is None:
+            lookup("vault", vault_args)
+        else:
+            unavailable.append(f"vault: {vault_skipped}")
 
     if project is not None:
         try:

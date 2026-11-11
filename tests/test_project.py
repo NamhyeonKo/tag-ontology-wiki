@@ -440,6 +440,7 @@ def tag_setup(
     vault = make_vault(tmp_path / "vault")
     (vault / ".tow" / "config.json").write_text('{"kind": "vault"}\n', encoding="utf-8")
     (vault / ".tow" / "tag-dictionary.json").write_text(json.dumps(VAULT_TAGS), encoding="utf-8")
+    (vault / "03_Resources").mkdir()
     project = init_repo(tmp_path / "project")
     assert tow_project.cmd_project_init(project, vault, TAG_CFG, mode, [], True) == 0
     outputs = {"subset": envelope("subset", dictionary=VAULT_TAGS if subset is None else subset)}
@@ -1363,3 +1364,43 @@ def test_lookup_finds_a_project_only_tag_without_querying_the_vault(
     assert len(calls) == 1
     assert calls[0]["args"][calls[0]["args"].index("--root") + 1] == str(project)
     assert calls[0]["dictionary"] == {**project_dictionary, **VAULT_TAGS}
+
+
+def test_lookup_reports_an_empty_vault_scope_instead_of_no_results(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project, vault = tag_setup(tmp_path, monkeypatch)
+    (vault / "03_Resources").rmdir()
+    (vault / "Notes").mkdir()
+    responses = {str(project): lookup_response("used", lookup_note("project.md", ("used", "overlay")))}
+    calls_path = fake_lookup_cli(tmp_path, monkeypatch, responses)
+    monkeypatch.chdir(project)
+    capsys.readouterr()
+
+    assert tow.main(["--root", str(vault), "lookup", "used"]) == 0
+
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    assert [item["source"] for item in result["results"]] == ["project"]
+    assert result["unavailable"] == ["vault: search scope is empty (no PARA folders); no vault notes were searched"]
+    assert '"scope": "vault" in .tow/config.json' in captured.err
+    assert [call["args"][call["args"].index("--root") + 1] for call in read_json(calls_path)] == [str(project)]
+
+
+def test_lookup_with_only_an_empty_vault_scope_exits_1(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _, vault = tag_setup(tmp_path, monkeypatch)
+    (vault / "03_Resources").rmdir()
+    calls_path = fake_lookup_cli(tmp_path, monkeypatch, {})
+    monkeypatch.chdir(vault)
+    capsys.readouterr()
+
+    assert tow.main(["--root", str(vault), "lookup", "used"]) == 1
+
+    assert json.loads(capsys.readouterr().out) == {
+        "tag": "used",
+        "results": [],
+        "unavailable": ["vault: search scope is empty (no PARA folders); no vault notes were searched"],
+    }
+    assert not calls_path.exists()

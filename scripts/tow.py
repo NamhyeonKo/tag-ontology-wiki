@@ -2,9 +2,9 @@
 """TOW vault convention checks (standard library only).
 
   tow.py [--root DIR] config                 print the settings in effect (tow/config.json or older vault config)
-  tow.py [--root DIR] init [--dictionaries] [--apply]
-                                             list/create vault setup files and PARA folders
-  tow.py [--root DIR] migrate [--apply] [--remove-legacy]
+  tow.py [--root DIR] init [--scope {para,vault}] [--dictionaries] [--apply]
+                                             list/create vault setup files and PARA folders (--scope vault: no folders)
+  tow.py [--root DIR] migrate [--scope {para,vault}] [--apply] [--remove-legacy]
                                              move older vault files into tow/, or separately remove verified originals
   tow.py [--root DIR] lint [PATH...]         check classification fields and tag counts (default: the search scope)
   tow.py [--root DIR] verify-body BEFORE AFTER
@@ -42,6 +42,7 @@ from typing import Any, Final, Literal, TypedDict, cast
 from tow_core import DEFAULT_CLI as DEFAULT_CLI
 from tow_core import CliError as CliError
 from tow_core import ConfigError as ConfigError
+from tow_core import VaultLayout as VaultLayout
 from tow_core import body_bytes as body_bytes
 from tow_core import is_empty_plugin_dictionary as is_empty_plugin_dictionary
 from tow_core import is_legacy_vault as is_legacy_vault
@@ -486,7 +487,8 @@ def cmd_lint(root: Path, cfg: dict[str, str], paths: list[str]) -> int:
     for i in issues:
         print(f"{i.severity} {i.code} {i.path}: {i.message}")
     errors = sum(i.severity == "error" for i in issues)
-    print(f"{errors} error(s), {len(issues) - errors} warning(s)" if issues else "OK")
+    clean = "OK" if result["notes"] else "no notes checked"
+    print(f"{errors} error(s), {len(issues) - errors} warning(s)" if issues else clean)
     return 1 if errors else 0
 
 
@@ -609,9 +611,22 @@ def _remove_rule_documents(root: Path, category_dictionary: str, apply: bool, *,
     return bool(candidates and apply)
 
 
-def cmd_migrate(root: Path, apply: bool, remove_legacy: bool) -> int:
-    """Move legacy or dot-layout vault files into tow/, or separately remove verified originals."""
+def cmd_migrate(root: Path, apply: bool, remove_legacy: bool, scope: str | None = None) -> int:
+    """Move legacy or dot-layout vault files into tow/, or separately remove verified originals.
+
+    `scope` records the search scope in the tow/config.json a legacy migration creates.
+    """
     layout = vault_layout(root)
+    if scope is not None and remove_legacy:
+        raise ConfigError("--scope applies when creating tow/, not with --remove-legacy")
+    if layout in ("tow", "dot"):
+        current = read_config(root)
+        if scope is not None and scope != current["scope"]:
+            raise ConfigError(
+                f'this vault already has settings; set "scope": "{scope}" in {vault_folder(layout)}/config.json'
+            )
+        if not remove_legacy:
+            warn_if_scope_is_empty(root, current, layout)
     if layout == "tow":
         raw = json.loads((root / "tow/config.json").read_text(encoding="utf-8"))
         cfg = load_config(raw, TOW_DEFAULTS)
@@ -638,7 +653,7 @@ def cmd_migrate(root: Path, apply: bool, remove_legacy: bool) -> int:
         return cmd_migrate_dot(root, apply, remove_legacy)
     if layout != "legacy":
         raise ConfigError(f"tow migrate requires a vault: {root}")
-    return cmd_migrate_legacy(root, apply, remove_legacy)
+    return cmd_migrate_legacy(root, apply, remove_legacy, scope)
 
 
 def cmd_migrate_dot(root: Path, apply: bool, remove_legacy: bool) -> int:
@@ -761,7 +776,7 @@ def cmd_migrate_dot(root: Path, apply: bool, remove_legacy: bool) -> int:
     return 0
 
 
-def cmd_migrate_legacy(root: Path, apply: bool, remove_legacy: bool) -> int:
+def cmd_migrate_legacy(root: Path, apply: bool, remove_legacy: bool, scope: str | None = None) -> int:
     """Copy a legacy vault into tow/, or separately verify then remove its originals."""
     targets = tuple(root / path for path in TOW_BUNDLE)
     if not is_legacy_vault(root):
@@ -780,7 +795,20 @@ def cmd_migrate_legacy(root: Path, apply: bool, remove_legacy: bool) -> int:
         migrated_config.pop("tagDictionary", None)
     if category_source_is_markdown:
         migrated_config["categoryDictionary"] = TOW_DEFAULTS["categoryDictionary"]
+    if scope is not None:
+        if original_config.get("scope", scope) != scope:
+            raise ConfigError(f'tow.json already sets "scope"; change it there instead of passing --scope {scope}')
+        migrated_config["scope"] = scope
     migrated_config = {"kind": "vault", **migrated_config}
+    if not remove_legacy and scope_is_empty(
+        root, {**validated_config, "scope": str(migrated_config.get("scope", "para"))}
+    ):
+        folders = ", ".join(validated_config[key] for key in PARA)
+        print(
+            f"tow: warning: no PARA folders ({folders}) in {root}, so the migrated vault's search scope is empty; "
+            'add "--scope vault" to search every folder, or preview "tow init" afterwards to create the PARA folders',
+            file=sys.stderr,
+        )
 
     tag_source = root / validated_config["tagDictionary"]
     category_source = root / validated_config["categoryDictionary"]
@@ -986,17 +1014,50 @@ def missing_paths(
     ]
 
 
+def _has_other_notes(root: Path, cfg: Mapping[str, str]) -> bool:
+    """Whether the vault root holds a note or folder that the PARA scope would leave out."""
+    para = {cfg[key] for key in (*PARA, "inbox")}
+    return any(
+        not entry.name.startswith(".")
+        and entry.name not in para
+        and entry.name != "tow"
+        and (entry.is_dir() or entry.suffix == ".md")
+        for entry in root.iterdir()
+    )
+
+
+def _starter_config(scope: str | None) -> str:
+    if scope is None:
+        return '{"kind": "vault"}\n'
+    return json.dumps({"kind": "vault", "scope": scope}, indent=2) + "\n"
+
+
 def cmd_init(
     root: Path,
     cfg: dict[str, str],
     apply: bool,
     dictionaries: bool = False,
     layout: Literal["tow", "dot", "legacy", "plain"] | None = None,
+    scope: str | None = None,
 ) -> int:
-    """List what's missing; with `apply`, create it. Never overwrites an existing file."""
+    """List what's missing; with `apply`, create it. Never overwrites an existing file.
+
+    `scope` records the search scope in a new vault config; `vault` keeps the folders as they are.
+    """
     current_layout = layout or vault_layout(root)
     legacy = current_layout == "legacy"
     folder = vault_folder(current_layout) or ("tow" if current_layout == "plain" else "")
+    if scope is not None and current_layout != "plain":
+        if scope != cfg["scope"]:
+            where = 'tow.json, or preview "tow migrate --scope ' + scope + '"' if legacy else f"{folder}/config.json"
+            raise ConfigError(f'this vault already has settings; set "scope": "{scope}" in {where}')
+        scope = None
+    if current_layout == "plain" and scope is None and scope_is_empty(root, cfg) and _has_other_notes(root, cfg):
+        print(
+            "tow: this folder has notes outside the PARA folders; to keep its layout and search every folder, "
+            'preview "tow init --scope vault" instead',
+            file=sys.stderr,
+        )
     if not legacy and is_empty_plugin_dictionary(root):
         print(
             "tow: Tag-Dictionary.json is the plugin's empty starter; it is not copied, the plugin switches to "
@@ -1007,6 +1068,8 @@ def cmd_init(
     init_cfg = cfg
     if not legacy and current_layout == "plain":
         init_cfg = {**TOW_DEFAULTS, **{key: value for key, value in cfg.items() if value != DEFAULTS.get(key)}}
+        if scope is not None:
+            init_cfg["scope"] = scope
     init_cfg = {**init_cfg, **{key: Path(init_cfg[key].replace("\\", "/")).as_posix() for key in DICTIONARY_PATHS}}
     folders = [root / init_cfg[k] for k in (*PARA, "inbox")] if init_cfg["scope"] == "para" else []
     dictionary_paths = (
@@ -1052,7 +1115,7 @@ def cmd_init(
         starter_files = TOW_BUNDLE_STARTER_FILES if current_layout != "dot" else DOT_BUNDLE_STARTER_FILES
         starters = {
             str(p.relative_to(root)): (
-                '{"kind": "vault"}\n'
+                _starter_config(scope)
                 if p.relative_to(root).as_posix() == f"{folder}/config.json"
                 else (
                     LEGACY_STARTER_CATEGORIES.format(today=date.today().isoformat())
@@ -1083,15 +1146,31 @@ def cmd_init(
     return 0
 
 
-def warn_if_scope_is_empty(root: Path, cfg: dict[str, str]) -> None:
-    if cfg["scope"] == "para" and not any((root / cfg[k]).is_dir() for k in PARA):
-        folders = ", ".join(cfg[k] for k in PARA)
-        print(
-            f"tow: warning: no PARA folders ({folders}) in {root}, so the default search scope is empty; "
-            f'{INIT_HINT}, or set "scope": "vault" in the vault config (tow/config.json; 0.4.x: tow.json) '
-            "to search every folder",
-            file=sys.stderr,
-        )
+def scope_is_empty(root: Path, cfg: Mapping[str, str]) -> bool:
+    """Whether the default PARA scope names no existing folder, so pathless note scans read nothing."""
+    return cfg["scope"] == "para" and not any((root / cfg[k]).is_dir() for k in PARA)
+
+
+def empty_scope_message(root: Path, cfg: Mapping[str, str], layout: VaultLayout) -> str:
+    """Why the scope is empty and the command or setting that fixes it in this layout."""
+    folders = ", ".join(cfg[k] for k in PARA)
+    if layout == "plain":
+        fix = 'preview "tow init --scope vault" to search every folder'
+    elif layout == "legacy":
+        fix = 'preview "tow migrate --scope vault" (or set "scope": "vault" in tow.json) to search every folder'
+    else:
+        fix = f'set "scope": "vault" in {vault_folder(layout)}/config.json to search every folder'
+    return (
+        f"no PARA folders ({folders}) in {root}, so the search scope is empty; "
+        f'{fix}, or preview "tow init" to create the PARA folders'
+    )
+
+
+def warn_if_scope_is_empty(root: Path, cfg: Mapping[str, str], layout: VaultLayout) -> bool:
+    if not scope_is_empty(root, cfg):
+        return False
+    print(f"tow: warning: {empty_scope_message(root, cfg, layout)}", file=sys.stderr)
+    return True
 
 
 def cmd_connect(vault: Path | None, apply: bool) -> int:
@@ -1130,9 +1209,13 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("init", help="list missing vault setup files and folders; --apply creates them")
     p.add_argument("--apply", action="store_true", help="create what is missing (never overwrites)")
     p.add_argument("--dictionaries", action="store_true", help="include starter dictionaries in a free-form vault")
+    p.add_argument(
+        "--scope", choices=SCOPES, help="record the search scope in a new vault config (vault: every folder)"
+    )
     p = sub.add_parser("migrate", help="preview or migrate an older vault into tow/")
     p.add_argument("--apply", action="store_true", help="write the migration or delete verified legacy files")
     p.add_argument("--remove-legacy", action="store_true", help="delete older files after verifying tow/ copies")
+    p.add_argument("--scope", choices=SCOPES, help="record the search scope when a legacy vault moves into tow/")
     p = sub.add_parser("lint", help="check classification fields and tag counts")
     p.add_argument("paths", nargs="*")
     p = sub.add_parser("category", help="manage registered categories")
@@ -1217,7 +1300,12 @@ def main(argv: list[str] | None = None) -> int:
             if args.exact:
                 show_args.append("--exact")
             vault_args = ontology_args("show", show_args, str(root), cfg, scope_excludes(root, cfg, []))
-            return cmd_lookup(root, cfg, project, args.tag, args.exact, vault_args)
+            skipped = (
+                "search scope is empty (no PARA folders); no vault notes were searched"
+                if warn_if_scope_is_empty(root, cfg, vault_ref.layout)
+                else None
+            )
+            return cmd_lookup(root, cfg, project, args.tag, args.exact, vault_args, skipped)
         if args.command == "verify-body":
             return cmd_verify_body(root, args.before, args.after)
         cfg = read_config(root)
@@ -1252,11 +1340,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "init":
             if args.apply:
                 require_inside(root, Path.cwd(), "init --apply")
-            return cmd_init(root, cfg, args.apply, args.dictionaries, vault_ref.layout)
+            return cmd_init(root, cfg, args.apply, args.dictionaries, vault_ref.layout, args.scope)
         if args.command == "migrate":
             if args.apply:
                 require_inside(root, Path.cwd(), "migrate --apply")
-            return cmd_migrate(root, args.apply, args.remove_legacy)
+            return cmd_migrate(root, args.apply, args.remove_legacy, args.scope)
         if args.command == "category":
             if args.apply:
                 require_inside(root, Path.cwd(), "category add --apply")
@@ -1267,7 +1355,14 @@ def main(argv: list[str] | None = None) -> int:
         if (
             args.command in ("lint", "find") or (args.command == "ontology" and args.cli_command in NOTE_COMMANDS)
         ) and not _named_roots(root, named):
-            warn_if_scope_is_empty(root, cfg)
+            usage = args.command == "ontology" and args.cli_command == "usage" and "--help" not in named
+            if usage and scope_is_empty(root, cfg):
+                # Every leaf tag would come back as unused when no note is read.
+                raise ConfigError(
+                    f"{empty_scope_message(root, cfg, vault_ref.layout)}; "
+                    "usage compares notes with the dictionary, so nothing was read"
+                )
+            warn_if_scope_is_empty(root, cfg, vault_ref.layout)
         if args.command == "lint":
             return cmd_lint(root, cfg, args.paths)
         if args.command == "find":
