@@ -2,7 +2,7 @@ import hashlib
 import json
 import subprocess
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 import pytest
 from conftest import fake_cli
@@ -111,7 +111,7 @@ def test_project_init_refuses_to_register_home_as_a_project(
     assert not (home / ".tow").exists()
 
 
-def test_project_init_shared_creates_files_and_excludes_only_the_local_file(
+def test_project_init_shared_creates_files_and_ignores_only_the_local_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     project = init_repo(tmp_path / "project")
@@ -130,26 +130,42 @@ def test_project_init_shared_creates_files_and_excludes_only_the_local_file(
     assert (project_tow / "tags.md").read_bytes() == b"# Vault tag rules\n"
     assert (project_tow / "documents.json").read_text(encoding="utf-8") == "{\n}\n"
     assert (project_tow / "tag-dictionary.json").read_text(encoding="utf-8") == "{\n}\n"
-    exclude = git_path(project, "rev-parse", "--git-path", "info/exclude")
-    assert exclude.read_text(encoding="utf-8").splitlines()[-1] == "/.tow/documents.local.json"
+    assert (project_tow / ".gitignore").read_text(encoding="utf-8") == tow_project.GITIGNORE_SHARED
+    status = git(project, "status", "--porcelain", "--untracked-files=all").splitlines()
+    assert "?? .tow/.gitignore" in status and "?? .tow/config.json" in status
     assert git(project, "check-ignore", "-q", ".tow/documents.local.json") == ""
     assert tow_project.project_mode(project) == "shared"
 
 
-def test_project_init_local_excludes_the_whole_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_project_init_local_ignores_the_whole_folder_from_inside(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     project = init_repo(tmp_path / "project")
     vault = make_vault(tmp_path / "vault")
     monkeypatch.chdir(project)
 
     assert tow.main(["--root", str(vault), "project", "init", "--mode", "local", "--apply"]) == 0
 
-    exclude = git_path(project, "rev-parse", "--git-path", "info/exclude")
-    assert exclude.read_text(encoding="utf-8").splitlines()[-1] == "/.tow/"
+    assert (project / ".tow" / ".gitignore").read_text(encoding="utf-8") == tow_project.GITIGNORE_LOCAL
+    assert git(project, "status", "--porcelain", "--untracked-files=all") == ""
+    assert ".tow" not in git_path(project, "rev-parse", "--git-path", "info/exclude").read_text(encoding="utf-8")
     assert git(project, "check-ignore", "-q", ".tow/config.json") == ""
     assert tow_project.project_mode(project) == "local"
 
 
-def test_project_init_in_a_nested_project_uses_a_toplevel_relative_pattern(tmp_path: Path) -> None:
+def test_replacing_the_local_gitignore_line_switches_the_project_to_shared(tmp_path: Path) -> None:
+    project = init_repo(tmp_path / "project")
+    vault = make_vault(tmp_path / "vault")
+    assert tow_project.cmd_project_init(project, vault, {}, "local", [], True) == 0
+    assert tow_project.project_mode(project) == "local"
+
+    (project / ".tow" / ".gitignore").write_text("documents.local.json\n", encoding="utf-8")
+
+    assert tow_project.project_mode(project) == "shared"
+    assert git(project, "check-ignore", "-q", ".tow/documents.local.json") == ""
+
+
+def test_project_init_in_a_nested_project_ignores_its_own_folder(tmp_path: Path) -> None:
     repository = init_repo(tmp_path / "repository")
     project = repository / "work" / "nested"
     project.mkdir(parents=True)
@@ -157,33 +173,11 @@ def test_project_init_in_a_nested_project_uses_a_toplevel_relative_pattern(tmp_p
 
     assert tow_project.cmd_project_init(project, vault, {}, "local", [], True) == 0
 
-    exclude = git_path(repository, "rev-parse", "--git-path", "info/exclude")
-    assert exclude.read_text(encoding="utf-8").splitlines()[-1] == "/work/nested/.tow/"
+    assert (project / ".tow" / ".gitignore").read_text(encoding="utf-8") == tow_project.GITIGNORE_LOCAL
     assert git(repository, "check-ignore", "-q", "work/nested/.tow/config.json") == ""
 
 
-def test_exclude_target_fails_closed_for_project_outside_git_toplevel(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    repository = tmp_path / "repository"
-    repository.mkdir()
-    outside = tmp_path / "outside"
-    outside.mkdir()
-
-    def git_root(_project: Path) -> Path:
-        return repository
-
-    def git_exclude(_cwd: Path, *_args: str) -> str:
-        return "info/exclude"
-
-    monkeypatch.setattr(tow_project, "_git_root", git_root)
-    monkeypatch.setattr(tow_project, "git", git_exclude)
-
-    with pytest.raises(tow.ConfigError, match="outside its Git repository"):
-        tow_project.exclude_target(outside)
-
-
-def test_project_init_in_a_worktree_uses_git_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_project_init_in_a_worktree_ignores_the_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     repository = init_repo(tmp_path / "repository")
     (repository / "README.md").write_text("repo\n", encoding="utf-8")
     git(repository, "add", "README.md")
@@ -194,19 +188,12 @@ def test_project_init_in_a_worktree_uses_git_path(tmp_path: Path, monkeypatch: p
     if not linked_git_dir.is_absolute():
         linked_git_dir = worktree / linked_git_dir
     assert linked_git_dir.resolve() != (repository / ".git").resolve()
-    worktree_exclude = Path(git(worktree, "rev-parse", "--git-path", "info/exclude"))
-    if not worktree_exclude.is_absolute():
-        worktree_exclude = worktree / worktree_exclude
-    repository_exclude = git_path(repository, "rev-parse", "--git-path", "info/exclude")
-    assert worktree_exclude == repository_exclude
     vault = make_vault(tmp_path / "vault")
     monkeypatch.chdir(worktree)
 
     assert tow.main(["--root", str(vault), "project", "init", "--mode", "local", "--apply"]) == 0
 
-    exclude = git_path(worktree, "rev-parse", "--git-path", "info/exclude")
-    assert exclude == worktree_exclude
-    assert "/.tow/" in exclude.read_text(encoding="utf-8").splitlines()
+    assert (worktree / ".tow" / ".gitignore").is_file()
     assert git(worktree, "check-ignore", "-q", ".tow/config.json") == ""
 
 
@@ -225,10 +212,7 @@ def test_project_init_refuses_local_mode_when_dot_tow_is_tracked(
 
     assert "tracked" in capsys.readouterr().err
     assert not (project / ".tow" / "config.json").exists()
-    assert (
-        "/.tow/"
-        not in git_path(project, "rev-parse", "--git-path", "info/exclude").read_text(encoding="utf-8").splitlines()
-    )
+    assert not (project / ".tow" / ".gitignore").exists()
 
 
 def test_project_init_refuses_local_mode_when_tracked_file_check_fails(
@@ -260,10 +244,7 @@ def test_project_init_shared_refuses_when_gitignore_hides_all_project_metadata(t
         tow_project.cmd_project_init(project, vault, {}, "shared", [], True)
 
     assert not (project / ".tow" / "config.json").exists()
-    assert (
-        "/.tow/documents.local.json"
-        not in git_path(project, "rev-parse", "--git-path", "info/exclude").read_text(encoding="utf-8").splitlines()
-    )
+    assert not (project / ".tow" / ".gitignore").exists()
 
 
 @pytest.mark.parametrize("mode", ["local", "shared"])
@@ -295,35 +276,27 @@ def test_project_init_shared_refuses_when_a_project_metadata_file_is_ignored(tmp
 
     assert not (project / ".tow" / "config.json").exists()
     assert not (project / ".tow" / "documents.json").exists()
-    assert (
-        "/.tow/documents.local.json"
-        not in git_path(project, "rev-parse", "--git-path", "info/exclude").read_text(encoding="utf-8").splitlines()
-    )
+    assert not (project / ".tow" / ".gitignore").exists()
 
 
-def test_project_init_rolls_back_created_files_when_exclude_write_fails(
+def test_project_init_rolls_back_created_files_when_ignore_verification_fails(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     project = init_repo(tmp_path / "project")
     vault = make_vault(tmp_path / "vault")
-    exclude = git_path(project, "rev-parse", "--git-path", "info/exclude")
-    exclude.parent.mkdir(parents=True, exist_ok=True)
-    exclude.write_text("original\n", encoding="utf-8")
-    original_open = Path.open
+    real_git = tow_project.git
 
-    def fail_exclude_write(path: Path, *args: Any, **kwargs: Any) -> Any:
-        if path == exclude and args and args[0] == "a":
-            raise OSError("simulated exclude write failure")
-        result = cast(Any, original_open)(path, *args, **kwargs)
-        return result
+    def not_ignored(cwd: Path, *args: str) -> str | None:
+        if args[:2] == ("check-ignore", "-q"):
+            return None
+        return real_git(cwd, *args)
 
-    monkeypatch.setattr(Path, "open", fail_exclude_write)
+    monkeypatch.setattr(tow_project, "git", not_ignored)
 
-    with pytest.raises(OSError, match="simulated exclude write failure"):
-        tow_project.cmd_project_init(project, vault, {}, "shared", [], True)
+    with pytest.raises(tow.ConfigError, match="verification failed"):
+        tow_project.cmd_project_init(project, vault, {}, "local", [], True)
 
     assert not (project / ".tow").exists()
-    assert exclude.read_text(encoding="utf-8") == "original\n"
 
 
 def test_project_init_never_overwrites(tmp_path: Path) -> None:
@@ -356,14 +329,14 @@ def test_project_init_skips_missing_vault_tags_manual(tmp_path: Path, capsys: py
     assert not (project / ".tow" / "tags.md").exists()
 
 
-def test_project_init_outside_git_reports_no_exclude_change(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_project_init_outside_git_still_writes_the_folder_gitignore(tmp_path: Path) -> None:
     project = tmp_path / "project"
     project.mkdir()
     vault = make_vault(tmp_path / "vault")
 
     assert tow_project.cmd_project_init(project, vault, {}, "local", [], True) == 0
 
-    assert "not in a Git repository" in capsys.readouterr().out
+    assert (project / ".tow" / ".gitignore").read_text(encoding="utf-8") == tow_project.GITIGNORE_LOCAL
     assert tow_project.project_mode(project) == "none"
 
 
@@ -537,8 +510,7 @@ def test_project_tag_refuses_a_local_file_that_git_does_not_ignore(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     project, vault = tag_setup(tmp_path, monkeypatch)
-    exclude = git_path(project, "rev-parse", "--git-path", "info/exclude")
-    exclude.write_text("", encoding="utf-8")  # a fresh clone of a shared project has no exclude entry
+    (project / ".tow" / ".gitignore").write_text("", encoding="utf-8")  # the user removed the documents.local.json line
     (project / "draft.md").write_text("draft\n", encoding="utf-8")
     before = snapshot(project)
 
