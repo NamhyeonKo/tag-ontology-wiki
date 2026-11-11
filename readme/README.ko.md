@@ -10,7 +10,7 @@
 
 Obsidian vault와 코딩 프로젝트를 연결해 개념으로 검색하고, project `.tow/` 메타데이터로 문서에 태그를 붙이며, 선택한 내용을 새 vault 노트로 보내는 에이전트 스킬 플러그인입니다. 프로젝트 문서는 수정하지 않으며, vault 유지 관리 작업은 내용을 보존합니다. Claude Code·Codex·Google Antigravity에서 실행됩니다.
 
-> **버전:** 0.5.7.
+> **버전:** 0.5.8.
 
 ## 개요
 
@@ -29,7 +29,7 @@ TOW는 로컬 에이전트 호스트에 열두 가지 작업 절차를 설치합
 TOW는 Tag Ontology의 CLI를 활용해 태그를 조회하고 사전을 검증·관리합니다. [Obsidian용 Tag Ontology 플러그인](https://github.com/NamhyeonKo/obsidian-tag-ontology)([커뮤니티 플러그인 페이지](https://community.obsidian.md/plugins/tag-ontology))을 함께 설치하면, 관리한 태그의 계층과 관계를 그래프로 시각적으로 확인할 수 있습니다.
 
 ```text
-tag-ontology@0.3.0        사전 검증·조회·변경, 노트 파싱
+tag-ontology@0.3.1        사전 검증·조회·변경, 노트 파싱
       ▲  npx tag-ontology … --json
 tow (이 플러그인)          vault 규약 검사, 스킬
       ▲  Claude Code / Codex / Antigravity
@@ -144,14 +144,14 @@ vault 유지 관리만 할 때는 vault를 호스트 작업 폴더로 엽니다.
 
 ## CLI와 설치 점검
 
-helper가 사용하는 명령은 `npx --yes tag-ontology@0.3.0`입니다. 필요할 때 npm으로 해당 버전을 내려받습니다. 직접 실행할 때는 설치된 `scripts/tow.py` 경로를 사용합니다. 규약 문서의 `tow`는 이 경로를 줄여 쓴 이름입니다.
+helper가 사용하는 명령은 `npx --yes tag-ontology@0.3.1`입니다. 필요할 때 npm으로 해당 버전을 내려받습니다. 직접 실행할 때는 설치된 `scripts/tow.py` 경로를 사용합니다. 규약 문서의 `tow`는 이 경로를 줄여 쓴 이름입니다.
 
-TOW 0.5.7과 `tag-ontology` 0.3.0 모두 `doctor` 명령은 없습니다. 먼저 다음을 확인합니다.
+TOW 0.5.8과 `tag-ontology` 0.3.1 모두 `doctor` 명령은 없습니다. 먼저 다음을 확인합니다.
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.3.0 --version
+npx --yes tag-ontology@0.3.1 --version
 ```
 
 TOW `lint`는 해당 메타데이터 규약을 채택한 노트에, 사전 검사는 온톨로지를 초기화한 경우에 적용합니다. 선택하지 않은 메타데이터·사전이 없다는 것은 설치 실패가 아닙니다. 이후 [설치 점검 절차](../docs/installation.md#check-the-setup)로 플러그인·설정·사전·노트 태그를 확인합니다. `lint`는 분류 필드와 태그 수 등을 검사하고, check 스킬은 노트별 서식·참조 검토를 더합니다. lint 통과만으로 스킬의 모든 검사 항목을 확인한 것은 아닙니다.

@@ -23,7 +23,7 @@
                                              print additions for project-only concepts (from inside the vault)
 
 Note metadata is parsed through `tag-ontology scan --json`. `verify-body` only separates a leading frontmatter block.
-Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.3.0).
+Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.3.1).
 """
 
 from __future__ import annotations

@@ -10,7 +10,7 @@
 
 Obsidian vault と開発プロジェクトを接続するエージェントスキルプラグインです。両方を概念で検索し、プロジェクトの `.tow/` メタデータで文書にタグを付け、選択した内容を新しい vault ノートとして送信します。プロジェクト文書は変更せず、vault の保守作業では内容を保持します。Claude Code、Codex、Google Antigravity で動作します。
 
-> **バージョン:** 0.5.7。
+> **バージョン:** 0.5.8。
 
 ## 概要
 
@@ -29,7 +29,7 @@ TOW は、ローカルのエージェントホストに 12 のワークフロー
 TOW は Tag Ontology CLI を使ってタグを検索し、辞書を検証・管理します。[Obsidian 用 Tag Ontology プラグイン](https://github.com/NamhyeonKo/obsidian-tag-ontology)（[コミュニティプラグインページ](https://community.obsidian.md/plugins/tag-ontology)）を TOW と併用すると、管理しているタグの階層や関係をグラフで視覚的に探索できます。
 
 ```text
-tag-ontology@0.3.0        辞書の検査、検索、編集、ノートの解析
+tag-ontology@0.3.1        辞書の検査、検索、編集、ノートの解析
       ▲  npx tag-ontology … --json
 tow (this plugin)         vault 規約の検査、スキル
       ▲  Claude Code / Codex / Antigravity
@@ -144,14 +144,14 @@ vault の保守だけを行う場合は、vault をホストのワークスペ�
 
 ## CLI とセットアップの確認
 
-ヘルパーは `npx --yes tag-ontology@0.3.0` を使用します。必要に応じて npm がその正確なバージョンを取得します。ヘルパーを手動で実行するときは、インストールされた `scripts/tow.py` のパスを使います。規約中の `tow` は、そのパスの略記です。
+ヘルパーは `npx --yes tag-ontology@0.3.1` を使用します。必要に応じて npm がその正確なバージョンを取得します。ヘルパーを手動で実行するときは、インストールされた `scripts/tow.py` のパスを使います。規約中の `tow` は、そのパスの略記です。
 
-TOW 0.5.7 にも `tag-ontology` 0.3.0 にも、`doctor` コマンドはありません。まず次を実行してください。
+TOW 0.5.8 にも `tag-ontology` 0.3.1 にも、`doctor` コマンドはありません。まず次を実行してください。
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.3.0 --version
+npx --yes tag-ontology@0.3.1 --version
 ```
 
 TOW の `lint` は、採用した TOW メタデータだけを対象に実行してください。辞書の検査は、初期化済みのオントロジー機能だけに適用されます。任意のメタデータや辞書がなくても、インストールの失敗ではありません。続いて[セットアップの確認](../docs/installation.md#check-the-setup)に従い、インストール済みのプラグイン、設定、辞書、ノートのタグを検証してください。`lint` は分類フィールドとタグ数を対象とし、check スキルはノートごとの書式・参照の確認を追加します。lint の結果に問題がないだけでは、すべてのスキル検査を網羅したことにはなりません。

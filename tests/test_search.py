@@ -155,9 +155,7 @@ def test_search_unknown_tag_warns_with_cli_suggestions(
     def prefix_suggestions(arguments: list[str]) -> dict[str, Any]:
         term = arguments[1]
         suggestion_calls.append(term)
-        if term == "ontolgy"[:4]:
-            return {"suggestions": [{"tag": "ontology"}]}
-        return {"suggestions": []}
+        return {"matched": "onto", "suggestions": [{"tag": "ontology"}]}
 
     def run_suggest(arguments: list[str], capture: bool) -> subprocess.CompletedProcess[str]:
         return subprocess.CompletedProcess(
@@ -179,7 +177,7 @@ def test_search_unknown_tag_warns_with_cli_suggestions(
         }
     ]
     assert output["results"] == []
-    assert suggestion_calls == ["ontolgy", "ontolg", "ontol", "onto"]
+    assert suggestion_calls == ["ontolgy"]
 
 
 def test_search_unknown_tag_without_similar_tags_retries_as_a_bare_term(

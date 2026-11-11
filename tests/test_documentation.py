@@ -60,6 +60,8 @@ def test_tow_query_runs_one_search_and_opens_few_notes() -> None:
     assert "do not run `tow lookup`, `tow find`, `rg` or a dictionary grep before it" in text
     assert "unless the user names only one of them" in text
     assert "only when the request names a category" in text
+    assert "do not open or grep the tag dictionary" in text
+    assert "Consult the configured vault tag dictionary" not in text
     assert "rg -l" in text
     assert "Never search `tow/` or `.tow/`" in text
     assert "open at most five notes" in text
