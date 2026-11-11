@@ -13,7 +13,7 @@ This skill works only inside the vault. From another project, stop and use `tow-
 
 Before any write, run `tow config` and verify the vault root it prints contains the current working directory and every file being edited; otherwise stop and route the request as above.
 
-Report issues first; apply only approved format changes. Read the [conventions](../../docs/methodology.md), [preservation contract](../../docs/preservation.md) and [notation rules](references/markdown-format.md). User rules take precedence. This skill never writes missing prose, corrects formulas/code/values, summarizes, merges or splits notes.
+Report issues first; apply only approved format changes. Read the [conventions](../../docs/methodology.md), [preservation contract](../../docs/preservation.md) and [notation rules](references/markdown-format.md); for notes using the TOW schema, also read the [TOW recipe](../../docs/recipe.md) (§4 frontmatter, §5 note body). User rules take precedence. This skill never writes missing prose, corrects formulas/code/values, summarizes, merges or splits notes.
 
 ## Checks
 

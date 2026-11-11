@@ -8,12 +8,16 @@
 - Name the allowed folders and the config change in the `tow send` destination error; state the limit in `tow-send-vault` and the installation guide. The accepted destinations are unchanged.
 - After a migration that copied files, say that the kept originals no longer change and how to remove them.
 - Say Tag Ontology plugin "0.10.1 or later" in helper messages, `tow-setup` and the installation guide; describe `tow find` in `tow-query`.
+- Move the TOW recipe (§1–6) verbatim from `docs/methodology.md` to `docs/recipe.md`, so the conventions every skill reads drop from 41 KB to 20 KB; only the seven skills that apply the recipe link it.
+- Narrow the `tow-edit`, `tow-ingest`, `tow-merge` and `tow-review` descriptions to their default result (question, plan or read-only report); `tow-edit` drops the "edit this note" trigger.
+- State that agents write the tag dictionary only through `tow ontology plan`/`apply`, that the plugin's sidebar editor keeps the same layout, and that `facet` is set in the plugin's edit form (0.11.0 or later) or in the file; the installation guide points to the plugin's “Kebab-case tag names” setting.
 - Update host manifests, Python metadata, lockfile and README editions to 0.5.4. Keep `tag-ontology@0.2.0` pinned.
 
 ## Candidate verification (0.5.4) — 2026-11-11
 
 - Local checks on Python 3.13 with Node.js 22: Ruff lint/format and strict Pyright passed; `pytest` passed 335 tests with 9 real-CLI tests skipped, and all 344 passed with `TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.2.0"`.
 - Helper scenario on a copy of the Tag Ontology plugin's sample vault (root `Tag-Dictionary.json`, six notes under `Notes/`): before migration, `ontology usage` exited 2 and `lookup python` exited 1 with the vault under `unavailable`; after `migrate --scope vault --apply`, `usage` scanned six notes and `lookup python` returned `Notes/Python basics.md`.
+- After the recipe split, description and dictionary-writer changes, the same checks passed again (335 passed with 9 skipped; 344 with the real CLI), and every relative link in the conventions, recipe and skills resolves.
 - Not run: model-backed skill application and installed-host checks for the changed skill text. No tag, release or publication is made by these candidate checks.
 
 ---

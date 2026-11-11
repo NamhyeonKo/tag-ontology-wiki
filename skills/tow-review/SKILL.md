@@ -1,10 +1,11 @@
 ---
 name: tow-review
 description: >-
-  Use when inspecting organized notes against the user's own rules for ownership,
-  duplication, missing navigation or project direction and proposing optional aftercare.
-  Triggers: "review this domain", "any duplicate content?", "is there a hub note?",
-  "this note is too big", "clean up my project notes in the vault".
+  Use when the user wants a read-only review of vault notes for ownership, duplication,
+  missing navigation or project direction. Reports findings and proposes follow-ups; it
+  changes nothing until the user selects a specific operation. Triggers: "review this
+  domain", "any duplicate content?", "is there a hub note?", "this note is too big",
+  "what should I clean up in my project notes?".
 ---
 
 # tow-review

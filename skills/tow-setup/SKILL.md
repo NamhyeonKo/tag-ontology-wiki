@@ -9,7 +9,7 @@ description: >-
 
 # tow-setup
 
-Read the [conventions](../../docs/methodology.md). Branch on the current location: run `tow config` and use its reported vault root/layout; if no vault is resolved yet, use `tow --root <vault> config` only for a vault path the user identifies. In a project, register the project and vault connection without changing host configuration. Current vault files live in visible `tow/`; project metadata remains in `.tow/`.
+Read the [conventions](../../docs/methodology.md) and the [TOW recipe](../../docs/recipe.md) (§1–2 PARA layout). Branch on the current location: run `tow config` and use its reported vault root/layout; if no vault is resolved yet, use `tow --root <vault> config` only for a vault path the user identifies. In a project, register the project and vault connection without changing host configuration. Current vault files live in visible `tow/`; project metadata remains in `.tow/`.
 
 ## Workflow
 

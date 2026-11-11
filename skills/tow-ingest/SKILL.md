@@ -1,10 +1,11 @@
 ---
 name: tow-ingest
 description: >-
-  Use when the user explicitly selects vault-internal filing or source-note aftercare under
-  their own destination, template and preservation rules. Triggers: "process my inbox",
-  "file these captures", "intake", "derive concept notes from this source". For bringing
-  project documents into the vault, use tow-send-vault.
+  Use when the user wants captures or source notes inside the vault filed to destinations
+  they choose. Plans first and moves notes verbatim by default; adding metadata, rewriting
+  or deriving concept notes happens only for the steps the user selects. Triggers: "process
+  my inbox", "file these captures", "intake", "derive concept notes from this source". For
+  bringing project documents into the vault, use tow-send-vault.
 ---
 
 # tow-ingest
@@ -13,7 +14,7 @@ This skill works only inside the vault. From another project, stop and use `tow-
 
 Before any write, run `tow config` and verify the vault root it prints contains the current working directory and every file being edited; otherwise stop and route the request as above.
 
-Optional post-curation for a selected capture/source batch, including notes `tow-send-vault` left in the inbox. Read the [conventions](../../docs/methodology.md), [post-curation contract](../../docs/post-curation.md), [preservation contract](../../docs/preservation.md) and `tow config`. Filing can be a verbatim move; it does not imply adding frontmatter, rewriting prose, deriving concepts or adopting PARA.
+Optional post-curation for a selected capture/source batch, including notes `tow-send-vault` left in the inbox. Read the [conventions](../../docs/methodology.md), [post-curation contract](../../docs/post-curation.md), [preservation contract](../../docs/preservation.md) and `tow config`; read the [TOW recipe](../../docs/recipe.md) only when a selected step applies PARA folders or the TOW schema. Filing can be a verbatim move; it does not imply adding frontmatter, rewriting prose, deriving concepts or adopting PARA.
 
 ## Workflow
 

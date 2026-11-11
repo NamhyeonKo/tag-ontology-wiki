@@ -56,7 +56,7 @@ def test_vault_only_skills_say_so() -> None:
 
 
 def test_workflows_have_no_private_vault_dependencies() -> None:
-    documents = [ROOT / "docs/methodology.md", *(ROOT / "skills").rglob("*.md")]
+    documents = [ROOT / "docs/methodology.md", ROOT / "docs/recipe.md", *(ROOT / "skills").rglob("*.md")]
     for document in documents:
         text = document.read_text()
         for private in ("/Users/", "oh-my-obsidian", "vault_meta.py", "../../../AGENTS.md"):
@@ -129,7 +129,7 @@ def test_skill_descriptions_list_english_triggers_only() -> None:
 
 def test_korean_text_stays_in_korean_documents() -> None:
     allowed = {ROOT / "skills/tow-edit/references/korean-style.md"}
-    for document in [ROOT / "docs/methodology.md", *(ROOT / "skills").rglob("*.md")]:
+    for document in [ROOT / "docs/methodology.md", ROOT / "docs/recipe.md", *(ROOT / "skills").rglob("*.md")]:
         if document not in allowed:
             assert not re.search(r"[\uac00-\ud7af]", document.read_text()), document
 

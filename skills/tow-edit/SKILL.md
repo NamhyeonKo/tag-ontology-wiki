@@ -1,10 +1,11 @@
 ---
 name: tow-edit
 description: >-
-  Use when the user explicitly selects template-guided post-curation of named notes,
-  such as writing a named empty section or restructuring selected content under their rules.
-  Triggers: "edit this note", "fill in this section", "fill the empty sections",
-  "restructure this note", "turn this into a list".
+  Use when the user names a note and a body change to make under their own template or
+  rules: writing a named empty section or restructuring selected content. A request without
+  such a rule gets a question or proposal first, not a rewrite. Not for format or frontmatter
+  fixes (tow-check). Triggers: "fill in this section", "fill the empty sections with my
+  template", "restructure this note under my rules", "turn this section into a list".
 ---
 
 # tow-edit
