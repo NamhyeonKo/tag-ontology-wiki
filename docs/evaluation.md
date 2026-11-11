@@ -187,3 +187,18 @@ One `codex exec` run per skill version (Codex CLI 0.167.1, `gpt-6-luna`, reasoni
 Both runs lost time to the same environment issue: inside the read-only sandbox, the default `npx --yes tag-ontology@0.2.0` behind `tow lookup` printed nothing for over 50 s and was interrupted, and both agents then found a local CLI build and set `TOW_TAG_ONTOLOGY`. The earlier interactive session with unrestricted file access (5 min 51 s, 12 turns) did not hit this. The candidate read `tow/categories.md` because the vault's own agent instructions require it before any work; that follows the vault's rule, not the skill.
 
 Not run: a `medium` effort run, and Claude Code or Antigravity sessions.
+
+### Cross-provider runs (2026-11-11)
+
+After the npm fast-fail fix, one run per host with the candidate skill and the same prompt, from an unregistered project. Gemini through Antigravity (`agy -p`, default permission mode), Luna through Codex (`codex exec -s read-only`), Sonnet through Claude Code (`claude -p --permission-mode dontAsk` with Bash/Read/Grep/Glob allowed).
+
+| | Gemini 3.8 Flash, medium | GPT-6 Luna, xhigh | Claude Sonnet 5.5, medium |
+| --- | --- | --- | --- |
+| First run | 124 s, 11 tool calls; text search also covered the inbox and `tow/` | 508 s, 31 commands, PARA folders only | 51 s, 12 turns; text search covered the whole vault |
+| After step 4 named the scope folders | 90 s, 12 tool calls, PARA folders only | not rerun | 58 s, 13 turns, PARA folders only, also checked ignore rules |
+| `tow lookup` before text search | yes | yes (failed within a second in the sandbox, then a local CLI) | yes |
+| Note bodies opened | 5 (first 50 lines) | 5 | 5 (first 40 lines) |
+| Project searched | no | no | no |
+| Answer | exact tag match labeled; opened notes marked; the rest listed by title and path | same; related-concept matches listed next to the tag match | same |
+
+Flash and Sonnet read only the skill, not the conventions where the scope rules live; naming the scope folders in step 4 fixed both. A first Sonnet attempt stopped before searching because Claude Code's automatic permission check was temporarily unavailable; the skill reported the blocked step instead of guessing a vault.
