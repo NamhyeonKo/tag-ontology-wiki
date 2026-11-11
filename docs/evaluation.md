@@ -167,3 +167,23 @@ The full suite passed **91 tests**, including five real `tag-ontology@0.1.2` int
 Following merged PR #15 (`5caec7f`), ordinary maintenance now preserves prose, formula/code contents and table values; optional aftercare uses explicitly selected operations and user rules/templates. `tow verify-body` adds a narrow dictionary/Node-independent exact-body check for metadata-only edits.
 
 Full suite: **104 passed**, including five published-CLI integrations; Ruff lint/format and strict Pyright passed. Low-cost `gpt-6-luna` consumers exercised baseline, formatting, template, filing, transfer and private-scratch scenarios. One initial formula-padding failure and inadequate comparison claim are retained, followed by targeted payload and privacy checks; this is not a universal model-reliability claim. See [preservation evaluation, reusable fixtures, independent review and limits](preservation-evaluation.md). Historical host results above concern older revisions.
+
+## tow-query search order — 0.5.6 candidate (2026-11-11)
+
+One `codex exec` run per skill version (Codex CLI 0.167.1, `gpt-6-luna`, reasoning effort `xhigh`, `-s read-only`), with the same Korean prompt asking for ontology-related notes in the connected vault, run from an unregistered project. The prompt pointed at the installed 0.5.5 `tow-query` or at the branch version; the vault was the maintainer's own, so only counts are recorded here.
+
+| | 0.5.5 skill | 0.5.6 candidate |
+| --- | --- | --- |
+| Wall time | 19 min 7 s | 11 min 53 s |
+| Shell commands | 74 | 34 |
+| Input tokens (cached) | 2.91M (2.76M) | 1.18M (1.10M) |
+| Reasoning tokens | 46.2k | 25.3k |
+| Bare `tow` call (exit 127) | 1 | 0 |
+| `tow lookup` before text search | after a filename search | yes |
+| Note bodies opened | 22 | 5 |
+| `tow project files` | 0 | 0 |
+| Answer | summaries of the opened notes | exact tag match labeled; the five opened notes marked; related-concept, title and text matches listed without opening |
+
+Both runs lost time to the same environment issue: inside the read-only sandbox, the default `npx --yes tag-ontology@0.2.0` behind `tow lookup` printed nothing for over 50 s and was interrupted, and both agents then found a local CLI build and set `TOW_TAG_ONTOLOGY`. The earlier interactive session with unrestricted file access (5 min 51 s, 12 turns) did not hit this. The candidate read `tow/categories.md` because the vault's own agent instructions require it before any work; that follows the vault's rule, not the skill.
+
+Not run: a `medium` effort run, and Claude Code or Antigravity sessions.
