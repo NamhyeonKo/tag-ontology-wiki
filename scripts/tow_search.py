@@ -501,6 +501,43 @@ def _strings(value: object) -> list[str]:
     return []
 
 
+def find_query(prefix: str | None, filters: Mapping[str, str]) -> str:
+    """Render the search query corresponding to legacy find options."""
+    terms = [Term("category", prefix)] if prefix is not None else []
+    terms.extend(
+        Term(key, filters[key], exact=key == "tag") for key in ("type", "status", "kind", "tag") if key in filters
+    )
+    if not terms:
+        return ""
+    return render(And(tuple(terms)) if len(terms) > 1 else terms[0])
+
+
+def matches_scan_query(node: Node, note: Mapping[str, Any]) -> bool:
+    """Evaluate a find query against scan metadata using find's legacy matching rules."""
+    raw_frontmatter = note.get("frontmatter")
+    if not isinstance(raw_frontmatter, dict) or not raw_frontmatter:
+        return False
+    frontmatter = cast(dict[str, Any], raw_frontmatter)
+    tags = _strings(note.get("tags"))
+
+    def matches(current: Node) -> bool:
+        if isinstance(current, Term):
+            field = current.field
+            if field == "tag":
+                return current.value.casefold() in {tag.casefold() for tag in tags}
+            values = _strings(frontmatter.get(field)) if field is not None else []
+            if field == "category":
+                return any(item == current.value or item.startswith(current.value + "/") for item in values)
+            return current.value in values
+        if isinstance(current, Not):
+            return not matches(current.node)
+        if isinstance(current, And):
+            return all(matches(child) for child in current.nodes)
+        return any(matches(child) for child in current.nodes)
+
+    return matches(node)
+
+
 def _add_unavailable(unavailable: list[str], item: str) -> None:
     group = item.partition(":")[0]
     if not any(existing.partition(":")[0] == group for existing in unavailable):

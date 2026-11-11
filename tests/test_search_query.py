@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from tow_search import FIELDS, And, Node, Not, Or, Term, parse_query, render
+from tow_search import FIELDS, And, Node, Not, Or, Term, find_query, matches_scan_query, parse_query, render
 
 
 @pytest.mark.parametrize(
@@ -31,6 +31,29 @@ def test_parse_query_builds_the_expected_ast(query: str, expected: Node) -> None
     assert warnings == []
     assert node is not None
     assert render(node) == interpreted
+
+
+def test_find_query_uses_search_fields_and_exact_tag_semantics() -> None:
+    query = find_query("ai", {"type": "project", "tag": "RAG"})
+
+    assert query == "category:ai type:project tag:=RAG"
+    node, warnings, interpreted = parse_query(query)
+    assert warnings == []
+    assert interpreted == query
+    assert node is not None
+
+
+def test_matches_scan_query_uses_legacy_find_matching() -> None:
+    node, _, _ = parse_query("category:ai type:project tag:=RAG")
+    assert node is not None
+    matching = {
+        "frontmatter": {"category": ["ai/rag"], "type": "project"},
+        "tags": ["rag"],
+    }
+    outside = {**matching, "tags": ["ragged"]}
+
+    assert matches_scan_query(node, matching)
+    assert not matches_scan_query(node, outside)
 
 
 def assert_retry_is_fixed_point(retry: str) -> None:

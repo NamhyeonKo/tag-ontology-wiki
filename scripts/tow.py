@@ -23,7 +23,7 @@
                                              print additions for project-only concepts (from inside the vault)
 
 Note metadata is parsed through `tag-ontology scan --json`. `verify-body` only separates a leading frontmatter block.
-Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.2.0).
+Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.3.0).
 """
 
 from __future__ import annotations
@@ -448,27 +448,10 @@ def plugin_dictionary_warning(root: Path, cfg: Mapping[str, str]) -> str | None:
     if not isinstance(raw, dict):
         return "plugin settings not checked (invalid .obsidian/plugins/tag-ontology/data.json)"
     settings = cast(dict[str, object], raw)
-    dictionary = settings.get("dictionaryPath", "Tag-Dictionary.json")
-    if not isinstance(dictionary, str):
-        return "plugin settings not checked (invalid dictionaryPath in .obsidian/plugins/tag-ontology/data.json)"
-    explicit = settings.get("dictionaryPathExplicit")
-    if explicit is not True and explicit is not False:
-        explicit = dictionary != "Tag-Dictionary.json"
-    if not explicit:
-        if (root / "tow" / "tag-dictionary.json").is_file():
-            dictionary = "tow/tag-dictionary.json"
-        elif (root / ".tow" / "tag-dictionary.json").is_file():
-            dictionary = ".tow/tag-dictionary.json"
+    dictionary = settings.get("dictionaryPath")
+    if settings.get("dictionaryPathExplicit") is not True or not isinstance(dictionary, str):
+        return None
     tow_dictionary = cfg["tagDictionary"]
-    if tow_dictionary == "tow/tag-dictionary.json" and not explicit:
-        manifest = root / ".obsidian" / "plugins" / "tag-ontology" / "manifest.json"
-        try:
-            version = json.loads(manifest.read_text(encoding="utf-8")).get("version")
-            parts = tuple(int(part) for part in str(version).split("."))
-        except (AttributeError, OSError, ValueError):
-            parts = None
-        if parts is not None and parts < (0, 10, 1):
-            return "update the Tag Ontology plugin to 0.10.1 or later so it finds tow/tag-dictionary.json"
     if dictionary == tow_dictionary:
         return None
     return f"plugin dictionary path differs: TOW uses {tow_dictionary}, Tag Ontology plugin uses {dictionary}"
@@ -998,9 +981,16 @@ def cmd_migrate_legacy(root: Path, apply: bool, remove_legacy: bool, scope: str 
 def cmd_find(
     root: Path, cfg: dict[str, str], prefix: str | None, filters: dict[str, str], include_archive: bool
 ) -> int:
+    from tow_search import find_query, matches_scan_query, parse_query
+
     extra = [] if include_archive or cfg["scope"] == "vault" else ["--exclude", f"**/{cfg['projectArchive']}"]
-    for path in find(scan(root, cfg, [], extra)["notes"], prefix, filters):
-        print(path)
+    notes = scan(root, cfg, [], extra)["notes"]
+    query, warnings, _ = parse_query(find_query(prefix, filters))
+    if warnings or query is None:
+        raise ConfigError("could not translate find options into a search query")
+    for note_result in notes:
+        if note_result["frontmatter"] and matches_scan_query(query, note_result):
+            print(note_result["path"])
     return 0
 
 
@@ -1262,7 +1252,10 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("verify-body", help="compare exact body bytes after a metadata-only edit (read-only)")
     p.add_argument("before", type=Path, help="independent snapshot inside the vault")
     p.add_argument("after", type=Path, help="candidate note inside the vault")
-    p = sub.add_parser("lookup", help="find notes matching one concept in the vault and current project")
+    p = sub.add_parser(
+        "lookup",
+        help="find notes matching one concept in the vault and current project; shortcut of tow search tag:<tag>",
+    )
     p.add_argument("tag", help="tag name or alias")
     p.add_argument("--exact", action="store_true", help="match only this tag, not narrower concepts")
     p = sub.add_parser("search", help="search notes with a query")
