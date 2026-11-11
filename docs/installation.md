@@ -6,7 +6,7 @@ TOW adds twelve skills to Claude Code, Codex, and Google Antigravity. Vault-main
 
 ## Install in your host
 
-Have Git and Python 3.10+ available to the host. Node.js 22.18+ and npm/npx are needed for optional `tag-ontology` parsing/ontology features; file search/body work can run without them. The first CLI run may download `tag-ontology@0.3.0` from npm. TOW uses the host's model, account, file permissions, and privacy settings; it has no separate service or API key.
+Have Git and Python 3.10+ available to the host. Node.js 22.18+ and npm/npx are needed for optional `tag-ontology` parsing/ontology features; file search/body work can run without them. The first CLI run may download `tag-ontology@0.3.1` from npm. TOW uses the host's model, account, file permissions, and privacy settings; it has no separate service or API key.
 
 **Claude Code — run inside a Claude Code session:**
 
@@ -46,11 +46,11 @@ Run the relevant command in your terminal:
 | Codex | `codex plugin list --json` | Use `$` or `/skills` and select `tow-query` |
 | Antigravity | `agy plugin list --json` | `/tow-query` |
 
-Confirm `tow`, version `0.5.7`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-send-vault`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (twelve total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
+Confirm `tow`, version `0.5.8`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-send-vault`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (twelve total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
 
 ## Configure the vault
 
-TOW 0.5.7 reads `<vault>/tow/config.json` with `"kind": "vault"`. Existing `<vault>/.tow/config.json` and legacy vaults remain readable until migrated. Without a config file, the effective legacy-compatible defaults are:
+TOW 0.5.8 reads `<vault>/tow/config.json` with `"kind": "vault"`. Existing `<vault>/.tow/config.json` and legacy vaults remain readable until migrated. Without a config file, the effective legacy-compatible defaults are:
 
 ```json
 {
@@ -149,17 +149,17 @@ Vaults using `.tow/` or legacy 0.4.x root files remain readable without moving. 
 
 ## Check the setup
 
-TOW 0.5.7 and `tag-ontology` 0.3.0 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
+TOW 0.5.8 and `tag-ontology` 0.3.1 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
 
 **1. Runtime versions — terminal (Node/npm only for ontology/parsing):**
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.3.0 --version
+npx --yes tag-ontology@0.3.1 --version
 ```
 
-The last command should print `0.3.0`. It checks that the npm CLI can launch; it does not check your vault.
+The last command should print `0.3.1`. It checks that the npm CLI can launch; it does not check your vault.
 
 In a sandbox without network access (such as Codex's default), npx can't fetch the CLI: TOW stops within a second and says so. Allow network for TOW commands, or set `TOW_TAG_ONTOLOGY` to a local build.
 

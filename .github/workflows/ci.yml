@@ -35,4 +35,4 @@ jobs:
       - run: uv sync --locked
       - run: uv run pytest tests/test_cli_integration.py
         env:
-          TOW_TAG_ONTOLOGY: npx --yes tag-ontology@0.3.0
+          TOW_TAG_ONTOLOGY: npx --yes tag-ontology@0.3.1

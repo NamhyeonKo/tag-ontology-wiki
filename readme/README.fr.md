@@ -10,7 +10,7 @@
 
 Un plugin de compétences pour agents qui relie un coffre Obsidian à un projet de développement : recherche par concept dans les deux, étiquette les documents du projet au moyen des métadonnées `.tow/` et envoie le contenu sélectionné dans le coffre sous forme de nouvelle note. Il ne modifie pas les documents du projet et préserve le contenu lors de la maintenance du coffre. Il fonctionne dans Claude Code, Codex et Google Antigravity.
 
-> **Version :** 0.5.7.
+> **Version :** 0.5.8.
 
 ## Présentation
 
@@ -29,7 +29,7 @@ Le paquet contient des compétences, des conventions partagées et l'utilitaire 
 TOW utilise la CLI Tag Ontology pour interroger les tags et valider ou gérer les dictionnaires. Installez le [plugin Tag Ontology pour Obsidian](https://github.com/NamhyeonKo/obsidian-tag-ontology) ([page du plugin communautaire](https://community.obsidian.md/plugins/tag-ontology)) avec TOW pour explorer visuellement, dans un graphe, la hiérarchie des tags et les relations que vous gérez.
 
 ```text
-tag-ontology@0.3.0        vérifications du dictionnaire, requêtes, modifications, analyse des notes
+tag-ontology@0.3.1        vérifications du dictionnaire, requêtes, modifications, analyse des notes
       ▲  npx tag-ontology … --json
 tow (ce plugin)           vérifications des conventions du coffre, compétences
       ▲  Claude Code / Codex / Antigravity
@@ -145,14 +145,14 @@ La recherche est possible sans enregistrer le projet ni disposer de dictionnaire
 
 ## CLI et vérifications de configuration
 
-L'utilitaire utilise `npx --yes tag-ontology@0.3.0` ; npm récupère cette version exacte lorsque c'est nécessaire. Les commandes manuelles de l'utilitaire utilisent le chemin du fichier `scripts/tow.py` installé. Dans les conventions, le nom `tow` est une abréviation de ce chemin.
+L'utilitaire utilise `npx --yes tag-ontology@0.3.1` ; npm récupère cette version exacte lorsque c'est nécessaire. Les commandes manuelles de l'utilitaire utilisent le chemin du fichier `scripts/tow.py` installé. Dans les conventions, le nom `tow` est une abréviation de ce chemin.
 
-Ni TOW 0.5.7 ni `tag-ontology` 0.3.0 ne possèdent de commande `doctor`. Commencez par :
+Ni TOW 0.5.8 ni `tag-ontology` 0.3.1 ne possèdent de commande `doctor`. Commencez par :
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.3.0 --version
+npx --yes tag-ontology@0.3.1 --version
 ```
 
 Exécutez `lint` de TOW uniquement pour les métadonnées TOW adoptées ; les vérifications du dictionnaire s'appliquent uniquement aux fonctions d'ontologie initialisées. L'absence de métadonnées ou de dictionnaires facultatifs n'est pas un échec d'installation. Suivez ensuite les [vérifications de configuration](../docs/installation.md#check-the-setup) pour vérifier le plugin installé, la configuration, les dictionnaires et les tags des notes. `lint` couvre les champs de classification et le nombre de tags ; la compétence de vérification ajoute l'examen de la mise en forme et des références, note par note. Un résultat lint sans erreur ne couvre pas à lui seul toutes les vérifications des compétences.
