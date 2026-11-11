@@ -10,7 +10,7 @@
 
 Un plugin de habilidades para agentes que conecta una bóveda de Obsidian con un proyecto de programación: busca en ambos por concepto, etiqueta documentos del proyecto mediante metadatos `.tow/` y envía el contenido seleccionado a la bóveda como una nota nueva. No modifica los documentos del proyecto y conserva el contenido en el mantenimiento de la bóveda. Funciona en Claude Code, Codex y Google Antigravity.
 
-> **Versión:** 0.5.5.
+> **Versión:** 0.5.6.
 
 ## Descripción general
 
@@ -147,7 +147,7 @@ Puedes buscar sin registrar el proyecto ni tener diccionarios; para etiquetar el
 
 El auxiliar utiliza `npx --yes tag-ontology@0.2.0`; npm obtiene esa versión exacta cuando hace falta. Los comandos manuales del auxiliar utilizan la ruta de `scripts/tow.py` instalado. El nombre `tow` en las convenciones es una abreviatura de esa ruta.
 
-Ni TOW 0.5.5 ni `tag-ontology` 0.2.0 tienen un comando `doctor`. Empieza con:
+Ni TOW 0.5.6 ni `tag-ontology` 0.2.0 tienen un comando `doctor`. Empieza con:
 
 ```bash
 python3 --version

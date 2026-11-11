@@ -10,7 +10,7 @@
 
 用于连接 Obsidian vault 与编码项目的智能体技能插件：按概念搜索两处内容，在项目 `.tow/` 元数据中为文档添加标签，并将选定内容发送为新的 vault 笔记。项目文档不会被修改；vault 维护工作会保留内容。可在 Claude Code、Codex 和 Google Antigravity 中使用。
 
-> **版本：** 0.5.5。
+> **版本：** 0.5.6。
 
 ## 概述
 
@@ -146,7 +146,7 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 
 辅助脚本使用 `npx --yes tag-ontology@0.2.0`；npm 在需要时下载该确切版本。手动运行辅助命令时，使用已安装的 `scripts/tow.py` 路径。约定中的 `tow` 是该路径的简写。
 
-TOW 0.5.5 和 `tag-ontology` 0.2.0 均没有 `doctor` 命令。先运行：
+TOW 0.5.6 和 `tag-ontology` 0.2.0 均没有 `doctor` 命令。先运行：
 
 ```bash
 python3 --version

@@ -1,12 +1,33 @@
-# Release readiness: TOW 0.5.5
+# Release readiness: TOW 0.5.6
 
-## Release scope (0.5.5)
+## Release scope (0.5.6)
+
+- `tow-query` looks up concepts first: before any text search it runs `tow lookup` for likely concepts when the vault has a tag dictionary; an empty result or a missing dictionary leads to text search, not to "no matches".
+- `tow-query` lists matches first (title, path, source, reason) and, for a topic request, opens at most five notes; a specific recollection is opened until confirmed, and every note reported as meeting a predicate is checked. Text search lists file names first and stays in the configured scope folders, never `tow/` or `.tow/`.
+- `tow-query` searches only the vault or only the project when the user names one, and reads the category manual only for category conditions.
+- Every skill says that `tow` is `scripts/tow.py` two directories above the skill file, run by absolute path.
+- The shared search policy in the conventions is a general rule (scope, concept lookup or scoped file search, verify what you report); how many notes to open is each skill's own rule. `tow-link`, `tow-merge`, `tow-ingest` and `tow-review` call it "the shared search policy".
+- The helper turns npm's fetch retries off (unless the user set them) and explains an npm network failure, so a sandbox without network fails in about a second instead of a minute.
+- README editions describe the lookup-first search order; update host manifests, Python metadata, lockfile and README editions to 0.5.6. Keep `tag-ontology@0.2.0` pinned.
+
+## Candidate verification (0.5.6) — 2026-11-11
+
+- Local checks on Python 3.13 with Node.js 22: Ruff lint/format and strict Pyright passed; `pytest` passed 342 tests with 9 real-CLI tests skipped, and all 351 passed with `TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.2.0"`.
+- Under `codex sandbox` (no network), `tow lookup ontology` returned in under a second with the network hint under `unavailable` (0.5.5: 70 s).
+- Model-backed runs on the maintainer's vault (counts in [evaluation](evaluation.md)): against the 0.5.5 skill on Codex (`gpt-6-luna`, `xhigh`), the candidate used 34 instead of 74 commands and opened 5 instead of 22 notes. Gemini 3.8 Flash (medium), GPT-6 Luna (xhigh) and Claude Sonnet 5.5 (medium) each looked up concepts first, opened five notes and stayed in the PARA folders (Flash and Sonnet after step 4 named the scope folders).
+- Not run: installed-host checks after the release. No tag, release or publication is made by these candidate checks.
+
+---
+
+## Historical release readiness: TOW 0.5.5
+
+### Release scope (0.5.5)
 
 - `tow connect <vault>` previews a vault with a visible `tow/` folder instead of refusing it as "not a TOW vault"; the preview now uses the same layout check as `--apply`.
 - `tow project init` writes `.tow/.gitignore` instead of appending to Git's `info/exclude`: `*` in local mode, `documents.local.json` in shared mode. The project's own `.gitignore` and Git's exclude files are not edited. Replacing `*` with `documents.local.json` switches a project to shared mode; projects set up before 0.5.5 keep their `info/exclude` entry. A shared project's `documents.local.json` rule now travels with the repository, so a fresh clone can tag untracked documents without local setup.
 - Update the conventions, the installation guide and `tow-setup`; update host manifests, Python metadata, lockfile and README editions to 0.5.5. Keep `tag-ontology@0.2.0` pinned.
 
-## Candidate verification (0.5.5) — 2026-11-11
+### Candidate verification (0.5.5) — 2026-11-11
 
 - Local checks on Python 3.13 with Node.js 22: Ruff lint/format and strict Pyright passed; `pytest` passed 336 tests with 9 real-CLI tests skipped, and all 345 passed with `TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.2.0"`.
 - Against a real vault with a visible `tow/` folder, `tow connect <vault>` previewed `would connect not connected → <vault>` (0.5.4 refused it); nothing was written.

@@ -10,7 +10,7 @@
 
 Un plugin de compétences pour agents qui relie un coffre Obsidian à un projet de développement : recherche par concept dans les deux, étiquette les documents du projet au moyen des métadonnées `.tow/` et envoie le contenu sélectionné dans le coffre sous forme de nouvelle note. Il ne modifie pas les documents du projet et préserve le contenu lors de la maintenance du coffre. Il fonctionne dans Claude Code, Codex et Google Antigravity.
 
-> **Version :** 0.5.5.
+> **Version :** 0.5.6.
 
 ## Présentation
 
@@ -147,7 +147,7 @@ La recherche est possible sans enregistrer le projet ni disposer de dictionnaire
 
 L'utilitaire utilise `npx --yes tag-ontology@0.2.0` ; npm récupère cette version exacte lorsque c'est nécessaire. Les commandes manuelles de l'utilitaire utilisent le chemin du fichier `scripts/tow.py` installé. Dans les conventions, le nom `tow` est une abréviation de ce chemin.
 
-Ni TOW 0.5.5 ni `tag-ontology` 0.2.0 ne possèdent de commande `doctor`. Commencez par :
+Ni TOW 0.5.6 ni `tag-ontology` 0.2.0 ne possèdent de commande `doctor`. Commencez par :
 
 ```bash
 python3 --version
