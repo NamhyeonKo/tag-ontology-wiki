@@ -8,7 +8,7 @@ description: >-
 
 # tow-send-vault
 
-Bring selected project content into the connected vault as a new note. Read the [conventions](../../docs/methodology.md), run `tow config` to resolve the effective `tagDictionary`/`categoryDictionary` paths, and read the vault's `tow/tags.md` and `tow/categories.md` manuals when present before drafting. Only `tow send` writes to the vault; it never overwrites an existing note. Use the paths from `tow config`.
+Bring selected project content into the connected vault as a new note. Read the [conventions](../../docs/methodology.md) and, for a vault using the TOW schema, the [TOW recipe](../../docs/recipe.md) (§3 tags, §4 frontmatter). Run `tow config` to resolve the effective `tagDictionary`/`categoryDictionary` paths, and read the vault's `tow/tags.md` and `tow/categories.md` manuals when present before drafting. Only `tow send` writes to the vault; it never overwrites an existing note. Use the paths from `tow config`.
 
 ## Workflow
 

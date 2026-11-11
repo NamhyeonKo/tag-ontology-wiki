@@ -25,6 +25,9 @@ def test_public_documentation_links_resolve_inside_the_repository() -> None:
         ROOT / "README.md",
         ROOT / "CONTRIBUTING.md",
         ROOT / "docs/installation.md",
+        ROOT / "docs/methodology.md",
+        ROOT / "docs/recipe.md",
+        *(ROOT / "skills").rglob("*.md"),
         *(ROOT / "readme").glob("*.md"),
     ]
     for document in documents:
@@ -38,7 +41,7 @@ def test_public_documentation_links_resolve_inside_the_repository() -> None:
 
 def test_tag_skills_cite_the_broader_narrower_rule_in_the_conventions() -> None:
     rule = "Broader and narrower tags together"
-    assert f"**{rule}**" in (ROOT / "docs/methodology.md").read_text()
+    assert f"**{rule}**" in (ROOT / "docs/recipe.md").read_text()
     for skill in ("tow-tag-sync", "tow-tag-suggest"):
         assert f'"{rule}"' in (ROOT / "skills" / skill / "SKILL.md").read_text(), skill
 
