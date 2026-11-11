@@ -10,7 +10,7 @@
 
 An agent skill plugin for working across an Obsidian vault and a coding project: search both by concept, tag project documents in `.tow/` metadata without editing them, and send selected content to the vault as a new note. Vault-maintenance workflows preserve note content. Runs in Claude Code, Codex, and Google Antigravity.
 
-> **Version:** 0.5.3.
+> **Version:** 0.5.4.
 
 ## Overview
 
@@ -147,7 +147,7 @@ Search works without project registration or dictionaries; project tagging requi
 
 The helper uses `npx --yes tag-ontology@0.2.0`; npm fetches that exact version when needed. Manual helper commands use the installed `scripts/tow.py` path. The name `tow` in the conventions is shorthand for that path. For project commands, run it from the project; vault-targeted commands may use `--root <vault>`.
 
-Neither TOW 0.5.3 nor `tag-ontology` 0.2.0 has a `doctor` command. Start with:
+Neither TOW 0.5.4 nor `tag-ontology` 0.2.0 has a `doctor` command. Start with:
 
 ```bash
 python3 --version
