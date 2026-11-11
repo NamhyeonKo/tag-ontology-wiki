@@ -1,6 +1,23 @@
-# Release readiness: TOW 0.5.4
+# Release readiness: TOW 0.5.5
 
-## Release scope (0.5.4)
+## Release scope (0.5.5)
+
+- `tow connect <vault>` previews a vault with a visible `tow/` folder instead of refusing it as "not a TOW vault"; the preview now uses the same layout check as `--apply`.
+- `tow project init` writes `.tow/.gitignore` instead of appending to Git's `info/exclude`: `*` in local mode, `documents.local.json` in shared mode. The project's own `.gitignore` and Git's exclude files are not edited. Replacing `*` with `documents.local.json` switches a project to shared mode; projects set up before 0.5.5 keep their `info/exclude` entry. A shared project's `documents.local.json` rule now travels with the repository, so a fresh clone can tag untracked documents without local setup.
+- Update the conventions, the installation guide and `tow-setup`; update host manifests, Python metadata, lockfile and README editions to 0.5.5. Keep `tag-ontology@0.2.0` pinned.
+
+## Candidate verification (0.5.5) — 2026-11-11
+
+- Local checks on Python 3.13 with Node.js 22: Ruff lint/format and strict Pyright passed; `pytest` passed 336 tests with 9 real-CLI tests skipped, and all 345 passed with `TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.2.0"`.
+- Against a real vault with a visible `tow/` folder, `tow connect <vault>` previewed `would connect not connected → <vault>` (0.5.4 refused it); nothing was written.
+- In fresh Git repositories with that vault connected, `project init --mode local --apply` left `git status` empty, and `--mode shared --apply` showed every `.tow/` file, including `.tow/.gitignore`, as committable while `documents.local.json` stayed ignored.
+- Not run: model-backed skill application and installed-host checks for the changed `tow-setup` text. No tag, release or publication is made by these candidate checks.
+
+---
+
+## Historical release readiness: TOW 0.5.4
+
+### Release scope (0.5.4)
 
 - Stop an empty default search scope (`"scope": "para"` with no PARA folder) from giving false or silent results: pathless `ontology usage` exits 2, `lookup` lists the vault under `unavailable`, and `lint` prints `no notes checked`.
 - Add `init --scope {para,vault}` and `migrate --scope {para,vault}` so a vault that keeps its own folders, such as one used only with the Tag Ontology plugin, gets `"scope": "vault"` without hand-editing JSON. Existing config files are never rewritten.
@@ -13,7 +30,7 @@
 - State that agents write the tag dictionary only through `tow ontology plan`/`apply`, that the plugin's sidebar editor keeps the same layout, and that `facet` is set in the plugin's edit form (0.11.0 or later) or in the file; the installation guide points to the plugin's “Kebab-case tag names” setting.
 - Update host manifests, Python metadata, lockfile and README editions to 0.5.4. Keep `tag-ontology@0.2.0` pinned.
 
-## Candidate verification (0.5.4) — 2026-11-11
+### Candidate verification (0.5.4) — 2026-11-11
 
 - Local checks on Python 3.13 with Node.js 22: Ruff lint/format and strict Pyright passed; `pytest` passed 335 tests with 9 real-CLI tests skipped, and all 344 passed with `TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.2.0"`.
 - Helper scenario on a copy of the Tag Ontology plugin's sample vault (root `Tag-Dictionary.json`, six notes under `Notes/`): before migration, `ontology usage` exited 2 and `lookup python` exited 1 with the vault under `unavailable`; after `migrate --scope vault --apply`, `usage` scanned six notes and `lookup python` returned `Notes/Python basics.md`.

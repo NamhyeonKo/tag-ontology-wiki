@@ -1202,7 +1202,7 @@ def cmd_connect(vault: Path | None, apply: bool) -> int:
         write_user_config(root)
         print(f"connected {root}")
     else:
-        if tow_kind(root) != "vault" and not is_legacy_vault(root):
+        if vault_layout(root) == "plain":
             raise ConfigError(f"not a TOW vault; run setup inside the vault first: {root}")
         print(f"would connect {current or 'not connected'} → {root}")
     if env_vault:
@@ -1238,7 +1238,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--apply", action="store_true", help="write the category dictionary")
     p = sub.add_parser("project", help="manage project metadata")
     project_sub = p.add_subparsers(dest="project_command", required=True)
-    p = project_sub.add_parser("init", help="initialize project metadata; --apply creates files and Git excludes")
+    p = project_sub.add_parser(
+        "init", help="initialize project metadata; --apply creates the files, including .tow/.gitignore"
+    )
     p.add_argument("--mode", choices=("local", "shared"), required=True)
     p.add_argument("--exclude", action="append", default=[], metavar="GLOB", help="exclude a project document glob")
     p.add_argument("--apply", action="store_true", help="create project metadata")

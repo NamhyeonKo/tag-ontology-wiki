@@ -311,6 +311,19 @@ def test_connect_previews_without_apply_and_writes_with_apply(
     assert json.loads(config.read_text(encoding="utf-8")) == {"kind": "user", "vault": str(new_vault.resolve())}
 
 
+def test_connect_previews_a_vault_with_a_visible_tow_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    set_home(tmp_path, monkeypatch)
+    vault = tmp_path / "vault"
+    (vault / "tow").mkdir(parents=True)
+    (vault / "tow" / "config.json").write_text('{"kind": "vault"}', encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    assert tow.main(["connect", "vault"]) == 0
+    assert capsys.readouterr().out == f"would connect not connected → {vault.resolve()}\n"
+
+
 def test_user_config_write_preserves_existing_file_if_atomic_replace_fails(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

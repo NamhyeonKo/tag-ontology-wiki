@@ -46,11 +46,11 @@ Run the relevant command in your terminal:
 | Codex | `codex plugin list --json` | Use `$` or `/skills` and select `tow-query` |
 | Antigravity | `agy plugin list --json` | `/tow-query` |
 
-Confirm `tow`, version `0.5.4`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-send-vault`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (twelve total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
+Confirm `tow`, version `0.5.5`, and its enabled state where shown. In the new session's skill selector, check for `tow-query`, `tow-send-vault`, `tow-check`, `tow-tag-suggest`, and `tow-tag-sync`, plus `tow-classify`, `tow-link`, `tow-edit`, `tow-merge`, `tow-review`, `tow-ingest`, and `tow-setup` (twelve total). Claude's `plugin details` lists its components; `claude plugin list --json` also gives the installed path and enabled state. Codex's install result gives `installedPath`; its plugin list is not a skill inventory. Antigravity's list gives `path` and the discovered skills.
 
 ## Configure the vault
 
-TOW 0.5.4 reads `<vault>/tow/config.json` with `"kind": "vault"`. Existing `<vault>/.tow/config.json` and legacy vaults remain readable until migrated. Without a config file, the effective legacy-compatible defaults are:
+TOW 0.5.5 reads `<vault>/tow/config.json` with `"kind": "vault"`. Existing `<vault>/.tow/config.json` and legacy vaults remain readable until migrated. Without a config file, the effective legacy-compatible defaults are:
 
 ```json
 {
@@ -131,7 +131,7 @@ TOW="/absolute/path/to/installed/tow/scripts/tow.py"
 "$TOW" connect
 ```
 
-Project metadata is separately registered with the user's choice of local or shared mode. Local mode stores `.tow/` in Git's repository-local `info/exclude`; shared mode leaves project metadata commit-able and excludes only `documents.local.json`. Setup proposes excludes only for dependency/build folders found in the project and never edits `.gitignore`, project documents, or host settings. From a project, `tow-query` searches both the connected vault and current project, and `tow-send-vault` can create a new vault note from selected content after approval. Inside a vault, queries remain vault-only.
+Project metadata is separately registered with the user's choice of local or shared mode. Project init writes `.tow/.gitignore`: `*` in local mode keeps all of `.tow/` out of Git, and `documents.local.json` in shared mode keeps only the tags of untracked documents out. To share a local project later, replace `*` with `documents.local.json`; deleting the file would let those tags be committed. Setup proposes excludes only for dependency/build folders found in the project and never edits the project's own `.gitignore`, project documents, or host settings. From a project, `tow-query` searches both the connected vault and current project, and `tow-send-vault` can create a new vault note from selected content after approval. Inside a vault, queries remain vault-only.
 
 ### Host access suggestions
 
@@ -149,7 +149,7 @@ Vaults using `.tow/` or legacy 0.4.x root files remain readable without moving. 
 
 ## Check the setup
 
-TOW 0.5.4 and `tag-ontology` 0.2.0 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
+TOW 0.5.5 and `tag-ontology` 0.2.0 have no `doctor` command. Use the applicable read-only checks below. Skip TOW lint on custom schemas; skip dictionary checks when no ontology is selected. Unavailable/inapplicable checks are not passes or installation failures.
 
 **1. Runtime versions — terminal (Node/npm only for ontology/parsing):**
 
