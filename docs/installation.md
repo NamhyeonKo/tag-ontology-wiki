@@ -161,6 +161,8 @@ npx --yes tag-ontology@0.2.0 --version
 
 The last command should print `0.2.0`. It checks that the npm CLI can launch; it does not check your vault.
 
+In a sandbox without network access (such as Codex's default), npx can't fetch the CLI: TOW stops within a second and says so. Allow network for TOW commands, or set `TOW_TAG_ONTOLOGY` to a local build.
+
 **2. Installed helper — terminal:**
 
 `--help` and `config` apply to every vault. The `lint`/dictionary commands below apply only to the adopted, initialized TOW features, not arbitrary custom fields.

@@ -15,6 +15,17 @@ from pathlib import Path
 from typing import Final, Literal, cast
 
 DEFAULT_CLI: Final = "npx --yes tag-ontology@0.2.0"
+NETWORK_HINT: Final[str] = (
+    "the tag-ontology CLI could not be fetched from npm, often because a sandbox blocks network access; "
+    "allow network for this command, or set TOW_TAG_ONTOLOGY to a local CLI such as 'node <path>/dist/cli/main.js'"
+)
+NETWORK_ERROR_CODES: Final = (
+    "ENOTFOUND",  # npm retries unreachable registries for about a minute, which looks like a hang in a sandbox.
+    "EAI_AGAIN",  # npm retries unreachable registries for about a minute, which looks like a hang in a sandbox.
+    "ECONNREFUSED",  # npm retries unreachable registries for about a minute, which looks like a hang in a sandbox.
+    "ETIMEDOUT",  # npm retries unreachable registries for about a minute, which looks like a hang in a sandbox.
+    "ENOTCACHED",  # npm retries unreachable registries for about a minute, which looks like a hang in a sandbox.
+)
 VaultSource = Literal["--root", "TOW_VAULT", "user", "ancestor"]
 VaultLayout = Literal["tow", "dot", "legacy", "plain"]
 
@@ -41,9 +52,18 @@ def body_bytes(content: bytes) -> bytes:
 def run_cli(args: list[str], capture: bool) -> subprocess.CompletedProcess[str]:
     command = shlex.split(os.environ.get("TOW_TAG_ONTOLOGY", DEFAULT_CLI))
     try:
-        return subprocess.run([*command, *args], capture_output=capture, text=True, check=False)
+        result = subprocess.run(
+            [*command, *args],
+            capture_output=capture,
+            text=True,
+            check=False,
+            env={"npm_config_fetch_retries": "0", **os.environ},
+        )
     except FileNotFoundError as e:
         raise CliError(f"can't run the tag-ontology CLI ({e.filename}); it needs Node.js") from e
+    if capture and result.returncode != 0 and any(code in result.stderr for code in NETWORK_ERROR_CODES):
+        result.stderr = f"{NETWORK_HINT}\n{result.stderr}"
+    return result
 
 
 def serialize_entries(entries: Mapping[str, object]) -> str:
