@@ -20,7 +20,7 @@ El mantenimiento habitual conserva la prosa, el contenido de las fórmulas y del
 - **Campos de clasificación** en el frontmatter: `category`, `type`, `status`, `kind`.
 - **Una ontología de etiquetas conceptuales**: un diccionario de etiquetas con alias y relaciones entre conceptos más amplios y más específicos.
 
-Elige PARA durante la configuración o conserva tus propias carpetas. Las búsquedas habituales y el trabajo sobre el cuerpo de las notas no requieren diccionarios ni limpieza de metadatos. Si existe un diccionario de etiquetas, las consultas buscan primero conceptos en él (`tow lookup`); después buscan texto en las carpetas permitidas y solo abren las notas descritas por la consulta; las propiedades disponibles mejoran la precisión. Las convenciones completas están en [docs/methodology.md](../docs/methodology.md).
+Elige PARA durante la configuración o conserva tus propias carpetas. Las búsquedas habituales y el trabajo sobre el cuerpo de las notas no requieren diccionarios ni limpieza de metadatos. Si existe un diccionario de etiquetas, las consultas buscan primero conceptos en él (`tow lookup`); después buscan texto en las carpetas permitidas y solo abren las notas que describen en la respuesta; las propiedades disponibles mejoran la precisión. Las convenciones completas están en [docs/methodology.md](../docs/methodology.md).
 
 TOW instala doce flujos de trabajo en el entorno local de tu agente. Los flujos exclusivos de la bóveda gestionan notas de Obsidian; desde un proyecto, `tow-query` busca tanto en la bóveda conectada como en el proyecto actual, y `tow-send-vault` crea una nota nueva en la bóveda con el contenido seleccionado tras tu aprobación. Las etiquetas y los hashes del proyecto se guardan en los metadatos `.tow/` del proyecto; los documentos del proyecto no se modifican.
 
@@ -42,7 +42,7 @@ tu bóveda de Obsidian
 | --- | --- | --- |
 | `tow-setup` | Configurar una bóveda, conectarla para usarla desde un proyecto o registrar metadatos del proyecto | Inspecciona primero los nombres; solo escribe metadatos `.tow/` aprobados o la conexión personal |
 | `tow-send-vault` | Enviar contenido seleccionado del proyecto a la bóveda conectada | Crea una nota nueva tras la aprobación; conserva el cuerpo seleccionado salvo que se pida transformarlo |
-| `tow-query` | Buscar documentos mediante condiciones en lenguaje natural, propiedades personalizadas, etiquetas o texto | Solo lectura; primero busca conceptos y después texto con alcance delimitado; muestra coincidencias y abre solo las notas descritas por la consulta |
+| `tow-query` | Buscar documentos mediante condiciones en lenguaje natural, propiedades personalizadas, etiquetas o texto | Solo lectura; primero busca conceptos y después texto con alcance delimitado; muestra coincidencias y abre solo las notas que describe en la respuesta |
 | `tow-check` | Comprobar frontmatter, Markdown, fórmulas, código, tablas y referencias | Primero informa; las correcciones de sintaxis seleccionadas conservan la prosa, el contenido y los valores |
 | `tow-tag-suggest` | Recomendar etiquetas conceptuales para las notas seleccionadas | Aplica solo las adiciones o eliminaciones que selecciones |
 | `tow-tag-sync` | Registrar nuevas etiquetas, resolver alias o conciliar el diccionario | Primero propone; aplica los cambios aprobados en el diccionario y las etiquetas |
