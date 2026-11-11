@@ -20,7 +20,7 @@ Ordinary maintenance preserves prose, math/code contents and table values; only 
 - **Classification fields** in frontmatter: `category`, `type`, `status`, `kind`.
 - **A concept tag ontology**: a tag dictionary with aliases and broader/narrower relations.
 
-Choose PARA during setup or keep your own folders. Ordinary search/body work needs neither dictionaries nor metadata cleanup. Queries look up concepts in the tag dictionary first when there is one (`tow lookup`), then search text in the allowed folders, and open only the notes they describe in the answer; available properties improve precision. The full conventions are in [docs/methodology.md](docs/methodology.md).
+Choose PARA during setup or keep your own folders. Ordinary search/body work needs neither dictionaries nor metadata cleanup. Queries run one `tow search` that combines concepts from the tag dictionary, titles, headings, text and properties with AND, OR and NOT, then open only the notes they describe in the answer; available properties improve precision. The full conventions are in [docs/methodology.md](docs/methodology.md).
 
 TOW installs twelve workflows into your local agent host. Vault-only workflows manage notes in Obsidian; from a project, `tow-query` searches the connected vault and current project, and `tow-send-vault` creates a new vault note from selected content after approval. Project tags and hashes are stored in project `.tow/` metadata; project documents are not edited.
 
@@ -42,7 +42,7 @@ your Obsidian vault
 | --- | --- | --- |
 | `tow-setup` | Set up a vault, connect it for project use, or register project metadata | Inspects names first; writes only approved `.tow/` metadata or personal connection settings |
 | `tow-send-vault` | Send selected project content to the connected vault | Creates a new note after approval; preserves the selected body unless a transformation is requested |
-| `tow-query` | Find documents using natural-language conditions, custom properties, tags or text | Read-only; concept lookup first, then scoped text search; lists matches and opens only the notes it describes in the answer |
+| `tow-query` | Find documents using natural-language conditions, custom properties, tags or text | Read-only; one `tow search` query (AND, OR, NOT) over concepts, titles, text and fields; lists matches and opens only the notes it describes in the answer |
 | `tow-check` | Check frontmatter, Markdown, math, code, tables and references | Reports first; selected syntax fixes preserve prose, payloads and values |
 | `tow-tag-suggest` | Recommend concept tags for selected notes | Applies only the additions/removals you select |
 | `tow-tag-sync` | Register new tags, resolve aliases, or reconcile the dictionary | Proposes first; applies approved dictionary/tag changes |

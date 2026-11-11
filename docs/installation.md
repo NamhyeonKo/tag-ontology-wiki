@@ -174,6 +174,7 @@ TOW="/absolute/path/to/installed/tow/scripts/tow.py"
 VAULT="/absolute/path/to/vault"
 "$TOW" --help
 "$TOW" --root "$VAULT" config
+"$TOW" --root "$VAULT" search "tag:<tag>"
 "$TOW" --root "$VAULT" lint
 "$TOW" --root "$VAULT" ontology check --json
 "$TOW" --root "$VAULT" ontology usage --json
