@@ -2,10 +2,77 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
+from collections.abc import Mapping
 from dataclasses import dataclass
+from pathlib import Path, PurePosixPath
 from typing import Literal, TypedDict
 
 FIELDS = ("tag", "title", "heading", "text", "path", "category", "type", "status", "kind", "source")
+PARA = ("projects", "areas", "resources", "archives")
+GIT_UNAVAILABLE = "vault: git is not available, so .gitignore rules can't be applied; body and heading search skipped"
+
+
+@dataclass
+class Candidates:
+    paths: list[str]
+    contents_ok: bool
+    unavailable: list[str]
+
+
+def vault_candidates(root: Path, cfg: Mapping[str, str]) -> Candidates:
+    """List visible Markdown paths in the configured vault scope."""
+    root = root.resolve()
+    folders = [cfg[key] for key in PARA if (root / cfg[key]).is_dir()] if cfg["scope"] == "para" else ["."]
+
+    def visible(path: str) -> bool:
+        parts = PurePosixPath(path).parts
+        return (
+            bool(parts)
+            and not any(part.startswith(".") for part in parts)
+            and parts[0] != "tow"
+            and (cfg["scope"] != "para" or parts[0] in folders)
+            and not (cfg["scope"] == "para" and cfg["projectArchive"] in parts[1:-1])
+            and path.endswith(".md")
+        )
+
+    def walk() -> list[str]:
+        paths: list[str] = []
+        for directory, names, files in os.walk(root):
+            current = Path(directory)
+            names[:] = [name for name in names if not name.startswith(".") and (current != root or name != "tow")]
+            if cfg["scope"] == "para" and current == root:
+                names[:] = [name for name in names if name in folders]
+            for name in files:
+                relative = (current / name).relative_to(root).as_posix()
+                if visible(relative):
+                    paths.append(relative)
+        return sorted(set(paths))
+
+    git_present = any((directory / ".git").exists() for directory in (root, *root.parents))
+    try:
+        check = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--is-inside-work-tree"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        paths = walk()
+        return Candidates(paths, not git_present, [] if not git_present else [GIT_UNAVAILABLE])
+
+    if check.returncode == 0 and check.stdout.strip() == "true":
+        result = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", *folders],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            return Candidates(sorted({path for path in result.stdout.split("\0") if path and visible(path)}), True, [])
+
+    return Candidates(walk(), True, [])
 
 
 @dataclass(frozen=True)
