@@ -219,3 +219,20 @@ Same prompt and hosts as the 0.5.6 cross-provider runs, with the candidate `tow-
 - No run searched outside the scope; the helper now applies scope, project archives and Git ignore rules, which two of three models got wrong from skill text alone in 0.5.6.
 - A first Sonnet run loaded the installed 0.5.6 skill through Claude Code's skill tool instead of the candidate file; the run above disallowed that tool.
 - Malformed query: Flash ran `tow search '(tag:rag OR title:graph'` as instructed, read the `unclosed-group` warning, saw that `query.interpreted` (`tag:rag OR title:graph`) matched the intent, did not rerun, and reported the repair in its answer (78 s).
+
+## tow search — 0.5.8 runs (2026-11-12)
+
+Same hosts as the 0.5.7 runs, one everyday request per model, with the released 0.5.8 skill (CLI `tag-ontology@0.3.1`; Luna's read-only sandbox used a local copy of the same CLI).
+
+| Request | Model | Time | What happened |
+| --- | --- | --- | --- |
+| notes tagged `#ontology` or `#knowledge-graph` | Gemini 3.8 Flash | 84 s | `tag:ontology OR tag:knowledge-graph`; 4 matches, 4 opened |
+| notes on both ontology and knowledge graphs, "tag was ontolgy?" | GPT-6 Luna | 397 s | one search, then host search of the unregistered project it ran from |
+| same, vault only, run outside any project | GPT-6 Luna | 178 s | one search; 2 matches opened |
+| second-brain notes, not drafts | Claude Sonnet 5.5 | 28 s | `second-brain -status:draft`; 1 match opened |
+| user-given `tag:#ontolgy OR tag:#second-brian` | all three | 32–54 s | `#` dropped, two `unknown-tag` warnings; each model combined both corrections and found the note |
+
+- No run opened or grepped the tag dictionary.
+- Each `unknown-tag` warning's `retry` fixes only its own tag, so with two misspelled tags neither retry runs clean as-is; the models merged them by hand.
+- From an unregistered project, `tow search` searches only the vault without saying the project was skipped; one Sonnet run explained the skip with a wrong reason ("you named the vault").
+- 0.5.9 rerun of both gaps on the candidate: with one shared `retry` for all warnings, Flash (61 s), Luna (61 s) and Sonnet (32 s) each reran it as-is and found the note; Sonnet's second-brain request (34 s) reported the unregistered project from `unavailable` instead of guessing a reason.

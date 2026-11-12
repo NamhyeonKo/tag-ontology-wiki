@@ -1,13 +1,30 @@
-# Release readiness: TOW 0.5.8
+# Release readiness: TOW 0.5.9
 
-## Release scope (0.5.8)
+## Release scope (0.5.9)
+
+- Every `tow search` warning carries the same `retry`, with all repairs applied. In 0.5.8 each `unknown-tag` warning fixed only its own tag, so a query with two misspelled tags had no retry that ran clean as-is.
+- From a project without `.tow/config.json`, `tow search` lists it under `unavailable` (only the vault was searched) instead of skipping it silently; `tow-query` covers it with host file search when the request includes the project.
+- Update `tow-query` and the conventions; update host manifests, Python metadata, lockfile, README editions and the installation guide to 0.5.9. Keep `tag-ontology@0.3.1` pinned.
+
+## Candidate verification (0.5.9) — 2026-11-12
+
+- Local checks: Ruff lint/format and strict Pyright pass; `pytest` 403 passed with 10 real-CLI tests skipped.
+- On the maintainer's vault from an unregistered project: `tag:#ontolgy OR tag:#second-brian` gives two warnings with the same `retry`, `tag:ontology OR tag:second-brain`, which runs with no warning and finds the note; the project is listed under `unavailable`. Run inside the vault, nothing is added.
+- Model-backed runs (see [evaluation](evaluation.md)): Flash, Luna and Sonnet each ran the shared `retry` as-is (32–61 s); Sonnet reported the unregistered project from `unavailable` with the right reason.
+- Not run: installed-host checks after release.
+
+---
+
+## Historical release readiness: TOW 0.5.8
+
+### Release scope (0.5.8)
 
 - `tow search` accepts Obsidian's `tag:#x` form: a leading `#` in a `tag:` value is dropped, so `tag:#ontology` searches the tag `ontology` and `query.interpreted` shows `tag:ontology`. In 0.5.7 it was an unknown tag whose `retry` searched the word `#ontology`.
 - An unknown tag gets its similar tags from one `tag-ontology suggest` run; the CLI shortens the term itself (tag-ontology 0.3.1). In 0.5.7 the helper ran the CLI once per shortened prefix.
 - `tow-query` no longer tells agents to consult the tag dictionary before searching: `tow search` resolves tags and answers unknown ones, so the dictionary is not opened or grepped; `tow ontology show` is used only for broader concepts the user asks about.
 - Pin `tag-ontology@0.3.1` (published); update host manifests, Python metadata, lockfile, README editions and the installation guide.
 
-## Candidate verification (0.5.8) — 2026-11-12
+### Candidate verification (0.5.8) — 2026-11-12
 
 - Local checks: Ruff lint/format and strict Pyright pass; `pytest` 401 passed with 10 real-CLI tests skipped; all 411 pass with `TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.3.1"`.
 - On the maintainer's vault with the published CLI, run from outside the vault: `tag:#ontology` and `tag:=#ontology` find the same note as `tag:ontology` with no warning and `query.interpreted` `tag:ontology` (0.5.7: no match, 4.1 s); `tag:ontolgy` suggests `ontology` in 1.0 s (0.5.7: 2.1 s); a 20-character misspelling still suggests `ontology` in 0.9 s.
