@@ -73,6 +73,12 @@ Local planning/research under `docs/superpowers/` is ignored. Do not add it or p
 
 For release changes, keep versions consistent across the Python project and host manifests, and document the required host update steps. A documentation PR does not authorize a release, marketplace submission, or publication.
 
+When a release changes `tow search` or `tow-query`, run these requests on at least two hosts before tagging, and record counts in `docs/evaluation.md`:
+
+- a topic request ("find my notes about X"): one `tow search`, scope respected, at most five notes opened;
+- a user-given query with two misspelled tags (`tag:#ontolgy OR tag:#second-brian`): the shared `retry` is run as-is;
+- the same topic request from a Git repository without `.tow/config.json`: the project is reported from `unavailable`, not skipped silently.
+
 ## License
 
 Contributions are made under the repository's [MIT license](LICENSE).

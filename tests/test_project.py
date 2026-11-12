@@ -1254,8 +1254,13 @@ def test_lookup_without_a_tow_project_returns_only_vault_results(
 
     assert tow.main(["--root", str(vault), "lookup", "used"]) == 0
 
-    assert json.loads(capsys.readouterr().out)["results"] == [
+    output = json.loads(capsys.readouterr().out)
+    assert output["results"] == [
         {"source": "vault", "path": "vault.md", "matches": [{"tag": "used", "source": "tags", "kind": "exact"}]}
+    ]
+    assert output["unavailable"] == [
+        f"project: {outside.resolve()} has no .tow/config.json, so only the vault was searched; "
+        "if the request covers this project, list its files with host file search"
     ]
     calls = read_json(calls_path)
     assert len(calls) == 1
