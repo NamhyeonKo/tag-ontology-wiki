@@ -26,10 +26,10 @@ These are the checks used by [CI](.github/workflows/ci.yml). The runtime helper 
 
 ### Real CLI integration
 
-The helper calls `npx --yes tag-ontology@0.3.1`. The exact version makes the downloaded executable reproducible. It turns npm's fetch retries off (unless you set `npm_config_fetch_retries`), so an unreachable registry fails in about a second. Set `TOW_TAG_ONTOLOGY` to run integration tests:
+The helper calls `npx --yes tag-ontology@0.3.2`. The exact version makes the downloaded executable reproducible. It turns npm's fetch retries off (unless you set `npm_config_fetch_retries`), so an unreachable registry fails in about a second. Set `TOW_TAG_ONTOLOGY` to run integration tests:
 
 ```bash
-TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.3.1" uv run pytest
+TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.3.2" uv run pytest
 ```
 
 You can also point it at a local build, for example `TOW_TAG_ONTOLOGY="node /absolute/path/to/cli.js"`. Without this variable, real CLI integration tests are skipped. Tests copy the [synthetic fixture vault](tests/fixtures/vault) into temporary directories; do not use a personal vault as a test fixture. npm may download the pinned package and write its cache.
@@ -72,6 +72,12 @@ Local planning/research under `docs/superpowers/` is ignored. Do not add it or p
 - Preserve existing vault content, custom schemas, scoped reads, and explicit approval boundaries. A cleanup request must not silently authorize rewriting note bodies.
 
 For release changes, keep versions consistent across the Python project and host manifests, and document the required host update steps. A documentation PR does not authorize a release, marketplace submission, or publication.
+
+When a release changes `tow search` or `tow-query`, run these requests on at least two hosts before tagging, and record counts in `docs/evaluation.md`:
+
+- a topic request ("find my notes about X"): one `tow search`, scope respected, at most five notes opened;
+- a user-given query with two misspelled tags (`tag:#ontolgy OR tag:#second-brian`): the shared `retry` is run as-is;
+- the same topic request from a Git repository without `.tow/config.json`: the project is reported from `unavailable`, not skipped silently.
 
 ## License
 

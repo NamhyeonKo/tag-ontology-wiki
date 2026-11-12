@@ -496,7 +496,7 @@ def test_workflow_root_folders_reject_nested_paths(key: str, value: str) -> None
 
 
 def test_default_cli_is_pinned_to_tag_ontology_0_3_0() -> None:
-    assert tow_core.DEFAULT_CLI == "npx --yes tag-ontology@0.3.1"
+    assert tow_core.DEFAULT_CLI == "npx --yes tag-ontology@0.3.2"
 
 
 def test_run_cli_turns_off_npm_retries_unless_the_user_set_them(monkeypatch: pytest.MonkeyPatch) -> None:

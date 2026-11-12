@@ -561,17 +561,14 @@ def cmd_search(
     from tow import PARA as TOW_PARA
     from tow import scan as scan_notes
     from tow import scope_is_empty
-    from tow_project import lookup_results, project_files, tag_is_known
+    from tow_project import lookup_results, project_files, tag_is_known, unregistered_message
 
     node, warnings, interpreted = parse_query(query)
     scope = [cfg[key] for key in TOW_PARA if (vault / cfg[key]).is_dir()] if cfg["scope"] == "para" else ["."]
     candidates = vault_candidates(vault, cfg)
     unavailable = list(candidates.unavailable)
     if unregistered is not None:
-        unavailable.append(
-            f"project: {unregistered} has no .tow/config.json, so only the vault was searched; "
-            "if the request covers this project, list its files with host file search"
-        )
+        unavailable.append(unregistered_message(unregistered))
     vault_skipped = (
         "search scope is empty (no PARA folders); no vault notes were searched" if scope_is_empty(vault, cfg) else None
     )

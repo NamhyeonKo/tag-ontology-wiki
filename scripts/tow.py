@@ -23,7 +23,7 @@
                                              print additions for project-only concepts (from inside the vault)
 
 Note metadata is parsed through `tag-ontology scan --json`. `verify-body` only separates a leading frontmatter block.
-Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.3.1).
+Set TOW_TAG_ONTOLOGY to change the CLI command (default: npx --yes tag-ontology@0.3.2).
 """
 
 from __future__ import annotations
@@ -1350,7 +1350,7 @@ def main(argv: list[str] | None = None) -> int:
                     if warn_if_scope_is_empty(root, cfg, vault_ref.layout)
                     else None
                 )
-                return cmd_lookup(root, cfg, project, args.tag, args.exact, vault_args, skipped)
+                return cmd_lookup(root, cfg, project, args.tag, args.exact, vault_args, skipped, unregistered)
             query = search_query if search_query is not None else args.query
             vault_args = ontology_args("show", ["--notes", "--json"], str(root), cfg, scope_excludes(root, cfg, []))
             return cmd_search(root, cfg, project, query, vault_args, unregistered)

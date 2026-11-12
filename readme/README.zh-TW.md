@@ -10,7 +10,7 @@
 
 用於連接 Obsidian vault 與程式專案的代理技能外掛程式：依概念搜尋兩處內容，在專案 `.tow/` 中繼資料為文件加上標籤，並將選取內容傳送為新的 vault 筆記。專案文件不會被修改；vault 維護工作會保留內容。可在 Claude Code、Codex 和 Google Antigravity 中執行。
 
-> **版本：** 0.5.9。
+> **版本：** 0.5.10。
 
 ## 概覽
 
@@ -20,7 +20,7 @@
 - frontmatter 中的**分類欄位**：`category`、`type`、`status`、`kind`。
 - **概念標籤本體**：具有別名及上位／下位關係的標籤字典。
 
-設定時可選擇 PARA，也可保留自己的資料夾。一般搜尋及內文操作不需要字典，也不需要清理中繼資料。查詢以一次 `tow search` 將標籤字典中的概念、標題、標題行、內文和屬性用 AND、OR、NOT 組合搜尋，接著只開啟回答中要說明的筆記；現有屬性可提高查詢精確度。完整慣例請見 [docs/methodology.md](../docs/methodology.md)。
+設定時可選擇 PARA，也可保留自己的資料夾。一般搜尋及內文操作不需要字典，也不需要清理中繼資料。查詢以一次 `tow search` 將標籤字典中的概念、標題、標題行、內文和屬性用 AND、OR、NOT 組合搜尋，接著只開啟回答中要說明的筆記；現有屬性可提高查詢精確度。`tow-link`、`tow-merge`、`tow-ingest` 和 `tow-review` 也用同一個 `tow search` 尋找筆記。完整慣例請見 [docs/methodology.md](../docs/methodology.md)。
 
 TOW 會將十二個工作流程安裝至本機代理宿主。vault 專用流程管理 Obsidian 筆記；在專案中，`tow-query` 會同時搜尋已連接的 vault 和目前專案，`tow-send-vault` 則在核准後將選取內容建立為新的 vault 筆記。專案標籤和雜湊儲存在專案 `.tow/` 中繼資料中，不會修改專案文件。
 
@@ -29,7 +29,7 @@ TOW 會將十二個工作流程安裝至本機代理宿主。vault 專用流程�
 TOW 使用 Tag Ontology CLI 查詢標籤，以及驗證／管理字典。搭配安裝 [Obsidian 的 Tag Ontology 外掛程式](https://github.com/NamhyeonKo/obsidian-tag-ontology)（[社群外掛程式頁面](https://community.obsidian.md/plugins/tag-ontology)），即可透過圖形視覺化探索你所管理的標籤階層及關係。
 
 ```text
-tag-ontology@0.3.1        字典檢查、查詢、編輯、筆記解析
+tag-ontology@0.3.2        字典檢查、查詢、編輯、筆記解析
       ▲  npx tag-ontology … --json
 tow (this plugin)         vault 慣例檢查、技能
       ▲  Claude Code / Codex / Antigravity
@@ -144,14 +144,14 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 
 ## CLI 與設定檢查
 
-輔助程式使用 `npx --yes tag-ontology@0.3.1`；npm 會在需要時取得該確切版本。手動執行輔助程式指令時，請使用已安裝的 `scripts/tow.py` 路徑。慣例中的名稱 `tow` 是該路徑的簡寫。
+輔助程式使用 `npx --yes tag-ontology@0.3.2`；npm 會在需要時取得該確切版本。手動執行輔助程式指令時，請使用已安裝的 `scripts/tow.py` 路徑。慣例中的名稱 `tow` 是該路徑的簡寫。
 
-TOW 0.5.9 和 `tag-ontology` 0.3.1 都沒有 `doctor` 指令。請先執行：
+TOW 0.5.10 和 `tag-ontology` 0.3.2 都沒有 `doctor` 指令。請先執行：
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.3.1 --version
+npx --yes tag-ontology@0.3.2 --version
 ```
 
 TOW 的 `lint` 僅應針對已採用的 TOW 中繼資料執行；字典檢查僅適用於已初始化的本體功能。缺少選用的中繼資料／字典不代表安裝失敗。接著依照[設定檢查](../docs/installation.md#check-the-setup)，驗證已安裝的外掛程式、設定、字典及筆記標籤。`lint` 涵蓋分類欄位及標籤數量；check 技能則另外逐篇檢視筆記格式／參照。單憑 lint 沒有問題的結果，無法涵蓋每一項技能檢查。
