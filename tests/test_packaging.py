@@ -73,6 +73,7 @@ def test_shared_search_policy_is_named_consistently() -> None:
     for skill in ("tow-link", "tow-merge", "tow-ingest", "tow-review"):
         text = (ROOT / "skills" / skill / "SKILL.md").read_text()
         assert "shared search policy" in text and "CLI-first" not in text, skill
+        assert "one `tow search` query" in text, skill
     assert "How many notes to open is each skill's own rule" in (ROOT / "docs/methodology.md").read_text()
 
 

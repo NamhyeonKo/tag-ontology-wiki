@@ -19,7 +19,7 @@ Wrap existing mentions of other notes in `[[wikilinks]]` for navigation. Read th
 ## Workflow
 
 1. **Scope.** Use the note, folder/domain or vault the user names; ask if unspecified.
-2. **Target index.** Discover actual filenames and any existing aliases across the eligible vault using the shared search policy. No frontmatter is required. Apply adopted workflow exclusions and private/ignored rules under the conventions; default PARA/support folder names do not exclude custom-vault notes. Targets may be outside the edit scope, but stay inside the authorized read scope.
+2. **Target index.** Discover actual filenames and any existing aliases across the eligible vault using the shared search policy: one `tow search` query such as `tow search '"<title>" OR "<alias>"'`, which applies the scope and ignore rules and lists notes mentioning the target in titles, headings or text; host file search only for what it lists under `unavailable`. No frontmatter is required. Apply adopted workflow exclusions and private/ignored rules under the conventions; default PARA/support folder names do not exclude custom-vault notes. Targets may be outside the edit scope, but stay inside the authorized read scope.
 3. **Scan.** Apply the matching rules below. Inspect existing wikilinks too: an alias-only target is broken and needs a canonical filename with its original display text. Report missing targets for the user's remove/create/keep decision; do not create a note automatically.
 4. **Plan and wait for approval.** Show the table below, then separate skipped, ambiguous and missing-target lists.
 5. **Apply selected positions only.** Wrap or correct targets, preserve displayed words/metadata, and follow the adopted date policy without adding new metadata fields.
