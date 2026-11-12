@@ -1,12 +1,30 @@
-# Release readiness: TOW 0.5.9
+# Release readiness: TOW 0.5.10
 
-## Release scope (0.5.9)
+## Release scope (0.5.10)
+
+- `tow-review`, `tow-link`, `tow-merge` and `tow-ingest` name one `tow search` query with an example for their step. In 0.5.9 they only pointed to the shared search policy, and models that did not open the conventions searched with grep or find.
+- `tow lookup` lists a current project without `.tow/config.json` under `unavailable`, like `tow search`.
+- CONTRIBUTING lists three model checks for releases that change `tow search` or `tow-query`.
+- README editions say the four skills use the same `tow search`. Pin `tag-ontology@0.3.2` (published: `add` writes `facet` after `related`); update host manifests, Python metadata, lockfile, README editions and the installation guide to 0.5.10.
+
+## Candidate verification (0.5.10) — 2026-11-12
+
+- Local checks: Ruff lint/format and strict Pyright pass; `pytest` 403 passed with 10 real-CLI tests skipped; all 413 pass with `TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.3.2"`.
+- Installed 0.5.9 on Claude Code, Codex and Antigravity matched `main` byte for byte. Installed-skill runs of five skills on all three hosts stopped for approval and wrote nothing (vault copies). Flash and Sonnet used grep or find in the four skills above; Luna used `tow search`.
+- With the candidate skills, Gemini 3.8 Flash used `tow search` in all four (`category:ai/rag`, `"Knowledge Graph" OR "지식그래프" OR "KG"`, `text:"[[Graph RAG" OR text:"[[Light RAG"`, `"GraphRAG" OR "Leiden" OR "HNSW"`); its link run still opened an excluded `archive/` note when locating mentions.
+- Not run: Claude Sonnet 5.5 on the candidate skills (quota exhausted), and installed-host checks after release.
+
+---
+
+## Historical release readiness: TOW 0.5.9
+
+### Release scope (0.5.9)
 
 - Every `tow search` warning carries the same `retry`, with all repairs applied. In 0.5.8 each `unknown-tag` warning fixed only its own tag, so a query with two misspelled tags had no retry that ran clean as-is.
 - From a project without `.tow/config.json`, `tow search` lists it under `unavailable` (only the vault was searched) instead of skipping it silently; `tow-query` covers it with host file search when the request includes the project.
 - Update `tow-query` and the conventions; update host manifests, Python metadata, lockfile, README editions and the installation guide to 0.5.9. Keep `tag-ontology@0.3.1` pinned.
 
-## Candidate verification (0.5.9) — 2026-11-12
+### Candidate verification (0.5.9) — 2026-11-12
 
 - Local checks: Ruff lint/format and strict Pyright pass; `pytest` 403 passed with 10 real-CLI tests skipped.
 - On the maintainer's vault from an unregistered project: `tag:#ontolgy OR tag:#second-brian` gives two warnings with the same `retry`, `tag:ontology OR tag:second-brain`, which runs with no warning and finds the note; the project is listed under `unavailable`. Run inside the vault, nothing is added.

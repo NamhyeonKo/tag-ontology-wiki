@@ -10,7 +10,7 @@
 
 用于连接 Obsidian vault 与编码项目的智能体技能插件：按概念搜索两处内容，在项目 `.tow/` 元数据中为文档添加标签，并将选定内容发送为新的 vault 笔记。项目文档不会被修改；vault 维护工作会保留内容。可在 Claude Code、Codex 和 Google Antigravity 中使用。
 
-> **版本：** 0.5.9。
+> **版本：** 0.5.10。
 
 ## 概述
 
@@ -20,7 +20,7 @@
 - frontmatter 中的**分类字段**：`category`、`type`、`status`、`kind`。
 - **概念标签本体**：包含别名及上下位关系的标签词典。
 
-设置时可选择 PARA，也可保留自己的文件夹。普通搜索和正文操作不要求使用词典或先清理元数据。查询通过一次 `tow search` 将标签词典中的概念、标题、标题行、正文和属性按 AND、OR、NOT 组合搜索，然后只打开回答中要说明的笔记；现有属性可提高查询精度。完整约定见 [docs/methodology.md](../docs/methodology.md)。
+设置时可选择 PARA，也可保留自己的文件夹。普通搜索和正文操作不要求使用词典或先清理元数据。查询通过一次 `tow search` 将标签词典中的概念、标题、标题行、正文和属性按 AND、OR、NOT 组合搜索，然后只打开回答中要说明的笔记；现有属性可提高查询精度。`tow-link`、`tow-merge`、`tow-ingest` 和 `tow-review` 也用同一个 `tow search` 查找笔记。完整约定见 [docs/methodology.md](../docs/methodology.md)。
 
 TOW 为本地智能体宿主安装十二项工作流程。vault 专用流程管理 Obsidian 笔记；在项目中，`tow-query` 会同时搜索已连接的 vault 和当前项目，`tow-send-vault` 则在批准后将选定内容创建为新的 vault 笔记。项目标签和哈希保存在项目 `.tow/` 元数据中，不会修改项目文档。
 
@@ -29,7 +29,7 @@ TOW 为本地智能体宿主安装十二项工作流程。vault 专用流程管�
 TOW 使用 Tag Ontology CLI 查询标签并验证、管理词典。同时安装 [Obsidian 的 Tag Ontology 插件](https://github.com/NamhyeonKo/obsidian-tag-ontology)（[社区插件页面](https://community.obsidian.md/plugins/tag-ontology)），即可通过图谱直观查看所管理标签的层级和关系。
 
 ```text
-tag-ontology@0.3.1        词典检查、查询、编辑和笔记解析
+tag-ontology@0.3.2        词典检查、查询、编辑和笔记解析
       ▲  npx tag-ontology … --json
 tow（本插件）             vault 约定检查、技能
       ▲  Claude Code / Codex / Antigravity
@@ -144,14 +144,14 @@ agy plugin install https://github.com/NamhyeonKo/tag-ontology-wiki
 
 ## CLI 与设置检查
 
-辅助脚本使用 `npx --yes tag-ontology@0.3.1`；npm 在需要时下载该确切版本。手动运行辅助命令时，使用已安装的 `scripts/tow.py` 路径。约定中的 `tow` 是该路径的简写。
+辅助脚本使用 `npx --yes tag-ontology@0.3.2`；npm 在需要时下载该确切版本。手动运行辅助命令时，使用已安装的 `scripts/tow.py` 路径。约定中的 `tow` 是该路径的简写。
 
-TOW 0.5.9 和 `tag-ontology` 0.3.1 均没有 `doctor` 命令。先运行：
+TOW 0.5.10 和 `tag-ontology` 0.3.2 均没有 `doctor` 命令。先运行：
 
 ```bash
 python3 --version
 node --version
-npx --yes tag-ontology@0.3.1 --version
+npx --yes tag-ontology@0.3.2 --version
 ```
 
 仅对采用 TOW 元数据的笔记运行 TOW `lint`；词典检查仅适用于已初始化的本体功能。缺少未选用的可选元数据或词典，并不表示安装失败。然后按[设置检查](../docs/installation.md#check-the-setup)验证插件、配置、词典和笔记标签。`lint` 检查分类字段和标签数量，检查技能还逐篇检查格式与引用。仅有 lint 通过并不代表完成了技能的全部检查。

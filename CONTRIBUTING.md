@@ -26,10 +26,10 @@ These are the checks used by [CI](.github/workflows/ci.yml). The runtime helper 
 
 ### Real CLI integration
 
-The helper calls `npx --yes tag-ontology@0.3.1`. The exact version makes the downloaded executable reproducible. It turns npm's fetch retries off (unless you set `npm_config_fetch_retries`), so an unreachable registry fails in about a second. Set `TOW_TAG_ONTOLOGY` to run integration tests:
+The helper calls `npx --yes tag-ontology@0.3.2`. The exact version makes the downloaded executable reproducible. It turns npm's fetch retries off (unless you set `npm_config_fetch_retries`), so an unreachable registry fails in about a second. Set `TOW_TAG_ONTOLOGY` to run integration tests:
 
 ```bash
-TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.3.1" uv run pytest
+TOW_TAG_ONTOLOGY="npx --yes tag-ontology@0.3.2" uv run pytest
 ```
 
 You can also point it at a local build, for example `TOW_TAG_ONTOLOGY="node /absolute/path/to/cli.js"`. Without this variable, real CLI integration tests are skipped. Tests copy the [synthetic fixture vault](tests/fixtures/vault) into temporary directories; do not use a personal vault as a test fixture. npm may download the pinned package and write its cache.
