@@ -10,7 +10,7 @@
 
 Obsidian vault와 코딩 프로젝트를 연결해 개념으로 검색하고, project `.tow/` 메타데이터로 문서에 태그를 붙이며, 선택한 내용을 새 vault 노트로 보내는 에이전트 스킬 플러그인입니다. 프로젝트 문서는 수정하지 않으며, vault 유지 관리 작업은 내용을 보존합니다. Claude Code·Codex·Google Antigravity에서 실행됩니다.
 
-> **버전:** 0.5.8.
+> **버전:** 0.5.9.
 
 ## 개요
 
@@ -146,7 +146,7 @@ vault 유지 관리만 할 때는 vault를 호스트 작업 폴더로 엽니다.
 
 helper가 사용하는 명령은 `npx --yes tag-ontology@0.3.1`입니다. 필요할 때 npm으로 해당 버전을 내려받습니다. 직접 실행할 때는 설치된 `scripts/tow.py` 경로를 사용합니다. 규약 문서의 `tow`는 이 경로를 줄여 쓴 이름입니다.
 
-TOW 0.5.8과 `tag-ontology` 0.3.1 모두 `doctor` 명령은 없습니다. 먼저 다음을 확인합니다.
+TOW 0.5.9와 `tag-ontology` 0.3.1 모두 `doctor` 명령은 없습니다. 먼저 다음을 확인합니다.
 
 ```bash
 python3 --version

@@ -235,3 +235,4 @@ Same hosts as the 0.5.7 runs, one everyday request per model, with the released 
 - No run opened or grepped the tag dictionary.
 - Each `unknown-tag` warning's `retry` fixes only its own tag, so with two misspelled tags neither retry runs clean as-is; the models merged them by hand.
 - From an unregistered project, `tow search` searches only the vault without saying the project was skipped; one Sonnet run explained the skip with a wrong reason ("you named the vault").
+- 0.5.9 rerun of both gaps on the candidate: with one shared `retry` for all warnings, Flash (61 s), Luna (61 s) and Sonnet (32 s) each reran it as-is and found the note; Sonnet's second-brain request (34 s) reported the unregistered project from `unavailable` instead of guessing a reason.

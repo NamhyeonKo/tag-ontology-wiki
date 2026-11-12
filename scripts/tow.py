@@ -1333,12 +1333,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.command in ("lookup", "search"):
             cfg = read_config(root)
             project = resolve_project(Path.cwd(), root)
+            unregistered: Path | None = None
             if (
                 project is not None
                 and tow_kind(project) != "project"
                 and not (project / ".tow" / "config.json").is_file()
             ):
-                project = None
+                unregistered, project = project, None
             if args.command == "lookup":
                 show_args = [args.tag, "--notes", "--json"]
                 if args.exact:
@@ -1352,7 +1353,7 @@ def main(argv: list[str] | None = None) -> int:
                 return cmd_lookup(root, cfg, project, args.tag, args.exact, vault_args, skipped)
             query = search_query if search_query is not None else args.query
             vault_args = ontology_args("show", ["--notes", "--json"], str(root), cfg, scope_excludes(root, cfg, []))
-            return cmd_search(root, cfg, project, query, vault_args)
+            return cmd_search(root, cfg, project, query, vault_args, unregistered)
         if args.command == "verify-body":
             return cmd_verify_body(root, args.before, args.after)
         cfg = read_config(root)
