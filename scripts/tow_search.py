@@ -546,8 +546,18 @@ def _add_unavailable(unavailable: list[str], item: str) -> None:
         unavailable.append(item)
 
 
-def cmd_search(vault: Path, cfg: Mapping[str, str], project: Path | None, query: str, vault_args: list[str]) -> int:
-    """Evaluate a query over visible vault notes and documents in the current TOW project."""
+def cmd_search(
+    vault: Path,
+    cfg: Mapping[str, str],
+    project: Path | None,
+    query: str,
+    vault_args: list[str],
+    unregistered: Path | None = None,
+) -> int:
+    """Evaluate a query over visible vault notes and documents in the current TOW project.
+
+    `unregistered` is the current project when it has no TOW config; it is reported as not searched.
+    """
     from tow import PARA as TOW_PARA
     from tow import scan as scan_notes
     from tow import scope_is_empty
@@ -557,6 +567,11 @@ def cmd_search(vault: Path, cfg: Mapping[str, str], project: Path | None, query:
     scope = [cfg[key] for key in TOW_PARA if (vault / cfg[key]).is_dir()] if cfg["scope"] == "para" else ["."]
     candidates = vault_candidates(vault, cfg)
     unavailable = list(candidates.unavailable)
+    if unregistered is not None:
+        unavailable.append(
+            f"project: {unregistered} has no .tow/config.json, so only the vault was searched; "
+            "if the request covers this project, list its files with host file search"
+        )
     vault_skipped = (
         "search scope is empty (no PARA folders); no vault notes were searched" if scope_is_empty(vault, cfg) else None
     )
@@ -638,6 +653,7 @@ def cmd_search(vault: Path, cfg: Mapping[str, str], project: Path | None, query:
         return matches
 
     concept_cache: dict[tuple[str, bool], dict[tuple[str, str], str]] = {}
+    repaired_node = node  # every unknown-tag repair, so one retry fixes them all
     warning_values: set[str] = set()
     for term in terms:
         if term.field == "tag" or term.field is None:
@@ -694,7 +710,7 @@ def cmd_search(vault: Path, cfg: Mapping[str, str], project: Path | None, query:
                     replacement_term = (
                         Term("tag", similar, term.exact) if similar is not None else Term(None, term.value)
                     )
-                    repaired = render(_replace_tag(node, term.value, replacement_term))
+                    repaired_node = _replace_tag(repaired_node, term.value, replacement_term)
                     if similar is not None:
                         message = (
                             f"Unknown tag '{term.value}'. Similar dictionary tags: {', '.join(labels)}. "
@@ -705,8 +721,12 @@ def cmd_search(vault: Path, cfg: Mapping[str, str], project: Path | None, query:
                             f"Unknown tag '{term.value}'. No similar dictionary tag; retry searches '{term.value}' "
                             "as a word in titles, headings and text."
                         )
-                    warnings.append({"code": "unknown-tag", "message": message, "retry": repaired})
+                    warnings.append({"code": "unknown-tag", "message": message, "retry": ""})
                     warning_values.add(term.value)
+    if repaired_node is not node:
+        retry = render(repaired_node)
+        for warning in warnings:
+            warning["retry"] = retry
 
     needs_fields = any(term.field in {"category", "type", "status", "kind"} for term in terms)
     metadata: dict[str, dict[str, Any]] = {}

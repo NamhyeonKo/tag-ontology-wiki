@@ -180,6 +180,52 @@ def test_search_unknown_tag_warns_with_cli_suggestions(
     assert suggestion_calls == ["ontolgy"]
 
 
+def test_search_unknown_tags_share_one_retry_that_fixes_them_all(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = make_vault(tmp_path)
+    fake_cli(tmp_path, monkeypatch, {"ok": True, "notes": []})
+    similar = {"ragg": "rag", "grph": None}
+
+    def run_suggest(arguments: list[str], capture: bool) -> subprocess.CompletedProcess[str]:
+        tag = similar[arguments[1]]
+        suggestions = [{"tag": tag}] if tag else []
+        return subprocess.CompletedProcess(
+            args=arguments, returncode=0, stdout=json.dumps({"suggestions": suggestions}), stderr=""
+        )
+
+    monkeypatch.setattr(tow_search, "run_cli", run_suggest)
+    monkeypatch.chdir(root)
+    capsys.readouterr()
+
+    assert tow.main(["--root", str(root), "search", "(tag:ragg OR tag:grph) title:x OR"]) == 1
+
+    warnings = json.loads(capsys.readouterr().out)["warnings"]
+    assert [warning["code"] for warning in warnings] == ["dangling-operator", "unknown-tag", "unknown-tag"]
+    assert {warning["retry"] for warning in warnings} == {"(tag:rag OR grph) title:x"}
+
+
+def test_search_reports_an_unregistered_project_as_not_searched(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = make_vault(tmp_path)
+    write_note(root, "projects/graph.md", "# Graph\n")
+    fake_cli(tmp_path, monkeypatch, {"ok": True, "notes": []})
+    project = tmp_path / "repo"
+    project.mkdir()
+    monkeypatch.chdir(project)
+    capsys.readouterr()
+
+    assert tow.main(["--root", str(root), "search", "title:graph"]) == 0
+
+    output = json.loads(capsys.readouterr().out)
+    assert [result["source"] for result in output["results"]] == ["vault"]
+    assert output["unavailable"] == [
+        f"project: {project.resolve()} has no .tow/config.json, so only the vault was searched; "
+        "if the request covers this project, list its files with host file search"
+    ]
+
+
 def test_search_unknown_tag_without_similar_tags_retries_as_a_bare_term(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -284,7 +330,14 @@ def test_search_passes_remaining_arguments_as_one_query(
     capsys.readouterr()
     observed: list[str] = []
 
-    def record_query(vault: Path, cfg: dict[str, str], project: Path | None, query: str, vault_args: list[str]) -> int:
+    def record_query(
+        vault: Path,
+        cfg: dict[str, str],
+        project: Path | None,
+        query: str,
+        vault_args: list[str],
+        unregistered: Path | None = None,
+    ) -> int:
         observed.append(query)
         return 0
 
