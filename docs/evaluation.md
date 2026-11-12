@@ -236,3 +236,18 @@ Same hosts as the 0.5.7 runs, one everyday request per model, with the released 
 - Each `unknown-tag` warning's `retry` fixes only its own tag, so with two misspelled tags neither retry runs clean as-is; the models merged them by hand.
 - From an unregistered project, `tow search` searches only the vault without saying the project was skipped; one Sonnet run explained the skip with a wrong reason ("you named the vault").
 - 0.5.9 rerun of both gaps on the candidate: with one shared `retry` for all warnings, Flash (61 s), Luna (61 s) and Sonnet (32 s) each reran it as-is and found the note; Sonnet's second-brain request (34 s) reported the unregistered project from `unavailable` instead of guessing a reason.
+
+## Installed skills — 0.5.9 on three hosts (2026-11-12)
+
+Natural requests without naming a skill file, so each host chose the installed skill: one query on the maintainer's vault and four editing skills (`tow-review`, `tow-link`, `tow-merge`, `tow-ingest`) on per-host Git copies with two inbox fixtures.
+
+| | Gemini 3.8 Flash | GPT-6 Luna | Claude Sonnet 5.5 |
+| --- | --- | --- | --- |
+| Skill chosen | all five | all five | query, review (the other three hit an API quota limit) |
+| `tow search` in query | yes | yes | yes |
+| `tow search` in the four editing skills | no (find, grep, Python) | review, link, ingest | no (Grep, Glob) |
+| Files written | none; every editing skill stopped for approval | none | none |
+
+- The four skills pointed only to the shared search policy; 0.5.10 names a `tow search` query in each. With those skills, Flash used `tow search` in all four; Sonnet could not be rerun (quota).
+- When a run was given both the vault copy and the repository as workspace folders, Antigravity ran commands from the repository, resolved the real vault, and then looked through unrelated local folders while reconciling the two. No file was changed. Folder access outside the vault is a host permission matter; later runs gave only the copy.
+
