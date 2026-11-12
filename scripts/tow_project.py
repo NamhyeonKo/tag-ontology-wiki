@@ -527,6 +527,14 @@ def lookup_results(
     return results, unavailable
 
 
+def unregistered_message(project: Path) -> str:
+    """The `unavailable` entry for a current project without TOW config."""
+    return (
+        f"project: {project} has no .tow/config.json, so only the vault was searched; "
+        "if the request covers this project, list its files with host file search"
+    )
+
+
 def cmd_lookup(
     vault: Path,
     cfg: Mapping[str, str],
@@ -535,9 +543,15 @@ def cmd_lookup(
     exact: bool,
     vault_args: list[str],
     vault_skipped: str | None = None,
+    unregistered: Path | None = None,
 ) -> int:
-    """Print one concept's matching notes from the connected vault and current project."""
+    """Print one concept's matching notes from the connected vault and current project.
+
+    `unregistered` is the current project when it has no TOW config; it is reported as not searched.
+    """
     results, unavailable = lookup_results(vault, cfg, project, tag, exact, vault_args, vault_skipped)
+    if unregistered is not None:
+        unavailable.append(unregistered_message(unregistered))
     vault_known = _known_tag(_read_object(vault.resolve() / cfg["tagDictionary"]), tag)
     project_known = project is not None and tag_is_known(vault, cfg, project, tag)
     answered = (
