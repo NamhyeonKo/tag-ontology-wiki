@@ -12,6 +12,12 @@ An agent skill plugin for working across an Obsidian vault and a coding project:
 
 > **Version:** 0.5.10.
 
+## Why TOW?
+
+TOW began as a way to automate Inbox organization in my PARA-based Obsidian vault. I wanted to keep the knowledge I had written and reviewed while using the same documents with AI agents for search and maintenance.
+
+I was concerned that extracting and restructuring source material with an LLM could change the author's intent and context. The goal was to accumulate and use knowledge while preserving the original documents and their existing organization. From Inbox organization, TOW grew to include search, tag management, and integration with external projects.
+
 ## Overview
 
 Ordinary maintenance preserves prose, math/code contents and table values; only selected frontmatter and formatting change. Optional post-curation follows your own templates and explicit operation choices. TOW works with existing vault layouts, including notes without frontmatter. Its optional tag-first LLM Wiki recipe has three independently selectable layers:
