@@ -12,6 +12,12 @@ Un plugin de habilidades para agentes que conecta una bóveda de Obsidian con un
 
 > **Versión:** 0.5.10.
 
+## ¿Por qué creé TOW?
+
+TOW nació para automatizar la organización del Inbox de mi bóveda de Obsidian basada en PARA. Quería conservar el conocimiento que había escrito y revisado, y utilizar esos mismos documentos con agentes de IA para buscar y gestionar la información.
+
+Me preocupaba que extraer y reestructurar el contenido original con un LLM pudiera alterar la intención y el contexto de su autor. El objetivo era acumular y utilizar conocimiento conservando los documentos originales y su estructura de clasificación. A partir de la organización del Inbox, TOW se amplió para incluir búsquedas, gestión de etiquetas e integración con proyectos externos.
+
 ## Descripción general
 
 El mantenimiento habitual conserva la prosa, el contenido de las fórmulas y del código, y los valores de las tablas; solo cambia el frontmatter y el formato seleccionados. La curación posterior opcional sigue tus propias plantillas y las operaciones que elijas explícitamente. TOW funciona con las estructuras de bóveda existentes, incluidas las notas sin frontmatter. Su propuesta opcional de LLM Wiki centrada en etiquetas tiene tres capas que se pueden elegir de forma independiente:

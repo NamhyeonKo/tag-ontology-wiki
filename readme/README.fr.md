@@ -12,6 +12,12 @@ Un plugin de compétences pour agents qui relie un coffre Obsidian à un projet 
 
 > **Version :** 0.5.10.
 
+## Pourquoi avoir créé TOW ?
+
+TOW est né de l'automatisation du classement de l'Inbox dans mon coffre Obsidian organisé selon PARA. Je souhaitais conserver les connaissances que j'avais rédigées et relues, tout en utilisant ces mêmes documents avec des agents IA pour la recherche et la gestion.
+
+Je craignais que l'extraction et la restructuration du contenu original par un LLM puissent altérer l'intention et le contexte de son auteur. L'objectif était d'accumuler et d'utiliser des connaissances en préservant les documents originaux et leur structure de classement. À partir du classement de l'Inbox, TOW s'est étendu à la recherche, à la gestion des tags et à l'intégration avec des projets externes.
+
 ## Présentation
 
 La maintenance courante préserve le texte, le contenu des formules et du code, ainsi que les valeurs des tableaux ; seuls les éléments de frontmatter et de mise en forme sélectionnés changent. La curation ultérieure facultative suit vos propres modèles et les opérations que vous choisissez explicitement. TOW fonctionne avec les structures de coffre existantes, y compris les notes sans frontmatter. Sa méthode facultative de LLM Wiki centrée sur les tags comporte trois couches sélectionnables indépendamment :
